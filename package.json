@@ -15,6 +15,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.22.0",
+    "@tailwindcss/postcss": "^4.1.4",
     "@types/react": "^19.0.10",
     "@types/react-dom": "^19.0.4",
     "@vitejs/plugin-react": "^4.3.4",
@@ -25,7 +26,6 @@
     "globals": "^16.0.0",
     "postcss": "^8.5.3",
     "tailwindcss": "^4.1.4",
-    "tailwindcss-cli": "^0.1.2",
     "vite": "^6.3.1"
   }
 }
