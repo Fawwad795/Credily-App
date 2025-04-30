@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 
 const Login = () => {
   const [phone, setPhone] = useState('');
+  const [countryCode, setCountryCode] = useState('+92'); // Default country code
   const [password, setPassword] = useState('');
   const [isDarkMode, setIsDarkMode] = useState(false);
 
@@ -26,8 +27,21 @@ const Login = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    console.log('Login submitted:', { phone, password });
+    console.log('Login submitted:', { phone: `${countryCode} ${phone}`, password });
   };
+
+  const countries = [
+    { code: '+1', flag: '🇺🇸' },
+    { code: '+44', flag: '🇬🇧' },
+    { code: '+91', flag: '🇮🇳' },
+    { code: '+92', flag: '🇵🇰' },
+    { code: '+61', flag: '🇦🇺' },
+    { code: '+81', flag: '🇯🇵' },
+    { code: '+49', flag: '🇩🇪' },
+    { code: '+33', flag: '🇫🇷' },
+    { code: '+86', flag: '🇨🇳' },
+    { code: '+7', flag: '🇷🇺' },
+  ];
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-white dark:bg-gray-900">
@@ -40,14 +54,27 @@ const Login = () => {
         </h2>
         <div className="mb-4">
           <label className="block text-gray-800 dark:text-gray-300 font-medium mb-2">Phone Number</label>
-          <input
-            type="tel"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            required
-            className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-400 dark:focus:ring-emerald-600 dark:bg-gray-700 dark:text-gray-200"
-            placeholder="Enter your phone number"
-          />
+          <div className="flex">
+            <select
+              value={countryCode}
+              onChange={(e) => setCountryCode(e.target.value)}
+              className="px-4 py-2 border rounded-l-lg focus:outline-none focus:ring-2 focus:ring-teal-400 dark:focus:ring-emerald-600 dark:bg-gray-700 dark:text-gray-200"
+            >
+              {countries.map((country) => (
+                <option key={country.code} value={country.code}>
+                  {country.flag} {country.code}
+                </option>
+              ))}
+            </select>
+            <input
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              required
+              className="w-full px-4 py-2 border rounded-r-lg focus:outline-none focus:ring-2 focus:ring-teal-400 dark:focus:ring-emerald-600 dark:bg-gray-700 dark:text-gray-200"
+              placeholder="Enter your phone number"
+            />
+          </div>
         </div>
         <div className="mb-6">
           <label className="block text-gray-800 dark:text-gray-300 font-medium mb-2">Password</label>
@@ -73,12 +100,12 @@ const Login = () => {
           </a>
         </p>
       </form>
-      <button
+      <div
         onClick={toggleDarkMode}
-        className="absolute top-4 right-4 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 px-4 py-2 rounded-lg shadow-md hover:bg-gray-300 dark:hover:bg-gray-600 transition duration-300"
+        className="absolute top-4 right-4 cursor-pointer text-gray-800 dark:text-gray-200 text-2xl"
       >
-        {isDarkMode ? 'Light Mode' : 'Dark Mode'}
-      </button>
+        {isDarkMode ? <FaSun /> : <FaMoon />}
+      </div>
     </div>
   );
 };
