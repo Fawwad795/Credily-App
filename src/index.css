@@ -1,1 +1,8 @@
 @import "tailwindcss";
+.home-grid{
+    display:grid;
+    grid-template-columns: 1fr 3fr 1fr;
+}
+.color{
+    background-color: white;
+}
