@@ -1,6 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import MessagingPage from './MessagingPage';
+import MessagingPage from './Messages';
 import Signup from './Signup';
 import SearchPage from './SearchPage'; // Import SearchPage
 import Login from './Login';

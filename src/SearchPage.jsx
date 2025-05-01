@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-const SearchPage = () => {
+const SearchSlider = ({ isOpen, onClose }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [results, setResults] = useState([]);
 
@@ -13,14 +13,24 @@ const SearchPage = () => {
   };
 
   return (
-    <div className="flex flex-col items-center min-h-screen bg-gray-100">
+    <div
+      className={`fixed top-0 right-0 h-full w-1/3 bg-white shadow-lg transform ${
+        isOpen ? 'translate-x-0' : 'translate-x-full'
+      } transition-transform duration-300 z-50`}
+    >
       {/* Header */}
-      <header className="bg-teal-500 text-white py-4 px-6 w-full shadow-md">
-        <h1 className="text-2xl font-bold text-center">Search Accounts</h1>
-      </header>
+      <div className="p-4 border-b flex justify-between items-center">
+        <h2 className="text-lg font-bold">Search Accounts</h2>
+        <button
+          onClick={onClose} // Close the slider
+          className="text-gray-500 hover:text-gray-700"
+        >
+          Close
+        </button>
+      </div>
 
       {/* Search Input */}
-      <div className="mt-8 w-full max-w-md">
+      <div className="p-4">
         <input
           type="text"
           value={searchQuery}
@@ -37,7 +47,7 @@ const SearchPage = () => {
       </div>
 
       {/* Search Results */}
-      <div className="mt-8 w-full max-w-md">
+      <div className="p-4">
         {results.length > 0 ? (
           <ul className="bg-white shadow-md rounded-lg">
             {results.map((account) => (
@@ -60,4 +70,4 @@ const SearchPage = () => {
   );
 };
 
-export default SearchPage;
+export default SearchSlider;
