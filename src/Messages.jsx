@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom'; // Import Link for navigation
+import Nav from './Nav'; // Import the Nav component
 
 const MessagingPage = () => {
   const [chats, setChats] = useState([]); // List of chats
@@ -57,87 +58,87 @@ const MessagingPage = () => {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-gray-100">
-      {/* Header */}
-      <header className="bg-teal-500 text-white py-4 px-6 flex justify-between items-center">
-        <h1 className="text-xl font-bold">Messages</h1>
-        <Link
-          to="/home"
-          className="bg-white text-teal-500 px-4 py-2 rounded-lg shadow-md hover:bg-gray-100 transition duration-300"
-        >
-          Back to Home
-        </Link>
-      </header>
+    <div className="flex h-screen bg-gray-100">
+      {/* Left Sidebar (Navbar) */}
+      <Nav />
 
       {/* Main Content */}
-      <div className="flex flex-1">
-        {/* Sidebar */}
-        <div className="w-1/3 bg-white border-r overflow-y-auto">
-          <h2 className="text-xl font-bold p-4 border-b">Chats</h2>
-          <ul>
-            {chats.map((chat) => (
-              <li
-                key={chat.id}
-                onClick={() => handleSelectChat(chat)}
-                className={`p-4 cursor-pointer hover:bg-gray-200 ${
-                  selectedChat?.id === chat.id ? 'bg-gray-200' : ''
-                }`}
-              >
-                {chat.name}
-              </li>
-            ))}
-          </ul>
-        </div>
+      <div className="flex-1 flex flex-col ml-64"> {/* Added `ml-64` to account for the navbar width */}
+        {/* Header */}
+        <header className="bg-teal-500 text-white py-4 px-6 flex justify-between items-center">
+          <h1 className="text-xl font-bold">Messages</h1>
+        </header>
 
-        {/* Chat Window */}
-        <div className="flex-1 flex flex-col">
-          {selectedChat ? (
-            <>
-              {/* Chat Header */}
-              <div className="p-4 border-b bg-white">
-                <h2 className="text-lg font-bold">{selectedChat.name}</h2>
-              </div>
-
-              {/* Messages */}
-              <div className="flex-1 p-4 overflow-y-auto">
-                {messages.map((message, index) => (
-                  <div
-                    key={index}
-                    className={`mb-2 p-2 rounded-lg ${
-                      message.sender === 'You'
-                        ? 'bg-teal-100 self-end'
-                        : 'bg-gray-300 self-start'
-                    }`}
-                  >
-                    <p className="text-sm font-bold">{message.sender}</p>
-                    <p>{message.content}</p>
-                    <p className="text-xs text-gray-500">{new Date(message.timestamp).toLocaleTimeString()}</p>
-                  </div>
-                ))}
-              </div>
-
-              {/* Message Input */}
-              <div className="p-4 border-t bg-white flex items-center">
-                <input
-                  type="text"
-                  value={messageInput}
-                  onChange={(e) => setMessageInput(e.target.value)}
-                  placeholder="Type a message..."
-                  className="flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-400"
-                />
-                <button
-                  onClick={handleSendMessage}
-                  className="ml-4 bg-teal-500 text-white px-4 py-2 rounded-lg hover:bg-teal-600 transition duration-300"
+        {/* Main Content */}
+        <div className="flex flex-1">
+          {/* Sidebar */}
+          <div className="w-1/3 bg-white border-r overflow-y-auto">
+            <h2 className="text-xl font-bold p-4 border-b">Chats</h2>
+            <ul>
+              {chats.map((chat) => (
+                <li
+                  key={chat.id}
+                  onClick={() => handleSelectChat(chat)}
+                  className={`p-4 cursor-pointer hover:bg-gray-200 ${
+                    selectedChat?.id === chat.id ? 'bg-gray-200' : ''
+                  }`}
                 >
-                  Send
-                </button>
+                  {chat.name}
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Chat Window */}
+          <div className="flex-1 flex flex-col">
+            {selectedChat ? (
+              <>
+                {/* Chat Header */}
+                <div className="p-4 border-b bg-white">
+                  <h2 className="text-lg font-bold">{selectedChat.name}</h2>
+                </div>
+
+                {/* Messages */}
+                <div className="flex-1 p-4 overflow-y-auto">
+                  {messages.map((message, index) => (
+                    <div
+                      key={index}
+                      className={`mb-2 p-2 rounded-lg ${
+                        message.sender === 'You'
+                          ? 'bg-teal-100 self-end'
+                          : 'bg-gray-300 self-start'
+                      }`}
+                    >
+                      <p className="text-sm font-bold">{message.sender}</p>
+                      <p>{message.content}</p>
+                      <p className="text-xs text-gray-500">{new Date(message.timestamp).toLocaleTimeString()}</p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Message Input */}
+                <div className="p-4 border-t bg-white flex items-center">
+                  <input
+                    type="text"
+                    value={messageInput}
+                    onChange={(e) => setMessageInput(e.target.value)}
+                    placeholder="Type a message..."
+                    className="flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-400"
+                  />
+                  <button
+                    onClick={handleSendMessage}
+                    className="ml-4 bg-teal-500 text-white px-4 py-2 rounded-lg hover:bg-teal-600 transition duration-300"
+                  >
+                    Send
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className="flex-1 flex items-center justify-center">
+                <p className="text-gray-500">Select a chat to start messaging</p>
               </div>
-            </>
-          ) : (
-            <div className="flex-1 flex items-center justify-center">
-              <p className="text-gray-500">Select a chat to start messaging</p>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
     </div>
