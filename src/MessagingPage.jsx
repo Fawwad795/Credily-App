@@ -62,7 +62,7 @@ const MessagingPage = () => {
       <header className="bg-teal-500 text-white py-4 px-6 flex justify-between items-center">
         <h1 className="text-xl font-bold">Messages</h1>
         <Link
-          to="/"
+          to="/home"
           className="bg-white text-teal-500 px-4 py-2 rounded-lg shadow-md hover:bg-gray-100 transition duration-300"
         >
           Back to Home
