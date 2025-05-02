@@ -32,7 +32,12 @@ const Signup = () => {
   return (
     <div
       className="min-h-screen grid grid-cols-2 bg-cover bg-center flex items-center justify-center"
-      style={{ backgroundImage: `url(${background})` }}
+      style={{
+        backgroundImage: `url(${background})`,
+        backgroundSize: '120%', // Scales the background image to 120% of its original size
+        backgroundRepeat: 'no-repeat', // Prevents the image from repeating
+        backgroundPosition: 'center', // Ensures the image is centered
+      }}
     >
       <div className="bg-opacity-50 p-8 rounded-lg w-full flex justify-center items-center flex-col  h-full ">
 <div className='flex flex-col justify-center items-start'>
