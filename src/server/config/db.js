@@ -9,17 +9,23 @@ const process = require("process");
 // Load environment variables
 dotenv.config();
 
-// MongoDB connection options
-const options = {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-};
-
 // Connect to MongoDB
 const connectDB = async () => {
   try {
-    const conn = await mongoose.connect(process.env.MONGODB_URI, options);
-    console.log(`MongoDB Connected: ${conn.connection.host}`);
+    // Ensure the URI uses the Credily database
+    let uri = process.env.MONGODB_URI;
+    if (!uri.includes("Credily")) {
+      // Add the Credily database name to the URI if it's not already there
+      uri = uri.includes("?")
+        ? uri.replace("?", "/Credily?")
+        : `${uri}/Credily`;
+    }
+
+    // Connect without deprecated options
+    const conn = await mongoose.connect(uri);
+    console.log(
+      `MongoDB Connected: ${conn.connection.host} (Database: ${conn.connection.name})`
+    );
     return conn;
   } catch (error) {
     console.error(`Error connecting to MongoDB: ${error.message}`);

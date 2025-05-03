@@ -3,30 +3,31 @@ import User from "../models/user.model.js";
 // Register a new user
 export const registerUser = async (req, res) => {
   try {
-    const { username, email, password, phoneNumber } = req.body;
+    const { phoneNumber, password } = req.body;
 
-    // Check if username already exists
-    const userExists = await User.findOne({ username });
-    if (userExists) {
+    if (!phoneNumber || !password) {
       return res.status(400).json({
         success: false,
-        message: "Username is already taken",
+        message: "Phone number and password are required",
       });
     }
 
-    // Check if email already exists
-    const emailExists = await User.findOne({ email });
-    if (emailExists) {
+    // Check if phone number already exists
+    const phoneExists = await User.findOne({ phoneNumber });
+    if (phoneExists) {
       return res.status(400).json({
         success: false,
-        message: "Email is already registered",
+        message: "Phone number is already registered",
       });
     }
 
-    // Create new user
+    // Generate a username based on phone number (just for initial account creation)
+    const username = `user_${Date.now().toString().slice(-6)}`;
+
+    // Create new user without requiring email
     const user = await User.create({
       username,
-      email,
+      // No email field - it's optional now
       password,
       phoneNumber,
     });
@@ -35,7 +36,6 @@ export const registerUser = async (req, res) => {
     const userData = {
       _id: user._id,
       username: user.username,
-      email: user.email,
       phoneNumber: user.phoneNumber,
       isVerified: user.isVerified,
     };
@@ -82,7 +82,6 @@ export const loginUser = async (req, res) => {
     const userData = {
       _id: user._id,
       username: user.username,
-      email: user.email,
       phoneNumber: user.phoneNumber,
       isVerified: user.isVerified,
     };
