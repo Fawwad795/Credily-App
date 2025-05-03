@@ -13,14 +13,22 @@ const userSchema = new mongoose.Schema(
     },
     email: {
       type: String,
-      required: [true, "Email is required"],
-      unique: true,
+      required: false, // Make email optional
+      // Remove the index definition here since we'll use schema.index() with sparse option
       trim: true,
       lowercase: true,
-      match: [
-        /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/,
-        "Please enter a valid email",
-      ],
+      validate: {
+        validator: function (v) {
+          // Only validate if email is provided
+          return (
+            v === undefined ||
+            v === null ||
+            v === "" ||
+            /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/.test(v)
+          );
+        },
+        message: (props) => `${props.value} is not a valid email!`,
+      },
     },
     password: {
       type: String,
@@ -30,8 +38,16 @@ const userSchema = new mongoose.Schema(
     },
     phoneNumber: {
       type: String,
+      required: [true, "Phone number is required"],
       unique: true,
-      sparse: true, // Allow null/undefined values to be unique
+      trim: true,
+      validate: {
+        validator: function (v) {
+          return /^\+\d{1,4}\s\d+$/.test(v);
+        },
+        message: (props) =>
+          `${props.value} is not a valid phone number! Format should be +[country code] [number]`,
+      },
     },
     profilePicture: {
       type: String,
@@ -64,10 +80,8 @@ const userSchema = new mongoose.Schema(
   }
 );
 
-// Index frequently queried fields
-userSchema.index({ username: 1 });
-userSchema.index({ email: 1 });
-userSchema.index({ phoneNumber: 1 });
+// Define the email index with sparse option - this is the only place we define the email index
+userSchema.index({ email: 1 }, { sparse: true, unique: true });
 
 // Pre-save middleware to hash password
 userSchema.pre("save", async function (next) {
