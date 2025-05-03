@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import background from "./background.png"; // Adjust the path if needed
+import background from "../assets/background.png"; // Updated path for new structure
 import { useNavigate, Link } from "react-router-dom";
 
 const Login = () => {

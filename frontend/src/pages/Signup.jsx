@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import background from "./background.png"; // adjust the path if needed
+import background from "../assets/background.png"; // Updated path to reference assets directory
 import { useNavigate } from "react-router-dom";
 
 const Signup = () => {
