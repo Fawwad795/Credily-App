@@ -1,3 +1,48 @@
+# Credily App
+
+This project has been restructured into separate frontend and backend directories.
+
+## Project Structure
+
+- `frontend/` - React frontend built with Vite
+- `backend/` - Node.js backend
+
+## Instructions After Pulling Changes
+
+After pulling the latest changes, follow these steps:
+
+### Frontend Setup
+
+1. Navigate to the frontend directory:
+   ```
+   cd frontend
+   ```
+2. Install dependencies:
+   ```
+   npm install
+   ```
+3. Start the development server:
+   ```
+   npm run dev
+   ```
+
+### Backend Setup
+
+1. Navigate to the backend directory:
+   ```
+   cd backend
+   ```
+2. Install dependencies:
+   ```
+   npm install
+   ```
+3. Start the backend server:
+   ```
+   npm start
+   ```
+
+## Original React + Vite Documentation
+
 # React + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
