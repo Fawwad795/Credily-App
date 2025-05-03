@@ -56,7 +56,7 @@ const Login = () => {
               <select
                 value={countryCode}
                 onChange={(e) => setCountryCode(e.target.value)}
-                className="px-4 py-2 border rounded-l-lg glass text-gray-800 focus:outline-none focus:ring-2 focus:ring-teal-400"
+                className="px-4 py-2 border rounded-l-lg glass text-gray-800 focus:outline-none focus:ring-2 focus:ring-teal-400 mr-2" // Added `mr-2` for spacing
               >
                 {countries.map((country) => (
                   <option key={country.code} value={country.code}>
