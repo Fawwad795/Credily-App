@@ -40,7 +40,7 @@ const Nav = () => {
       >
         <div className="h-full px-3 py-4 color overflow-y-auto bg-white dark:bg-gray-800">
           <ul className="space-y-2 font-medium">
-            <li>
+         <Link to ="/profile">   <li>
               <a
                 href="#"
                 className="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-green-100 dark:hover:bg-green-700 group"
@@ -58,7 +58,9 @@ const Nav = () => {
                 <span className="ms-3 text-gray-900">Profile</span>
               </a>
             </li>
+            </Link>
             <li>
+              
               <button
                 onClick={() => setIsSearchOpen(true)} // Open the search slider
                 className="w-full flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-green-100 dark:hover:bg-green-700 group"
