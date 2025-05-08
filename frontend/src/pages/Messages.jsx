@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom'; // Import Link for navigation
-import Nav from './Nav'; // Import the Nav component
+import Nav from '../components/Nav'; // Updated import path
 
 const MessagingPage = () => {
   const [chats, setChats] = useState([]); // List of chats

@@ -1,28 +1,41 @@
 import mongoose from "mongoose";
 import dotenv from "dotenv";
 import { createRequire } from "module";
+import path from "path";
+import { fileURLToPath } from "url";
+
+// For ES modules to use __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // For ES modules to use process
 const require = createRequire(import.meta.url);
 const process = require("process");
 
-// Load environment variables
-dotenv.config();
+// Load environment variables from .env file in the backend directory
+dotenv.config({ path: path.resolve(__dirname, "../.env") });
 
 // Connect to MongoDB
 const connectDB = async () => {
   try {
-    // Ensure the URI uses the Credily database
-    let uri = process.env.MONGODB_URI;
-    if (!uri.includes("Credily")) {
-      // Add the Credily database name to the URI if it's not already there
-      uri = uri.includes("?")
-        ? uri.replace("?", "/Credily?")
-        : `${uri}/Credily`;
+    // Check if MONGODB_URI exists
+    const uri = process.env.MONGODB_URI;
+
+    if (!uri) {
+      throw new Error(
+        "MongoDB connection string (MONGODB_URI) is not defined in environment variables"
+      );
     }
 
+    // Add database name to URI if needed
+    const finalUri = !uri.includes("Credily")
+      ? uri.includes("?")
+        ? uri.replace("?", "/Credily?")
+        : `${uri}/Credily`
+      : uri;
+
     // Connect without deprecated options
-    const conn = await mongoose.connect(uri);
+    const conn = await mongoose.connect(finalUri);
     console.log(
       `MongoDB Connected: ${conn.connection.host} (Database: ${conn.connection.name})`
     );
