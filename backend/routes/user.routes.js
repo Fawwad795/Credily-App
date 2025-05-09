@@ -9,6 +9,7 @@ import {
   updateLastActive,
   getTotalConnections
 } from "../controllers/user.controller.js";
+import { protect } from "../middlewares/authMiddleware.js"; 
 
 const router = express.Router();
 
@@ -16,9 +17,10 @@ const router = express.Router();
 router.post("/register", registerUser);
 router.post("/login", loginUser);
 
-// Profile routes
 router.get("/profile/:id", getUserProfile);
 router.put("/profile/:id", updateUserProfile);
+
+router.post("/profile-picture", protect, updateProfilePicture);
 
 // Search and listing routes
 router.get("/search", searchUsers);
