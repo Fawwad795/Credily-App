@@ -1,5 +1,5 @@
 import Post from "../models/post.model.js";
-
+import User from "../models/user.model.js";
 
 export const createPost = async (req, res) => {
   try {
@@ -100,5 +100,46 @@ export const commentPost = async (req, res) => {
     res.status(201).json({ success: true, comment, totalComments: post.totalComments });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+
+export const loadHome = async (req, res) => {
+  try {
+    const userId = req.user.id; // Assuming `req.user` contains the authenticated user's ID
+
+    // Fetch the user's friends or followers
+    const user = await User.findById(userId).populate("friends followers", "_id");
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found.",
+      });
+    }
+
+    // Combine friends and followers into a single list of user IDs
+    const connections = [
+      ...new Set([...user.friends.map((f) => f._id.toString()), ...user.followers.map((f) => f._id.toString())]),
+    ];
+
+    // Fetch posts from the user's connections, sorted by the latest first
+    const posts = await Post.find({ author: { $in: connections } })
+      .sort({ createdAt: -1 }) // Sort by latest first
+      .populate("author", "username profilePicture") // Populate author details
+      .exec();
+
+    res.status(200).json({
+      success: true,
+      message: "Posts loaded successfully.",
+      data: posts,
+    });
+  } catch (error) {
+    console.error("Error loading home posts:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to load posts.",
+      error: error.message,
+    });
   }
 };
