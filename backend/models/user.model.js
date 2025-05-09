@@ -17,6 +17,7 @@ const userSchema = new mongoose.Schema(
       // Remove the index definition here since we'll use schema.index() with sparse option
       trim: true,
       lowercase: true,
+      unique: true, 
       validate: {
         validator: function (v) {
           // Only validate if email is provided

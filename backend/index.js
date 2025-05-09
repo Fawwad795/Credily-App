@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import connectDB from "./config/db.js";
 import { createRequire } from "module";
 import userRoutes from "./routes/user.routes.js";
+import messageRoutes from "./routes/message.routes.js";
 
 // For ES modules to use process
 const require = createRequire(import.meta.url);
@@ -26,6 +27,7 @@ app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
 // Routes
 app.use("/api/users", userRoutes);
+app.use("/api/messages", messageRoutes);
 
 // Basic route
 app.get("/", (req, res) => {

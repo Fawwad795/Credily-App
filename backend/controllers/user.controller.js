@@ -1,4 +1,12 @@
 import User from "../models/user.model.js";
+import jwt from "jsonwebtoken";
+
+// Generate JWT Token
+const generateToken = (id) => {
+  return jwt.sign({ id }, process.env.JWT_SECRET, {
+    expiresIn: "30d",
+  });
+};
 
 // Register a new user
 export const registerUser = async (req, res) => {
@@ -32,6 +40,9 @@ export const registerUser = async (req, res) => {
       phoneNumber,
     });
 
+    // Generate token
+    const token = generateToken(user._id);
+
     // Return user data without password
     const userData = {
       _id: user._id,
@@ -44,6 +55,7 @@ export const registerUser = async (req, res) => {
       success: true,
       message: "User registered successfully",
       data: userData,
+      token,
     });
   } catch (error) {
     console.error("Error registering user:", error);
@@ -80,6 +92,9 @@ export const loginUser = async (req, res) => {
       });
     }
 
+    // Generate token
+    const token = generateToken(user._id);
+
     // Return user data without password
     const userData = {
       _id: user._id,
@@ -92,6 +107,7 @@ export const loginUser = async (req, res) => {
       success: true,
       message: "Login successful",
       data: userData,
+      token,
     });
   } catch (error) {
     console.error("Error logging in:", error);
@@ -99,6 +115,169 @@ export const loginUser = async (req, res) => {
       success: false,
       message: "Login failed",
       error: error.message,
+    });
+  }
+};
+
+// Get user profile by ID
+export const getUserProfile = async (req, res) => {
+  try {
+    const userId = req.params.id;
+    const user = await User.findById(userId).select('-password');
+    
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found"
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: user
+    });
+  } catch (error) {
+    console.error("Error fetching user profile:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch user profile",
+      error: error.message
+    });
+  }
+};
+
+// Update user profile
+export const updateUserProfile = async (req, res) => {
+  try {
+    const userId = req.params.id;
+    const updateData = req.body;
+
+    // Remove sensitive fields from update data
+    delete updateData.password;
+    delete updateData.isVerified;
+
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { $set: updateData },
+      { new: true, runValidators: true }
+    ).select('-password');
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found"
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Profile updated successfully",
+      data: user
+    });
+  } catch (error) {
+    console.error("Error updating user profile:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to update profile",
+      error: error.message
+    });
+  }
+};
+
+// Search users
+export const searchUsers = async (req, res) => {
+  try {
+    const { query, limit = 10, page = 1 } = req.query;
+    
+    const searchQuery = {
+      $or: [
+        { username: { $regex: query, $options: 'i' } },
+        { email: { $regex: query, $options: 'i' } },
+        { phoneNumber: { $regex: query, $options: 'i' } }
+      ]
+    };
+
+    const users = await User.find(searchQuery)
+      .select('-password')
+      .limit(parseInt(limit))
+      .skip((parseInt(page) - 1) * parseInt(limit))
+      .sort({ createdAt: -1 });
+
+    const total = await User.countDocuments(searchQuery);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        users,
+        pagination: {
+          total,
+          page: parseInt(page),
+          pages: Math.ceil(total / parseInt(limit))
+        }
+      }
+    });
+  } catch (error) {
+    console.error("Error searching users:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to search users",
+      error: error.message
+    });
+  }
+};
+
+// Get users by reputation score
+export const getTopUsers = async (req, res) => {
+  try {
+    const { limit = 10 } = req.query;
+    
+    const users = await User.find()
+      .select('-password')
+      .sort({ reputationScore: -1 })
+      .limit(parseInt(limit));
+
+    res.status(200).json({
+      success: true,
+      data: users
+    });
+  } catch (error) {
+    console.error("Error fetching top users:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch top users",
+      error: error.message
+    });
+  }
+};
+
+// Update user's last active timestamp
+export const updateLastActive = async (req, res) => {
+  try {
+    const userId = req.params.id;
+    
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { lastActive: new Date() },
+      { new: true }
+    ).select('-password');
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found"
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Last active timestamp updated"
+    });
+  } catch (error) {
+    console.error("Error updating last active:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to update last active timestamp",
+      error: error.message
     });
   }
 };
