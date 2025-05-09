@@ -7,7 +7,8 @@ import {
   searchUsers,
   getTopUsers,
   updateLastActive,
-  getTotalConnections
+  getTotalConnections,
+  updateProfilePicture
 } from "../controllers/user.controller.js";
 import { protect } from "../middlewares/authMiddleware.js"; 
 
