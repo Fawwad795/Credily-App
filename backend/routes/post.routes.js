@@ -7,6 +7,7 @@ import {
   deletePost,
   loadHome
 } from "../controllers/post.controller.js";
+import { protect } from "../middlewares/authMiddleware.js"; // Assuming you have an auth middleware
 
 const router = express.Router();
 
@@ -17,5 +18,7 @@ router.post("/comment", commentPost);
 router.post("/delete", deletePost);
 router.post("/loadhome", loadHome);
 
+// Route to load home posts
+router.get("/home", protect, loadHome);
 
 export default router;
