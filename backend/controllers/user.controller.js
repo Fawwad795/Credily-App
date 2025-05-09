@@ -102,3 +102,22 @@ export const loginUser = async (req, res) => {
     });
   }
 };
+
+// Signout user
+export const signoutUser = async (req, res) => {
+  try {
+    // Clear any authentication tokens or cookies
+    res.clearCookie("token"); // Assuming you're using cookies for authentication
+    res.status(200).json({
+      success: true,
+      message: "User signed out successfully",
+    });
+  } catch (error) {
+    console.error("Error signing out user:", error);
+    res.status(500).json({
+      success: false,
+      message: "Signout failed",
+      error: error.message,
+    });
+  }
+};
