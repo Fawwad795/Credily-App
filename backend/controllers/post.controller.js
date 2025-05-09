@@ -84,8 +84,6 @@ export const loadHome = async (req, res) => {
         message: "User ID is required",
       });
     }
-
-    // Fetch all accepted connections involving this user
     const connections = await Connection.find({
       status: "accepted",
       $or: [
@@ -94,12 +92,10 @@ export const loadHome = async (req, res) => {
       ]
     });
 
-    // Extract connection user IDs (excluding the current user)
     const connectionUserIds = connections.map(conn => 
       conn.requester.toString() === userId ? conn.recipient : conn.requester
     );
 
-    // Fetch posts by connections
     const posts = await Post.find({ author: { $in: connectionUserIds } })
       .sort({ createdAt: -1 })
       .limit(20)
@@ -118,6 +114,34 @@ export const loadHome = async (req, res) => {
     });
   }
 };
+
+
+export const getUserPosts = async (req, res) => {
+  try {
+    const { userId } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({ success: false, message: "User ID is required" });
+    }
+
+    const posts = await Post.find({ author: userId })
+      .sort({ createdAt: -1 })
+      .populate("author", "username phoneNumber"); // Optional
+
+    res.status(200).json({
+      success: true,
+      data: posts
+    });
+  } catch (error) {
+    console.error("Error loading user posts:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to load user posts",
+      error: error.message
+    });
+  }
+};
+
 export const deletePost = async (req, res) => {
   try {
     const { postId, userId } = req.body;  
@@ -161,42 +185,4 @@ export const commentPost = async (req, res) => {
 };
 
 
-export const loadHome = async (req, res) => {
-  try {
-    const userId = req.user.id; // Assuming `req.user` contains the authenticated user's ID
 
-    // Fetch the user's friends or followers
-    const user = await User.findById(userId).populate("friends followers", "_id");
-
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found.",
-      });
-    }
-
-    // Combine friends and followers into a single list of user IDs
-    const connections = [
-      ...new Set([...user.friends.map((f) => f._id.toString()), ...user.followers.map((f) => f._id.toString())]),
-    ];
-
-    // Fetch posts from the user's connections, sorted by the latest first
-    const posts = await Post.find({ author: { $in: connections } })
-      .sort({ createdAt: -1 }) // Sort by latest first
-      .populate("author", "username profilePicture") // Populate author details
-      .exec();
-
-    res.status(200).json({
-      success: true,
-      message: "Posts loaded successfully.",
-      data: posts,
-    });
-  } catch (error) {
-    console.error("Error loading home posts:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to load posts.",
-      error: error.message,
-    });
-  }
-};

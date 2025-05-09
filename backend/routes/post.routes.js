@@ -5,7 +5,8 @@ import {
   likePost,
   commentPost,
   deletePost,
-  loadHome
+  loadHome,
+  getUserPosts
 } from "../controllers/post.controller.js";
 import { protect } from "../middlewares/authMiddleware.js"; // Assuming you have an auth middleware
 
@@ -17,6 +18,7 @@ router.post("/like", likePost);
 router.post("/comment", commentPost);
 router.post("/delete", deletePost);
 router.post("/loadhome", loadHome);
+router.get("/userposts", getUserPosts); // Route to get user posts by user ID
 
 // Route to load home posts
 router.get("/home", protect, loadHome);
