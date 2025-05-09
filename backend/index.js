@@ -5,6 +5,8 @@ import connectDB from "./config/db.js";
 import { createRequire } from "module";
 import userRoutes from "./routes/user.routes.js";
 import postRoutes from "./routes/post.routes.js";
+import messageRoutes from "./routes/message.routes.js";
+
 // For ES modules to use process
 const require = createRequire(import.meta.url);
 const process = require("process");
@@ -27,6 +29,8 @@ app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 // Routes
 app.use("/api/users", userRoutes);
 app.use("/api/posts", postRoutes); 
+app.use("/api/messages", messageRoutes);
+
 // Basic route
 app.get("/", (req, res) => {
   res.send("Credily API is running...");
