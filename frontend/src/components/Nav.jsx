@@ -6,6 +6,21 @@ import "../index.css"; // Updated path to reference index.css in the src directo
 const Nav = () => {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
 
+  const handleSignout = async () => {
+    try {
+      await fetch("/api/users/signout", {
+        method: "POST",
+        credentials: "include", // Include cookies if used
+      });
+      localStorage.removeItem("user"); // Clear user data from local storage
+      alert("Signed out successfully!");
+      window.location.href = "/login"; // Redirect to login page
+    } catch (error) {
+      console.error("Error signing out:", error);
+      alert("Failed to sign out. Please try again.");
+    }
+  };
+
   return (
     <>
       {/* Navbar */}
@@ -40,7 +55,7 @@ const Nav = () => {
       >
         <div className="h-full px-3 py-4 color overflow-y-auto bg-white dark:bg-gray-800">
           <ul className="space-y-2 font-medium">
-            <li>
+         <Link to ="/profile">   <li>
               <a
                 href="#"
                 className="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-green-100 dark:hover:bg-green-700 group"
@@ -58,7 +73,9 @@ const Nav = () => {
                 <span className="ms-3 text-gray-900">Profile</span>
               </a>
             </li>
+            </Link>
             <li>
+              
               <button
                 onClick={() => setIsSearchOpen(true)}
                 className="w-full flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-green-100 dark:hover:bg-green-700 group"
@@ -124,8 +141,8 @@ const Nav = () => {
             </li>
 
             <li>
-              <a
-                href="#"
+              <button
+                onClick={handleSignout}
                 className="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-green-100 dark:hover:bg-green-700 group"
               >
                 <svg
@@ -146,7 +163,7 @@ const Nav = () => {
                 <span className="flex-1 ms-3 whitespace-nowrap text-gray-900">
                   Sign Out
                 </span>
-              </a>
+              </button>
             </li>
           </ul>
         </div>
