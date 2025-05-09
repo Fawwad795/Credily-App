@@ -4,10 +4,7 @@ import Post from "../models/post.model.js";
 export const createPost = async (req, res) => {
   try {
     const { author, caption, media, tags, location, visibility } = req.body;
-
     const postAuthor = author || req.user._id;
-
-
     const newPost = await Post.create({
       author: postAuthor,
       caption,
@@ -24,11 +21,10 @@ export const createPost = async (req, res) => {
 };
 
 
-// Edit an existing post
 export const editPost = async (req, res) => {
   try {
     const { postId, userId, caption, media, tags, location, visibility } = req.body;
-    // Find the post by ID
+    // Finding the post by ID
     const post = await Post.findById(postId); 
     if (!post) {
       return res.status(404).json({ message: "Post not found" });
@@ -54,18 +50,14 @@ export const editPost = async (req, res) => {
 export const likePost = async (req, res) => {
   try {
     const { postId, userId } = req.body;
-
     if (!postId || !userId) {
       return res.status(400).json({ success: false, message: "postId and userId are required" });
     }
-
     const post = await Post.findById(postId);
     if (!post) return res.status(404).json({ message: "Post not found" });
-
     const alreadyLiked = post.likes.some(
       (like) => like.user.toString() === userId.toString()
     );
-
     if (alreadyLiked) {
       post.removeLike(userId);
       await post.save();
@@ -82,7 +74,72 @@ export const likePost = async (req, res) => {
 
 
 
-// Comment on a post
+export const loadHome = async (req, res) => {
+  try {
+    const { userId } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: "User ID is required",
+      });
+    }
+
+    // Fetch all accepted connections involving this user
+    const connections = await Connection.find({
+      status: "accepted",
+      $or: [
+        { requester: userId },
+        { recipient: userId }
+      ]
+    });
+
+    // Extract connection user IDs (excluding the current user)
+    const connectionUserIds = connections.map(conn => 
+      conn.requester.toString() === userId ? conn.recipient : conn.requester
+    );
+
+    // Fetch posts by connections
+    const posts = await Post.find({ author: { $in: connectionUserIds } })
+      .sort({ createdAt: -1 })
+      .limit(20)
+      .populate("author", "username phoneNumber"); 
+
+    res.status(200).json({
+      success: true,
+      data: posts,
+    });
+  } catch (error) {
+    console.error("Error loading home feed:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to load home feed",
+      error: error.message,
+    });
+  }
+};
+export const deletePost = async (req, res) => {
+  try {
+    const { postId, userId } = req.body;  
+
+    if (!postId || !userId) {
+      return res.status(400).json({ success: false, message: "postId and userId are required" });
+    }
+
+    const post = await Post.findById(postId);
+    if (!post) return res.status(404).json({ message: "Post not found" });
+
+    if (post.author.toString() !== userId.toString()) {
+      return res.status(403).json({ success: false, message: "You do not have permission to delete this post" });
+    }
+
+    await Post.findByIdAndDelete(postId);
+    res.status(200).json({ success: true, message: "Post deleted successfully" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 export const commentPost = async (req, res) => {
   try {
     const { postId, userId, content } = req.body;
