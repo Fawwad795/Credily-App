@@ -1,5 +1,6 @@
 import User from "../models/user.model.js";
 import jwt from "jsonwebtoken";
+import Connection from "../models/connection.model.js";
 
 // Generate JWT Token
 const generateToken = (id) => {
@@ -277,6 +278,142 @@ export const updateLastActive = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to update last active timestamp",
+      error: error.message
+    });
+  }
+};
+
+// Get total connections for a user
+export const getTotalConnections = async (req, res) => {
+  try {
+    const userId = req.params.id;
+
+    // Count both incoming and outgoing accepted connections
+    const totalConnections = await Connection.countDocuments({
+      $or: [
+        { requester: userId, status: "accepted" },
+        { recipient: userId, status: "accepted" }
+      ]
+    });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        totalConnections
+      }
+    });
+  } catch (error) {
+    console.error("Error fetching total connections:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch total connections",
+      error: error.message
+    });
+  }
+};
+
+// Send connection request
+export const sendConnectionRequest = async (req, res) => {
+  try {
+    const { recipientId } = req.body;
+    const requesterId = req.user._id; // Assuming you have authentication middleware
+
+    // Check if users exist
+    const [requester, recipient] = await Promise.all([
+      User.findById(requesterId),
+      User.findById(recipientId)
+    ]);
+
+    if (!requester || !recipient) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found"
+      });
+    }
+
+    // Check if connection already exists
+    const existingConnection = await Connection.findOne({
+      $or: [
+        { requester: requesterId, recipient: recipientId },
+        { requester: recipientId, recipient: requesterId }
+      ]
+    });
+
+    if (existingConnection) {
+      return res.status(400).json({
+        success: false,
+        message: "Connection request already exists"
+      });
+    }
+
+    // Create new connection request
+    const connection = await Connection.create({
+      requester: requesterId,
+      recipient: recipientId,
+      status: "pending"
+    });
+
+    res.status(201).json({
+      success: true,
+      message: "Connection request sent successfully",
+      data: connection
+    });
+  } catch (error) {
+    console.error("Error sending connection request:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to send connection request",
+      error: error.message
+    });
+  }
+};
+
+// Accept connection request
+export const acceptConnectionRequest = async (req, res) => {
+  try {
+    const { connectionId } = req.params;
+    const userId = req.user._id; // Assuming you have authentication middleware
+
+    // Find the connection request
+    const connection = await Connection.findById(connectionId);
+
+    if (!connection) {
+      return res.status(404).json({
+        success: false,
+        message: "Connection request not found"
+      });
+    }
+
+    // Verify that the current user is the recipient
+    if (connection.recipient.toString() !== userId.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: "Not authorized to accept this request"
+      });
+    }
+
+    // Check if request is already accepted or rejected
+    if (connection.status !== "pending") {
+      return res.status(400).json({
+        success: false,
+        message: `Connection request is already ${connection.status}`
+      });
+    }
+
+    // Update connection status to accepted
+    connection.status = "accepted";
+    await connection.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Connection request accepted",
+      data: connection
+    });
+  } catch (error) {
+    console.error("Error accepting connection request:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to accept connection request",
       error: error.message
     });
   }
