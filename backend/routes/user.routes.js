@@ -11,15 +11,19 @@ import {
   updateProfilePicture,
   searchUsersByUsername
 } from "../controllers/user.controller.js";
-import {protect}  from "../middleware/auth.middleware.js"; 
+import {protect,authenticateUser}  from "../middleware/auth.middleware.js"; 
 
 
 const router = express.Router();
 
-// Auth routes
+// Auth routes (public)
 router.post("/register", registerUser);
 router.post("/login", loginUser);
 
+// Protected routes (require authentication)
+router.use(authenticateUser); // Apply authentication to all routes below
+
+// Profile routes
 router.get("/profile/:id", getUserProfile);
 router.put("/profile/:id", updateUserProfile);
 
