@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom'; // Import Link for navigation
 import Nav from '../components/Nav'; // Updated import path
 
 const MessagingPage = () => {
@@ -8,20 +7,33 @@ const MessagingPage = () => {
   const [messages, setMessages] = useState([]); // Messages for the selected chat
   const [messageInput, setMessageInput] = useState(''); // Input for new messages
 
-  // Fetch all chats on component mount
+  // Mock chats data
   useEffect(() => {
-    fetch('/api/chats') // Replace with your backend API endpoint
-      .then((response) => response.json())
-      .then((data) => setChats(data))
-      .catch((error) => console.error('Error fetching chats:', error));
+    const mockChats = [
+      { id: 1, name: 'John Doe' },
+      { id: 2, name: 'Jane Smith' },
+      { id: 3, name: 'Team Alpha' },
+    ];
+    setChats(mockChats);
   }, []);
 
-  // Fetch messages for the selected chat
+  // Mock messages data
   const fetchMessages = (chatId) => {
-    fetch(`/api/chats/${chatId}`) // Replace with your backend API endpoint
-      .then((response) => response.json())
-      .then((data) => setMessages(data))
-      .catch((error) => console.error('Error fetching messages:', error));
+    const mockMessages = {
+      1: [
+        { sender: 'John Doe', content: 'Hey there!', timestamp: new Date().toISOString() },
+        { sender: 'You', content: 'Hi John!', timestamp: new Date().toISOString() },
+      ],
+      2: [
+        { sender: 'Jane Smith', content: 'Are you free tomorrow?', timestamp: new Date().toISOString() },
+        { sender: 'You', content: 'Yes, let\'s meet up!', timestamp: new Date().toISOString() },
+      ],
+      3: [
+        { sender: 'Team Alpha', content: 'Project deadline is next week.', timestamp: new Date().toISOString() },
+        { sender: 'You', content: 'Got it, thanks!', timestamp: new Date().toISOString() },
+      ],
+    };
+    setMessages(mockMessages[chatId] || []);
   };
 
   // Handle selecting a chat
@@ -39,21 +51,9 @@ const MessagingPage = () => {
         timestamp: new Date().toISOString(),
       };
 
-      // Send the message to the backend
-      fetch(`/api/chats/${selectedChat.id}/messages`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newMessage),
-      })
-        .then((response) => {
-          if (response.ok) {
-            setMessages((prevMessages) => [...prevMessages, newMessage]); // Update messages locally
-            setMessageInput(''); // Clear the input field
-          } else {
-            console.error('Error sending message');
-          }
-        })
-        .catch((error) => console.error('Error sending message:', error));
+      // Update messages locally
+      setMessages((prevMessages) => [...prevMessages, newMessage]);
+      setMessageInput(''); // Clear the input field
     }
   };
 
@@ -63,27 +63,32 @@ const MessagingPage = () => {
       <Nav />
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col ml-64"> {/* Added `ml-64` to account for the navbar width */}
+      <div className="flex-1 flex flex-col ml-64">
         {/* Header */}
-        <header className="bg-teal-500 text-white py-4 px-6 flex justify-between items-center">
+        <header className="grad text-white py-4 px-6 flex justify-between items-center shadow-md rounded-b-lg">
           <h1 className="text-xl font-bold">Messages</h1>
         </header>
 
         {/* Main Content */}
         <div className="flex flex-1">
           {/* Sidebar */}
-          <div className="w-1/3 bg-white border-r overflow-y-auto">
+          <div className="w-1/3 bg-gray-50 border-r overflow-y-auto shadow-md rounded-l-lg">
             <h2 className="text-xl font-bold p-4 border-b">Chats</h2>
             <ul>
               {chats.map((chat) => (
                 <li
                   key={chat.id}
                   onClick={() => handleSelectChat(chat)}
-                  className={`p-4 cursor-pointer hover:bg-gray-200 ${
-                    selectedChat?.id === chat.id ? 'bg-gray-200' : ''
+                  className={`p-4 flex items-center gap-4 cursor-pointer hover:bg-gray-100 rounded-lg ${
+                    selectedChat?.id === chat.id ? "bg-gray-100" : ""
                   }`}
                 >
-                  {chat.name}
+                  <img
+                    src={chat.profilePicture || "/default-profile.png"}
+                    alt={chat.name}
+                    className="w-10 h-10 rounded-full"
+                  />
+                  <span className="font-medium text-gray-700">{chat.name}</span>
                 </li>
               ))}
             </ul>
@@ -94,7 +99,7 @@ const MessagingPage = () => {
             {selectedChat ? (
               <>
                 {/* Chat Header */}
-                <div className="p-4 border-b bg-white">
+                <div className="p-4 border-b bg-gradient-to-l grad text-white shadow-md rounded-t-lg">
                   <h2 className="text-lg font-bold">{selectedChat.name}</h2>
                 </div>
 
@@ -103,31 +108,53 @@ const MessagingPage = () => {
                   {messages.map((message, index) => (
                     <div
                       key={index}
-                      className={`mb-2 p-2 rounded-lg ${
-                        message.sender === 'You'
-                          ? 'bg-teal-100 self-end'
-                          : 'bg-gray-300 self-start'
+                      className={`mb-4 flex items-start gap-4 ${
+                        message.sender === "You" ? "justify-end" : "justify-start"
                       }`}
                     >
-                      <p className="text-sm font-bold">{message.sender}</p>
-                      <p>{message.content}</p>
-                      <p className="text-xs text-gray-500">{new Date(message.timestamp).toLocaleTimeString()}</p>
+                      {message.sender !== "You" && (
+                        <img
+                          src={message.profilePicture || "/default-profile.png"}
+                          alt={message.sender}
+                          className="w-10 h-10 rounded-full"
+                        />
+                      )}
+                      <div
+                        className={`max-w-xs p-4 rounded-2xl shadow-md ${
+                          message.sender === "You"
+                            ? "bg-gray-200 text-gray-700"
+                            : "bg-white text-gray-700 border border-gray-200"
+                        }`}
+                      >
+                        <p className="text-sm font-bold">{message.sender}</p>
+                        <p>{message.content}</p>
+                        <p className="text-xs text-gray-500 mt-2">
+                          {new Date(message.timestamp).toLocaleTimeString()}
+                        </p>
+                      </div>
+                      {message.sender === "You" && (
+                        <img
+                          src={message.profilePicture || "/your-profile.png"}
+                          alt={message.sender}
+                          className="w-10 h-10 rounded-full"
+                        />
+                      )}
                     </div>
                   ))}
                 </div>
 
                 {/* Message Input */}
-                <div className="p-4 border-t bg-white flex items-center">
+                <div className="p-4 border-t bg-white flex items-center shadow-md rounded-b-lg">
                   <input
                     type="text"
                     value={messageInput}
                     onChange={(e) => setMessageInput(e.target.value)}
                     placeholder="Type a message..."
-                    className="flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-400"
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-grad text-gray-700"
                   />
                   <button
                     onClick={handleSendMessage}
-                    className="ml-4 bg-teal-500 text-white px-4 py-2 rounded-lg hover:bg-teal-600 transition duration-300"
+                    className="ml-4 grad text-white px-6 py-2 rounded-full hover:opacity-90 transition duration-300 shadow-md"
                   >
                     Send
                   </button>
