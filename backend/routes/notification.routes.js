@@ -1,13 +1,16 @@
 import express from "express";
-import { addNotification, getUserNotifications } from "../controllers/notification.controller.js";
-import { protect } from "../middlewares/authMiddleware.js"; // Assuming you have an auth middleware
+import {
+  addNotification,
+  getUserNotifications,
+} from "../controllers/notification.controller.js";
+import { authenticateUser } from "../middleware/auth.middleware.js";
 
 const router = express.Router();
 
 // POST: Add a new notification
-router.post("/", protect, addNotification);
+router.post("/", authenticateUser, addNotification);
 
 // GET: Fetch notifications for a user
-router.get("/", protect, getUserNotifications);
+router.get("/", authenticateUser, getUserNotifications);
 
 export default router;

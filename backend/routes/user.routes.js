@@ -8,10 +8,10 @@ import {
   getTopUsers,
   updateLastActive,
   getTotalConnections,
-  sendConnectionRequest,
-  acceptConnectionRequest
+  updateProfilePicture
 } from "../controllers/user.controller.js";
-import { authenticateUser, protect } from "../middlewares/authMiddleware.js"; 
+import {protect}  from "../middleware/auth.middleware.js"; 
+
 
 const router = express.Router();
 
@@ -26,10 +26,6 @@ router.use(authenticateUser); // Apply authentication to all routes below
 router.get("/profile/:id", getUserProfile);
 router.put("/profile/:id", updateUserProfile);
 
-// Connection routes
-router.post("/connections", sendConnectionRequest);
-router.put("/connections/:connectionId/accept", acceptConnectionRequest);
-router.get("/:id/connections", getTotalConnections);
 
 // Search and listing routes
 router.get("/search", searchUsers);
