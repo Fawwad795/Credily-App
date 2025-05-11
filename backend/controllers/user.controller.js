@@ -3,6 +3,7 @@ import jwt from "jsonwebtoken";
 import Connection from "../models/connection.model.js";
 import fs from "fs";
 import path from "path";
+import { addNotification } from "./notification.controller.js"; // Import the notification function
 
 // Generate JWT Token
 const generateToken = (id) => {
@@ -406,13 +407,13 @@ export const sendConnectionRequest = async (req, res) => {
     // Check if users exist
     const [requester, recipient] = await Promise.all([
       User.findById(requesterId),
-      User.findById(recipientId)
+      User.findById(recipientId),
     ]);
 
     if (!requester || !recipient) {
       return res.status(404).json({
         success: false,
-        message: "User not found"
+        message: "User not found",
       });
     }
 
@@ -420,14 +421,14 @@ export const sendConnectionRequest = async (req, res) => {
     const existingConnection = await Connection.findOne({
       $or: [
         { requester: requesterId, recipient: recipientId },
-        { requester: recipientId, recipient: requesterId }
-      ]
+        { requester: recipientId, recipient: requesterId },
+      ],
     });
 
     if (existingConnection) {
       return res.status(400).json({
         success: false,
-        message: "Connection request already exists"
+        message: "Connection request already exists",
       });
     }
 
@@ -435,20 +436,31 @@ export const sendConnectionRequest = async (req, res) => {
     const connection = await Connection.create({
       requester: requesterId,
       recipient: recipientId,
-      status: "pending"
+      status: "pending",
+    });
+
+    // Add a notification for the recipient
+    await addNotification({
+      recipient: recipientId,
+      sender: requesterId,
+      type: "connection_request",
+      title: "New Connection Request",
+      content: `${requester.username} has sent you a connection request.`,
+      referenceId: connection._id,
+      referenceModel: "Connection",
     });
 
     res.status(201).json({
       success: true,
       message: "Connection request sent successfully",
-      data: connection
+      data: connection,
     });
   } catch (error) {
     console.error("Error sending connection request:", error);
     res.status(500).json({
       success: false,
       message: "Failed to send connection request",
-      error: error.message
+      error: error.message,
     });
   }
 };
@@ -465,7 +477,7 @@ export const acceptConnectionRequest = async (req, res) => {
     if (!connection) {
       return res.status(404).json({
         success: false,
-        message: "Connection request not found"
+        message: "Connection request not found",
       });
     }
 
@@ -473,7 +485,7 @@ export const acceptConnectionRequest = async (req, res) => {
     if (connection.recipient.toString() !== userId.toString()) {
       return res.status(403).json({
         success: false,
-        message: "Not authorized to accept this request"
+        message: "Not authorized to accept this request",
       });
     }
 
@@ -481,7 +493,7 @@ export const acceptConnectionRequest = async (req, res) => {
     if (connection.status !== "pending") {
       return res.status(400).json({
         success: false,
-        message: `Connection request is already ${connection.status}`
+        message: `Connection request is already ${connection.status}`,
       });
     }
 
@@ -489,17 +501,28 @@ export const acceptConnectionRequest = async (req, res) => {
     connection.status = "accepted";
     await connection.save();
 
+    // Add a notification for the requester
+    await addNotification({
+      recipient: connection.requester,
+      sender: userId,
+      type: "connection_accepted",
+      title: "Connection Request Accepted",
+      content: `${req.user.username} has accepted your connection request.`,
+      referenceId: connection._id,
+      referenceModel: "Connection",
+    });
+
     res.status(200).json({
       success: true,
       message: "Connection request accepted",
-      data: connection
+      data: connection,
     });
   } catch (error) {
     console.error("Error accepting connection request:", error);
     res.status(500).json({
       success: false,
       message: "Failed to accept connection request",
-      error: error.message
+      error: error.message,
     });
   }
 };
