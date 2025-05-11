@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import axios from 'axios'; // Install axios if not already installed
 import Nav from '../components/Nav'; // Updated import path
 
 const MessagingPage = () => {
@@ -6,34 +7,43 @@ const MessagingPage = () => {
   const [selectedChat, setSelectedChat] = useState(null); // Currently selected chat
   const [messages, setMessages] = useState([]); // Messages for the selected chat
   const [messageInput, setMessageInput] = useState(''); // Input for new messages
+  const [unreadCount, setUnreadCount] = useState(0);
 
-  // Mock chats data
+  // Fetch chats from the backend
   useEffect(() => {
-    const mockChats = [
-      { id: 1, name: 'John Doe' },
-      { id: 2, name: 'Jane Smith' },
-      { id: 3, name: 'Team Alpha' },
-    ];
-    setChats(mockChats);
+    const fetchChats = async () => {
+      try {
+        const response = await axios.get('/api/chats'); // Replace with your backend endpoint
+        setChats(response.data);
+      } catch (error) {
+        console.error('Error fetching chats:', error);
+      }
+    };
+
+    fetchChats();
   }, []);
 
-  // Mock messages data
-  const fetchMessages = (chatId) => {
-    const mockMessages = {
-      1: [
-        { sender: 'John Doe', content: 'Hey there!', timestamp: new Date().toISOString() },
-        { sender: 'You', content: 'Hi John!', timestamp: new Date().toISOString() },
-      ],
-      2: [
-        { sender: 'Jane Smith', content: 'Are you free tomorrow?', timestamp: new Date().toISOString() },
-        { sender: 'You', content: 'Yes, let\'s meet up!', timestamp: new Date().toISOString() },
-      ],
-      3: [
-        { sender: 'Team Alpha', content: 'Project deadline is next week.', timestamp: new Date().toISOString() },
-        { sender: 'You', content: 'Got it, thanks!', timestamp: new Date().toISOString() },
-      ],
+  useEffect(() => {
+    const fetchUnreadCount = async () => {
+      try {
+        const response = await axios.get('/api/unread-count'); // Replace with your backend endpoint
+        setUnreadCount(response.data.unreadCount);
+      } catch (error) {
+        console.error('Error fetching unread count:', error);
+      }
     };
-    setMessages(mockMessages[chatId] || []);
+
+    fetchUnreadCount();
+  }, []);
+
+  // Fetch messages for a specific chat
+  const fetchMessages = async (chatId) => {
+    try {
+      const response = await axios.get(`/api/chats/${chatId}/messages`); // Replace with your backend endpoint
+      setMessages(response.data);
+    } catch (error) {
+      console.error('Error fetching messages:', error);
+    }
   };
 
   // Handle selecting a chat
@@ -43,17 +53,23 @@ const MessagingPage = () => {
   };
 
   // Handle sending a message
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (messageInput.trim() && selectedChat) {
-      const newMessage = {
-        content: messageInput,
-        sender: 'You', // Replace with the actual sender (e.g., user ID)
-        timestamp: new Date().toISOString(),
-      };
+      try {
+        const newMessage = {
+          content: messageInput,
+          sender: 'You', // Replace with the actual sender (e.g., user ID)
+        };
 
-      // Update messages locally
-      setMessages((prevMessages) => [...prevMessages, newMessage]);
-      setMessageInput(''); // Clear the input field
+        // Send the message to the backend
+        const response = await axios.post(`/api/chats/${selectedChat.id}/messages`, newMessage); // Replace with your backend endpoint
+
+        // Update messages locally
+        setMessages((prevMessages) => [...prevMessages, response.data]);
+        setMessageInput(''); // Clear the input field
+      } catch (error) {
+        console.error('Error sending message:', error);
+      }
     }
   };
 
@@ -67,28 +83,38 @@ const MessagingPage = () => {
         {/* Header */}
         <header className="grad text-white py-4 px-6 flex justify-between items-center shadow-md rounded-b-lg">
           <h1 className="text-xl font-bold">Messages</h1>
+          <span className="text-sm bg-red-500 text-white px-3 py-1 rounded-full">
+            {unreadCount} Unread
+          </span>
         </header>
 
         {/* Main Content */}
         <div className="flex flex-1">
           {/* Sidebar */}
-          <div className="w-1/3 bg-gray-50 border-r overflow-y-auto shadow-md rounded-l-lg">
-            <h2 className="text-xl font-bold p-4 border-b">Chats</h2>
+          <div className="w-1/3 bg-gray-50 overflow-y-auto shadow-md rounded-l-lg">
+            <h2 className="text-xl font-bold p-4">Chats</h2>
             <ul>
               {chats.map((chat) => (
                 <li
                   key={chat.id}
                   onClick={() => handleSelectChat(chat)}
-                  className={`p-4 flex items-center gap-4 cursor-pointer hover:bg-gray-100 rounded-lg ${
-                    selectedChat?.id === chat.id ? "bg-gray-100" : ""
+                  className={`p-4 flex items-center gap-4 cursor-pointer hover:bg-gray-100 rounded-full ${
+                    selectedChat?.id === chat.id ? 'bg-gray-100' : ''
                   }`}
                 >
                   <img
-                    src={chat.profilePicture || "/default-profile.png"}
+                    src={chat.profilePicture || '/default-profile.png'}
                     alt={chat.name}
-                    className="w-10 h-10 rounded-full"
+                    className="w-12 h-12 rounded-full"
                   />
-                  <span className="font-medium text-gray-700">{chat.name}</span>
+                  <div className="flex-1">
+                    <span className="font-medium text-gray-700">{chat.name}</span>
+                    {chat.unreadCount > 0 && (
+                      <span className="ml-2 text-sm bg-red-500 text-white px-2 py-1 rounded-full">
+                        {chat.unreadCount}
+                      </span>
+                    )}
+                  </div>
                 </li>
               ))}
             </ul>
@@ -99,7 +125,7 @@ const MessagingPage = () => {
             {selectedChat ? (
               <>
                 {/* Chat Header */}
-                <div className="p-4 border-b bg-gradient-to-l grad text-white shadow-md rounded-t-lg">
+                <div className="p-4 bg-gray-50 text-gray-800 shadow-md rounded-t-lg">
                   <h2 className="text-lg font-bold">{selectedChat.name}</h2>
                 </div>
 
@@ -109,21 +135,21 @@ const MessagingPage = () => {
                     <div
                       key={index}
                       className={`mb-4 flex items-start gap-4 ${
-                        message.sender === "You" ? "justify-end" : "justify-start"
+                        message.sender === 'You' ? 'justify-end' : 'justify-start'
                       }`}
                     >
-                      {message.sender !== "You" && (
+                      {message.sender !== 'You' && (
                         <img
-                          src={message.profilePicture || "/default-profile.png"}
+                          src={message.profilePicture || '/default-profile.png'}
                           alt={message.sender}
                           className="w-10 h-10 rounded-full"
                         />
                       )}
                       <div
                         className={`max-w-xs p-4 rounded-2xl shadow-md ${
-                          message.sender === "You"
-                            ? "bg-gray-200 text-gray-700"
-                            : "bg-white text-gray-700 border border-gray-200"
+                          message.sender === 'You'
+                            ? 'bg-gray-200 text-gray-700'
+                            : 'bg-white text-gray-700 border border-gray-200'
                         }`}
                       >
                         <p className="text-sm font-bold">{message.sender}</p>
@@ -132,9 +158,9 @@ const MessagingPage = () => {
                           {new Date(message.timestamp).toLocaleTimeString()}
                         </p>
                       </div>
-                      {message.sender === "You" && (
+                      {message.sender === 'You' && (
                         <img
-                          src={message.profilePicture || "/your-profile.png"}
+                          src={message.profilePicture || '/your-profile.png'}
                           alt={message.sender}
                           className="w-10 h-10 rounded-full"
                         />
@@ -144,13 +170,13 @@ const MessagingPage = () => {
                 </div>
 
                 {/* Message Input */}
-                <div className="p-4 border-t bg-white flex items-center shadow-md rounded-b-lg">
+                <div className="p-4 bg-white flex items-center shadow-md rounded-b-lg">
                   <input
                     type="text"
                     value={messageInput}
                     onChange={(e) => setMessageInput(e.target.value)}
                     placeholder="Type a message..."
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-grad text-gray-700"
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-gray-300 text-gray-700"
                   />
                   <button
                     onClick={handleSendMessage}
