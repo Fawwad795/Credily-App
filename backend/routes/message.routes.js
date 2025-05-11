@@ -6,7 +6,7 @@ import {
   deleteMessage,
   getUnreadCount,
 } from "../controllers/message.controller.js";
-import { authenticateUser } from "../middlewares/authMiddleware.js";
+import { authenticateUser } from "../middleware/auth.middleware.js";
 
 const router = express.Router();
 
