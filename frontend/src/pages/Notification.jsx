@@ -4,6 +4,7 @@ import axios from "axios";
 const Notifications = ({ isOpen, onClose }) => {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
     const fetchNotifications = async () => {
@@ -18,6 +19,19 @@ const Notifications = ({ isOpen, onClose }) => {
     };
 
     fetchNotifications();
+  }, []);
+
+  useEffect(() => {
+    const fetchUnreadCount = async () => {
+      try {
+        const response = await axios.get("/api/notifications/unread-count");
+        setUnreadCount(response.data.count);
+      } catch (error) {
+        console.error("Error fetching unread count:", error);
+      }
+    };
+
+    fetchUnreadCount();
   }, []);
 
   const markAsRead = async (notificationId) => {
