@@ -4,7 +4,6 @@ import connectDB from "./config/db.js";
 import User from "./models/user.model.js";
 import Connection from "./models/connection.model.js";
 import Review from "./models/review.model.js";
-import ReputationScore from "./models/reputationScore.model.js";
 import { createRequire } from "module";
 
 // For ES modules to use process
@@ -30,12 +29,18 @@ async function testDBConnection() {
     });
     console.log("Existing test data cleaned up");
 
-    // Create test users
+    // Create test users with random phone numbers to avoid duplicates
     console.log("Creating test users...");
+    // Generate random numbers for phone numbers to avoid duplicates
+    const randomNum1 = Math.floor(Math.random() * 10000000000).toString().padStart(10, '0');
+    const randomNum2 = Math.floor(Math.random() * 10000000000).toString().padStart(10, '0');
+    const randomNum3 = Math.floor(Math.random() * 10000000000).toString().padStart(10, '0');
+    
     const testUser1 = new User({
       username: "testuser1",
       email: "test1@example.com",
       password: "password123",
+      phoneNumber: "+1 " + randomNum1,
       bio: "This is a test user for Credily",
     });
 
@@ -43,6 +48,7 @@ async function testDBConnection() {
       username: "testuser2",
       email: "test2@example.com",
       password: "password123",
+      phoneNumber: "+1 " + randomNum2,
       bio: "This is another test user for Credily",
     });
 
@@ -51,6 +57,7 @@ async function testDBConnection() {
       username: "mutualfriend",
       email: "mutual@example.com",
       password: "password123",
+      phoneNumber: "+1 " + randomNum3,
       bio: "This is a mutual friend for testing",
     });
 
@@ -121,14 +128,12 @@ async function testDBConnection() {
     });
 
     const savedReview = await testReview.save();
-    console.log("Test review created successfully!");
-
-    // Calculate reputation score
-    console.log("Calculating reputation score...");
-    const reputationScore = await ReputationScore.recalculateScore(
-      savedUser2._id
-    );
-    console.log(`Reputation score calculated: ${reputationScore.overallScore}`);
+    console.log("Test review created successfully!");    // Update reputation score directly in the User model
+    console.log("Updating user's reputation score...");
+    const user = await User.findById(savedUser2._id);
+    user.reputationScore += 10; // For testing, just add 10 points
+    await user.save();
+    console.log(`Reputation score updated: ${user.reputationScore}`);
 
     console.log("Database connection test completed successfully!");
   } catch (error) {
