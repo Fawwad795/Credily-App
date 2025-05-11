@@ -1,10 +1,10 @@
 import express from "express";
 import { leaveReview } from "../controllers/review.controller.js";
-import { protect } from "../middlewares/authMiddleware.js"; // Assuming you have an auth middleware
+import { authenticateUser } from "../middleware/auth.middleware.js";
 
 const router = express.Router();
 
 // Endpoint to leave a review
-router.post("/leave", protect, leaveReview);
+router.post("/leave", authenticateUser, leaveReview);
 
 export default router;

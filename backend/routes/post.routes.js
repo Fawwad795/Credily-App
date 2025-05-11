@@ -6,21 +6,21 @@ import {
   commentPost,
   deletePost,
   loadHome,
-  getUserPosts
+  getUserPosts,
 } from "../controllers/post.controller.js";
-import { protect } from "../middlewares/authMiddleware.js"; // Assuming you have an auth middleware
+import { authenticateUser } from "../middleware/auth.middleware.js";
 
 const router = express.Router();
 
-router.post("/", createPost);                 
-router.put("/edit", editPost); 
-router.post("/like", likePost); 
+router.post("/", createPost);
+router.put("/edit", editPost);
+router.post("/like", likePost);
 router.post("/comment", commentPost);
 router.post("/delete", deletePost);
 router.post("/loadhome", loadHome);
 router.get("/userposts", getUserPosts); // Route to get user posts by user ID
 
 // Route to load home posts
-router.get("/home", protect, loadHome);
+router.get("/home", authenticateUser, loadHome);
 
 export default router;
