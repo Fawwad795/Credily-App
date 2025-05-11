@@ -6,15 +6,15 @@ const SearchSlider = ({ isOpen, onClose }) => {
 
   // Simulate a search API call
   const handleSearch = () => {
-    fetch(`/api/accounts?query=${searchQuery}`) // Replace with your backend API endpoint
+    fetch(`/api/users/search?query=${searchQuery}`) // Updated endpoint
       .then((response) => response.json())
-      .then((data) => setResults(data))
-      .catch((error) => console.error('Error fetching search results:', error));
+      .then((data) => setResults(data.data)) // Use `data.data` to access the user list
+      .catch((error) => console.error("Error fetching search results:", error));
   };
 
   return (
     <div
-      className={`fixed top-0 right-0 h-full w-1/3 bg-white shadow-lg transform ${
+      className={`fixed top-0 right-0 h-full w-1/4 bg-white shadow-lg transform ${
         isOpen ? 'translate-x-0' : 'translate-x-full'
       } transition-transform duration-300 z-50`}
     >
@@ -36,11 +36,11 @@ const SearchSlider = ({ isOpen, onClose }) => {
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Search for accounts..."
-          className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-400"
+          className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:grad"
         />
         <button
           onClick={handleSearch}
-          className="mt-4 w-full bg-teal-500 text-white py-2 px-4 rounded-lg hover:bg-teal-600 transition duration-300"
+          className="mt-4 w-full grad text-white py-2 px-4 rounded-lg hover:bg-teal-600 transition duration-300"
         >
           Search
         </button>

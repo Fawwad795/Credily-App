@@ -280,6 +280,38 @@ export const searchUsers = async (req, res) => {
   }
 };
 
+// Search users by username
+export const searchUsersByUsername = async (req, res) => {
+  try {
+    const { query } = req.query; // Get the search query from the request
+
+    if (!query) {
+      return res.status(400).json({
+        success: false,
+        message: "Query parameter is required.",
+      });
+    }
+
+    // Perform a case-insensitive search for usernames
+    const users = await User.find({
+      username: { $regex: query, $options: "i" }, // Case-insensitive regex search
+    }).select("username email profilePicture"); // Select only necessary fields
+
+    res.status(200).json({
+      success: true,
+      message: "Users fetched successfully.",
+      data: users,
+    });
+  } catch (error) {
+    console.error("Error searching users:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch users.",
+      error: error.message,
+    });
+  }
+};
+
 // Get users by reputation score
 export const getTopUsers = async (req, res) => {
   try {

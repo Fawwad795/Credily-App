@@ -8,7 +8,8 @@ import {
   getTopUsers,
   updateLastActive,
   getTotalConnections,
-  updateProfilePicture
+  updateProfilePicture,
+  searchUsersByUsername
 } from "../controllers/user.controller.js";
 import {protect}  from "../middleware/auth.middleware.js"; 
 
@@ -24,7 +25,7 @@ router.put("/profile/:id", updateUserProfile);
 
 
 // Search and listing routes
-router.get("/search", searchUsers);
+router.get("/search", protect, searchUsersByUsername);
 router.get("/top", getTopUsers);
 
 // Activity routes
