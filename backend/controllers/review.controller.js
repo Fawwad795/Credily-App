@@ -15,7 +15,6 @@ export const leaveReview = async (req, res) => {
       });
     }
 
-    // Check if the reviewer's account is at least 1 month old
     const reviewer = await User.findById(reviewerId);
     const accountAge = (Date.now() - new Date(reviewer.createdAt)) / (1000 * 60 * 60 * 24); // Age in days
     if (accountAge < 30) {
@@ -24,8 +23,6 @@ export const leaveReview = async (req, res) => {
         message: "Your account must be at least 1 month old to leave a review.",
       });
     }
-
-    // Check if the reviewer has already left a review for this reviewee in the last month
     const oneMonthAgo = new Date();
     oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
 
