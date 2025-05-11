@@ -7,20 +7,29 @@ import {
   searchUsers,
   getTopUsers,
   updateLastActive,
-  getTotalConnections
+  getTotalConnections,
+  sendConnectionRequest,
+  acceptConnectionRequest
 } from "../controllers/user.controller.js";
-import { protect } from "../middlewares/authMiddleware.js"; 
+import { authenticateUser, protect } from "../middlewares/authMiddleware.js"; 
 
 const router = express.Router();
 
-// Auth routes
+// Auth routes (public)
 router.post("/register", registerUser);
 router.post("/login", loginUser);
 
+// Protected routes (require authentication)
+router.use(authenticateUser); // Apply authentication to all routes below
+
+// Profile routes
 router.get("/profile/:id", getUserProfile);
 router.put("/profile/:id", updateUserProfile);
 
-router.post("/profile-picture", protect, updateProfilePicture);
+// Connection routes
+router.post("/connections", sendConnectionRequest);
+router.put("/connections/:connectionId/accept", acceptConnectionRequest);
+router.get("/:id/connections", getTotalConnections);
 
 // Search and listing routes
 router.get("/search", searchUsers);
