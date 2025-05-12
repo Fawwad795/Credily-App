@@ -26,21 +26,24 @@ export const sendMessage = async (req, res) => {
 
     // Get sender and receiver details
     const [sender, receiverUser] = await Promise.all([
-      User.findById(senderId).select('username'),
-      User.findById(receiverId).select('username')
+      User.findById(senderId).select("username"),
+      User.findById(receiverId).select("username"),
     ]);
 
     const messageWithUsernames = {
       ...message.toObject(),
       sender: {
         _id: sender._id,
-        username: sender.username
+        username: sender.username,
       },
       receiver: {
         _id: receiverUser._id,
-        username: receiverUser.username
-      }
+        username: receiverUser.username,
+      },
     };
+
+    // Emit the new message event to the receiver's room
+    req.io.to(receiverId).emit("newMessage", messageWithUsernames);
 
     res.status(201).json({
       success: true,
@@ -138,100 +141,84 @@ export const getConversation = async (req, res) => {
 // Get all conversations for current user
 export const getConversations = async (req, res) => {
   try {
-    const currentUserId = req.user._id;
+    const userId = req.user._id;
 
+    // Get all conversations where the user is either sender or receiver
     const conversations = await Message.aggregate([
       {
         $match: {
           $or: [
-            { sender: currentUserId },
-            { receiver: currentUserId },
-          ],
-        },
+            { sender: userId },
+            { receiver: userId }
+          ]
+        }
       },
       {
-        $sort: { createdAt: -1 },
+        $sort: { createdAt: -1 }
       },
       {
         $group: {
           _id: {
             $cond: [
-              { $eq: ["$sender", currentUserId] },
+              { $eq: ["$sender", userId] },
               "$receiver",
-              "$sender",
-            ],
+              "$sender"
+            ]
           },
           lastMessage: { $first: "$$ROOT" },
           unreadCount: {
             $sum: {
               $cond: [
-                {
-                  $and: [
-                    { $eq: ["$receiver", currentUserId] },
-                    { $eq: ["$isRead", false] },
-                  ],
-                },
+                { $and: [
+                  { $eq: ["$receiver", userId] },
+                  { $eq: ["$isRead", false] }
+                ]},
                 1,
-                0,
-              ],
-            },
-          },
-        },
+                0
+              ]
+            }
+          }
+        }
       },
       {
         $lookup: {
           from: "users",
           localField: "_id",
           foreignField: "_id",
-          as: "user",
-        },
+          as: "user"
+        }
       },
       {
-        $unwind: "$user",
-      },
-      {
-        $lookup: {
-          from: "users",
-          localField: "lastMessage.sender",
-          foreignField: "_id",
-          as: "sender",
-        },
-      },
-      {
-        $unwind: "$sender",
+        $unwind: "$user"
       },
       {
         $project: {
           _id: 1,
-          lastMessage: {
-            _id: "$lastMessage._id",
-            content: "$lastMessage.content",
-            createdAt: "$lastMessage.createdAt",
-            isRead: "$lastMessage.isRead",
-            sender: {
-              _id: "$sender._id",
-              username: "$sender.username"
-            }
-          },
-          unreadCount: 1,
           user: {
             _id: 1,
-            username: 1
+            username: 1,
+            email: 1,
+            profilePicture: 1
           },
-        },
+          lastMessage: 1,
+          unreadCount: 1
+        }
       },
+      {
+        $sort: { "lastMessage.createdAt": -1 }
+      }
     ]);
 
     res.status(200).json({
       success: true,
-      data: conversations,
+      data: conversations
     });
   } catch (error) {
     console.error("Error fetching conversations:", error);
     res.status(500).json({
       success: false,
       message: "Failed to fetch conversations",
-      error: error.message,
+      error: error.message
     });
   }
 };
@@ -278,23 +265,24 @@ export const deleteMessage = async (req, res) => {
 // Get unread message count
 export const getUnreadCount = async (req, res) => {
   try {
-    const currentUserId = req.user._id; // Assuming you have authentication middleware
-
+    const userId = req.user._id;
+    
+    // Count unread messages where the user is the receiver
     const unreadCount = await Message.countDocuments({
-      receiver: currentUserId,
-      isRead: false,
+      receiver: userId,
+      isRead: false
     });
 
     res.status(200).json({
       success: true,
-      data: { unreadCount },
+      data: { unreadCount }
     });
   } catch (error) {
     console.error("Error fetching unread count:", error);
     res.status(500).json({
       success: false,
       message: "Failed to fetch unread count",
-      error: error.message,
+      error: error.message
     });
   }
-}; 
+};
