@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 
 const SearchSlider = ({ isOpen, onClose }) => {
@@ -7,21 +7,8 @@ const SearchSlider = ({ isOpen, onClose }) => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  // Handle real-time search as user types
-  useEffect(() => {
-    const delaySearch = setTimeout(() => {
-      if (searchQuery.trim().length > 0) {
-        handleSearch();
-      } else {
-        setResults([]);
-      }
-    }, 500); // 500ms delay to avoid too many requests
-
-    return () => clearTimeout(delaySearch);
-  }, [searchQuery]);
-
   // Search API call
-  const handleSearch = () => {
+  const handleSearch = useCallback(() => {
     if (!searchQuery.trim()) return;
 
     setLoading(true);
@@ -43,7 +30,20 @@ const SearchSlider = ({ isOpen, onClose }) => {
         console.error("Error fetching search results:", error);
         setLoading(false);
       });
-  };
+  }, [searchQuery]);
+
+  // Handle real-time search as user types
+  useEffect(() => {
+    const delaySearch = setTimeout(() => {
+      if (searchQuery.trim().length > 0) {
+        handleSearch();
+      } else {
+        setResults([]);
+      }
+    }, 500); // 500ms delay to avoid too many requests
+
+    return () => clearTimeout(delaySearch);
+  }, [searchQuery, handleSearch]);
 
   // Navigate to user profile when clicked
   const handleProfileClick = (userId) => {
