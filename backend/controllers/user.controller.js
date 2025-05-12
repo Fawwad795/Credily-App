@@ -15,12 +15,21 @@ const generateToken = (id) => {
 // Register a new user
 export const registerUser = async (req, res) => {
   try {
-    const { phoneNumber, password } = req.body;
+    const { username, phoneNumber, password } = req.body;
 
-    if (!phoneNumber || !password) {
+    if (!username || !phoneNumber || !password) {
       return res.status(400).json({
         success: false,
-        message: "Phone number and password are required",
+        message: "Username, phone number and password are required",
+      });
+    }
+
+    // Check if username already exists
+    const usernameExists = await User.findOne({ username });
+    if (usernameExists) {
+      return res.status(400).json({
+        success: false,
+        message: "Username is already taken",
       });
     }
 
@@ -33,13 +42,9 @@ export const registerUser = async (req, res) => {
       });
     }
 
-    // Generate a username based on phone number (just for initial account creation)
-    const username = `user_${Date.now().toString().slice(-6)}`;
-
-    // Create new user without requiring email
+    // Create new user
     const user = await User.create({
       username,
-      // No email field - it's optional now
       password,
       phoneNumber,
     });
@@ -74,10 +79,10 @@ export const registerUser = async (req, res) => {
 // Login user
 export const loginUser = async (req, res) => {
   try {
-    const { phoneNumber, password } = req.body;
+    const { username, password } = req.body;
 
     // Check if user exists
-    const user = await User.findOne({ phoneNumber }).select("+password");
+    const user = await User.findOne({ username }).select("+password");
     if (!user) {
       return res.status(401).json({
         success: false,
@@ -184,57 +189,6 @@ export const updateUserProfile = async (req, res) => {
       success: false,
       message: "Failed to update profile",
       error: error.message
-    });
-  }
-};
-
-// Update profile picture
-export const updateProfilePicture = async (req, res) => {
-  try {
-    const userId = req.user.id; // Assuming you're using authentication middleware
-    const { profilePicture } = req.body; // Expect Base64 string from the frontend
-
-    if (!profilePicture) {
-      return res.status(400).json({
-        success: false,
-        message: "Profile picture is required",
-      });
-    }
-
-    // Decode Base64 and save the image to the server
-    const base64Data = profilePicture.replace(/^data:image\/\w+;base64,/, "");
-    const fileExtension = profilePicture.split(";")[0].split("/")[1]; // Extract file extension
-    const fileName = `profile-${userId}-${Date.now()}.${fileExtension}`;
-    const filePath = path.join("uploads/profile-pictures", fileName);
-
-    // Save the image to the server
-    fs.writeFileSync(filePath, base64Data, { encoding: "base64" });
-
-    // Update the user's profile picture in the database
-    const user = await User.findByIdAndUpdate(
-      userId,
-      { profilePicture: filePath.replace(/\\/g, "/") }, // Normalize path for cross-platform compatibility
-      { new: true }
-    );
-
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found",
-      });
-    }
-
-    res.status(200).json({
-      success: true,
-      message: "Profile picture updated successfully",
-      data: { profilePicture: user.profilePicture },
-    });
-  } catch (error) {
-    console.error("Error updating profile picture:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to update profile picture",
-      error: error.message,
     });
   }
 };
@@ -460,6 +414,55 @@ export const sendConnectionRequest = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to send connection request",
+      error: error.message,
+    });
+  }
+};
+export const updateProfilePicture = async (req, res) => {
+  try {
+    const userId = req.user.id; // Assuming you're using authentication middleware
+    const { profilePicture } = req.body; // Expect Base64 string from the frontend
+
+    if (!profilePicture) {
+      return res.status(400).json({
+        success: false,
+        message: "Profile picture is required",
+      });
+    }
+
+    // Decode Base64 and save the image to the server
+    const base64Data = profilePicture.replace(/^data:image\/\w+;base64,/, "");
+    const fileExtension = profilePicture.split(";")[0].split("/")[1]; // Extract file extension
+    const fileName = `profile-${userId}-${Date.now()}.${fileExtension}`;
+    const filePath = path.join("uploads/profile-pictures", fileName);
+
+    // Save the image to the server
+    fs.writeFileSync(filePath, base64Data, { encoding: "base64" });
+
+    // Update the user's profile picture in the database
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { profilePicture: filePath.replace(/\\/g, "/") }, // Normalize path for cross-platform compatibility
+      { new: true }
+    );
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Profile picture updated successfully",
+      data: { profilePicture: user.profilePicture },
+    });
+  } catch (error) {
+    console.error("Error updating profile picture:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to update profile picture",
       error: error.message,
     });
   }

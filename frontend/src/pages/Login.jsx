@@ -3,8 +3,7 @@ import background from "../assets/background.png"; // Updated path for new struc
 import { useNavigate, Link } from "react-router-dom";
 
 const Login = () => {
-  const [phone, setPhone] = useState("");
-  const [countryCode, setCountryCode] = useState("+92"); // Default country code
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -16,8 +15,11 @@ const Login = () => {
     // Reset error state
     setError("");
 
-    // Create the full phone number with country code
-    const fullPhoneNumber = `${countryCode} ${phone}`;
+    // Validate username
+    if (!username.trim()) {
+      setError("Username is required!");
+      return;
+    }
 
     try {
       setLoading(true);
@@ -28,7 +30,7 @@ const Login = () => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          phoneNumber: fullPhoneNumber,
+          username,
           password,
         }),
       });
@@ -36,12 +38,12 @@ const Login = () => {
       const data = await response.json();
 
       if (!response.ok) {
-        // Use the specific error message from the backend
         throw new Error(data.message);
       }
 
-      // Store user data in localStorage or context
+      // Store user data and token
       localStorage.setItem("user", JSON.stringify(data.data));
+      localStorage.setItem('token', data.token);
 
       // Redirect to home page after successful login
       navigate("/home");
@@ -51,19 +53,6 @@ const Login = () => {
       setLoading(false);
     }
   };
-
-  const countries = [
-    { code: "+1", flag: "🇺🇸" },
-    { code: "+44", flag: "🇬🇧" },
-    { code: "+91", flag: "🇮🇳" },
-    { code: "+92", flag: "🇵🇰" },
-    { code: "+61", flag: "🇦🇺" },
-    { code: "+81", flag: "🇯🇵" },
-    { code: "+49", flag: "🇩🇪" },
-    { code: "+33", flag: "🇫🇷" },
-    { code: "+86", flag: "🇨🇳" },
-    { code: "+7", flag: "🇷🇺" },
-  ];
 
   return (
     <div
@@ -104,36 +93,17 @@ const Login = () => {
 
           <div className="mb-4">
             <label className="block text-black font-medium mb-2">
-              Phone Number
+              Username
             </label>
-            <div className="flex">
-              <select
-                value={countryCode}
-                onChange={(e) => setCountryCode(e.target.value)}
-                className="px-4 py-2 border rounded-l-lg glass text-gray-800 focus:outline-none focus:ring-2 focus:ring-teal-400 mr-2" // Added `mr-2` for spacing
-                disabled={loading}
-              >
-                {countries.map((country) => (
-                  <option key={country.code} value={country.code}>
-                    {country.flag} {country.code}
-                  </option>
-                ))}
-              </select>
-              <input
-                type="tel"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                onKeyPress={(e) => {
-                  if (!/[0-9]/.test(e.key)) {
-                    e.preventDefault(); // Prevent non-numeric input
-                  }
-                }}
-                required
-                disabled={loading}
-                className="w-full px-4 py-2 border rounded-r-lg glass text-gray-800 focus:outline-none focus:ring-2 focus:ring-teal-400"
-                placeholder="Enter your phone number"
-              />
-            </div>
+            <input
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              required
+              disabled={loading}
+              className="w-full px-4 py-2 border rounded-lg glass text-gray-800 focus:outline-none focus:ring-2 focus:ring-teal-400"
+              placeholder="Enter your username"
+            />
           </div>
 
           <div className="mb-6">

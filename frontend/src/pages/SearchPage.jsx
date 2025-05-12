@@ -6,9 +6,15 @@ const SearchSlider = ({ isOpen, onClose }) => {
 
   // Simulate a search API call
   const handleSearch = () => {
-    fetch(`/api/users/search?query=${searchQuery}`) // Updated endpoint
-      .then((response) => response.json())
-      .then((data) => setResults(data.data)) // Use `data.data` to access the user list
+    const token = localStorage.getItem('authToken');
+    fetch(`/api/users/search?query=${searchQuery}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    })
+          .then((response) => response.json())
+      .then((data) => setResults(data.data))
       .catch((error) => console.error("Error fetching search results:", error));
   };
 
@@ -52,11 +58,22 @@ const SearchSlider = ({ isOpen, onClose }) => {
           <ul className="bg-white shadow-md rounded-lg">
             {results.map((account) => (
               <li
-                key={account.id}
+                key={account._id}
                 className="p-4 border-b last:border-b-0 hover:bg-gray-100 cursor-pointer"
               >
-                <p className="font-bold">{account.name}</p>
-                <p className="text-sm text-gray-600">{account.email}</p>
+                <div className="flex items-center gap-3">
+                  <img
+                  src={account.profilePicture || '/default-avatar.png'}
+                  alt="Profile"
+                   className="w-10 h-10 rounded-full object-cover"
+                  />
+  <div>
+    <p className="font-bold">{account.username}</p>
+    <p className="text-sm text-gray-600">{account.email}</p>
+  </div>
+</div>
+
+               
               </li>
             ))}
           </ul>
