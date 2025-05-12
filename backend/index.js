@@ -5,6 +5,7 @@ import connectDB from "./config/db.js";
 import { createRequire } from "module";
 import userRoutes from "./routes/user.routes.js";
 import messageRoutes from "./routes/message.routes.js";
+import notificationRoutes from "./routes/notification.routes.js";
 
 // For ES modules to use process
 const require = createRequire(import.meta.url);
@@ -28,6 +29,7 @@ app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 // Routes
 app.use("/api/users", userRoutes);
 app.use("/api/messages", messageRoutes);
+app.use("/api/notifications", notificationRoutes);
 
 // Basic route
 app.get("/", (req, res) => {
