@@ -11,9 +11,15 @@ import {
   updateProfilePicture,
   searchUsersByUsername,
   sendConnectionRequest,
-  acceptConnectionRequest
+  acceptConnectionRequest,
+  getPendingConnectionRequests,
+  checkConnectionStatus,
+  removeConnection,
+  checkPendingRequest,
+  cancelConnectionRequest,
+  rejectConnectionRequest,
 } from "../controllers/user.controller.js";
-import { authenticateUser, protect } from "../middleware/auth.middleware.js"; 
+import { authenticateUser, protect } from "../middleware/auth.middleware.js";
 
 const router = express.Router();
 
@@ -31,6 +37,12 @@ router.put("/profile/:id", updateUserProfile);
 // Connection routes
 router.post("/connections", sendConnectionRequest);
 router.put("/connections/:connectionId/accept", acceptConnectionRequest);
+router.put("/connections/:connectionId/reject", rejectConnectionRequest);
+router.delete("/connections/:userId/remove", removeConnection);
+router.delete("/connections/:connectionId/cancel", cancelConnectionRequest);
+router.get("/connections/pending", getPendingConnectionRequests);
+router.get("/connections/:userId/status", checkConnectionStatus);
+router.get("/connections/:userId/pending", checkPendingRequest);
 router.get("/:id/connections", getTotalConnections);
 
 // Search and listing routes

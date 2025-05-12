@@ -81,7 +81,29 @@ reviewSchema.pre("save", async function (next) {
       // Only check on new review creation
       const Connection = mongoose.model("Connection");
 
-      // Find mutual connections
+      // First check if there's a direct connection between the users
+      const directConnection = await Connection.findOne({
+        $or: [
+          {
+            requester: this.reviewer,
+            recipient: this.reviewee,
+            status: "accepted",
+          },
+          {
+            requester: this.reviewee,
+            recipient: this.reviewer,
+            status: "accepted",
+          },
+        ],
+      });
+
+      if (directConnection) {
+        // Direct connection exists, so we can allow the review
+        this.hasVerifiedConnection = true;
+        return next();
+      }
+
+      // If no direct connection, check for mutual connections
       const mutualConnections = await Connection.findMutualConnections(
         this.reviewer,
         this.reviewee
@@ -90,9 +112,9 @@ reviewSchema.pre("save", async function (next) {
       if (mutualConnections.length > 0) {
         this.hasVerifiedConnection = true;
       } else {
-        // If there are no mutual connections, prevent saving the review
+        // If there are no direct or mutual connections, prevent saving the review
         const error = new Error(
-          "Reviews can only be written when there are mutual connections"
+          "Reviews can only be written when there is a direct connection or mutual connections"
         );
         return next(error);
       }
