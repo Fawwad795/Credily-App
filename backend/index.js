@@ -5,6 +5,7 @@ import connectDB from "./config/db.js";
 import { createRequire } from "module";
 import userRoutes from "./routes/user.routes.js";
 import messageRoutes from "./routes/message.routes.js";
+import postRoutes from "./routes/post.routes.js";
 import notificationRoutes from "./routes/notification.routes.js";
 
 // For ES modules to use process
@@ -29,7 +30,7 @@ app.use(express.urlencoded({ extended: true }));
 // Routes
 app.use("/api/users", userRoutes);
 app.use("/api/messages", messageRoutes);
-app.use("/api/posts", messageRoutes);
+app.use("/api/posts", postRoutes);
 app.use("/api/notifications", notificationRoutes);
 
 // Root route for testing

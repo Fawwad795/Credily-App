@@ -9,7 +9,6 @@ import {
   getUserPosts,
 } from "../controllers/post.controller.js";
 
-
 const router = express.Router();
 
 router.post("/", createPost);
@@ -18,7 +17,7 @@ router.post("/like", likePost);
 router.post("/comment", commentPost);
 router.post("/delete", deletePost);
 router.post("/loadhome", loadHome);
-router.get("/userposts", getUserPosts); 
-router.get("/home",  loadHome);
+router.post("/userposts", getUserPosts);
+router.get("/home", loadHome);
 
 export default router;
