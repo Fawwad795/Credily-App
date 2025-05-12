@@ -7,6 +7,7 @@ const Signup = () => {
   const [countryCode, setCountryCode] = useState("+92");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [username, _setUserName] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -35,7 +36,7 @@ const Signup = () => {
     try {
       setLoading(true);
 
-      const response = await fetch("/api/users/register", {
+      const response = await fetch("http://localhost:4000/api/users/register", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -43,6 +44,7 @@ const Signup = () => {
         body: JSON.stringify({
           phoneNumber: fullPhoneNumber,
           password,
+          username
         }),
       });
 
@@ -54,7 +56,10 @@ const Signup = () => {
 
       // Registration successful - redirect to login
       alert("Registration successful! Please login.");
-      navigate("/login");
+   
+       navigate("/profile", { state: { user: data.data } });
+
+
     } catch (error) {
       setError(error.message);
     } finally {
@@ -141,6 +146,20 @@ const Signup = () => {
                 placeholder="Enter your phone number"
               />
             </div>
+          </div>
+          <div className="mb-4">
+            <label className="block text-black font-medium mb-2">
+              Username
+            </label>
+            <input
+              type="username"
+              value={username}
+              onChange={(e) => _setUserName(e.target.value)}
+              required
+              disabled={loading}
+              className="w-full px-4 py-2 border glass rounded-lg text-gray-800 focus:outline-none focus:ring-2 focus:ring-teal-400"
+              placeholder="Enter your password"
+            />
           </div>
 
           <div className="mb-4">

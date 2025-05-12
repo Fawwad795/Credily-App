@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import Nav from '../components/Nav';
 import { CheckCircle, MapPin, Pencil, X, Upload, Camera } from 'lucide-react';
+import { useLocation } from "react-router-dom";
+import { useEffect } from "react";
 
 import background from '../assets/background.png';
 import ReviewList from '../components/ReviewList';
@@ -47,6 +49,7 @@ const reviewsData = [
     // Add more review objects as needed
   ];
 const Profile = () => {
+
 const [isModalOpen, setIsModalOpen] = useState(false);
   const [profile, _setProfile] = useState({
     name: "Roshan Jalil",
@@ -81,7 +84,13 @@ const [isModalOpen, setIsModalOpen] = useState(false);
   ];
   // State for modal visibility
 
-  
+  const location = useLocation();
+    const user = location.state?.user;
+     useEffect(() => {
+        if (user) {
+          console.log("User object passed from signup:", user);
+        }
+      }, [user]);
   // State for new post data
   const [newPost, setNewPost] = useState({
     image: null,
