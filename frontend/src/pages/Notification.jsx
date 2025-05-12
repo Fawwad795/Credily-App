@@ -58,7 +58,14 @@ const Notifications = ({ isOpen, onClose }) => {
       }`}
     >
       <div className="p-4 border-b flex justify-between items-center">
-        <h2 className="text-lg font-bold">Notifications</h2>
+        <div className="flex items-center gap-2">
+          <h2 className="text-lg font-bold">Notifications</h2>
+          {unreadCount > 0 && (
+            <span className="bg-blue-500 text-white text-xs px-2 py-1 rounded-full">
+              {unreadCount}
+            </span>
+          )}
+        </div>
         <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
           Close
         </button>
@@ -72,16 +79,24 @@ const Notifications = ({ isOpen, onClose }) => {
           <ul>
             {connectionNotifications.map((notification) => (
               <li
-                key={notification._id}
-                className="p-4 border-b cursor-pointer"
-                onClick={() => markAsRead(notification._id)}
-              >
+              key={notification._id}
+              className="p-4 border-b cursor-pointer flex gap-3 items-start"
+              onClick={() => markAsRead(notification._id)}
+            >
+              <img
+                src={notification.sender?.profilePicture || "/images/default_profile.png"}
+                alt="profile"
+                className="w-10 h-10 rounded-full object-cover"
+              />
+              <div>
                 <h3 className="font-bold">{notification.title}</h3>
                 <p>{notification.content}</p>
                 <small className="text-gray-500">
                   {new Date(notification.createdAt).toLocaleString()}
                 </small>
-              </li>
+              </div>
+            </li>
+            
             ))}
           </ul>
         )}

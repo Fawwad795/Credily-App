@@ -86,8 +86,8 @@ export const loginUser = async (req, res) => {
     if (!user) {
       return res.status(401).json({
         success: false,
-        message: "Account does not exist",
-        error: "no_account",
+        message: "Invalid username or password",
+        error: "invalid_credentials",
       });
     }
 
@@ -96,8 +96,8 @@ export const loginUser = async (req, res) => {
     if (!isPasswordValid) {
       return res.status(401).json({
         success: false,
-        message: "Password incorrect",
-        error: "invalid_password",
+        message: "Invalid username or password",
+        error: "invalid_credentials",
       });
     }
 
