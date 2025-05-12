@@ -413,6 +413,55 @@ export const sendConnectionRequest = async (req, res) => {
     });
   }
 };
+export const updateProfilePicture = async (req, res) => {
+  try {
+    const userId = req.user.id; // Assuming you're using authentication middleware
+    const { profilePicture } = req.body; // Expect Base64 string from the frontend
+
+    if (!profilePicture) {
+      return res.status(400).json({
+        success: false,
+        message: "Profile picture is required",
+      });
+    }
+
+    // Decode Base64 and save the image to the server
+    const base64Data = profilePicture.replace(/^data:image\/\w+;base64,/, "");
+    const fileExtension = profilePicture.split(";")[0].split("/")[1]; // Extract file extension
+    const fileName = `profile-${userId}-${Date.now()}.${fileExtension}`;
+    const filePath = path.join("uploads/profile-pictures", fileName);
+
+    // Save the image to the server
+    fs.writeFileSync(filePath, base64Data, { encoding: "base64" });
+
+    // Update the user's profile picture in the database
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { profilePicture: filePath.replace(/\\/g, "/") }, // Normalize path for cross-platform compatibility
+      { new: true }
+    );
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Profile picture updated successfully",
+      data: { profilePicture: user.profilePicture },
+    });
+  } catch (error) {
+    console.error("Error updating profile picture:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to update profile picture",
+      error: error.message,
+    });
+  }
+};
 
 // Accept connection request
 export const acceptConnectionRequest = async (req, res) => {

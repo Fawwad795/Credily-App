@@ -6,9 +6,15 @@ const SearchSlider = ({ isOpen, onClose }) => {
 
   // Simulate a search API call
   const handleSearch = () => {
-    fetch(`/api/users/search?query=${searchQuery}`) // Updated endpoint
-      .then((response) => response.json())
-      .then((data) => setResults(data.data)) // Use `data.data` to access the user list
+    const token = localStorage.getItem('authToken');
+    fetch(`/api/users/search?query=${searchQuery}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    })
+          .then((response) => response.json())
+      .then((data) => setResults(data.data))
       .catch((error) => console.error("Error fetching search results:", error));
   };
 
@@ -22,7 +28,7 @@ const SearchSlider = ({ isOpen, onClose }) => {
       <div className="p-4 border-b flex justify-between items-center">
         <h2 className="text-lg font-bold">Search Accounts</h2>
         <button
-          onClick={onClose}
+          onClick={onClose} // Close the slider
           className="text-gray-500 hover:text-gray-700"
         >
           Close
@@ -42,36 +48,27 @@ const SearchSlider = ({ isOpen, onClose }) => {
           onClick={handleSearch}
           className="mt-4 w-full grad text-white py-2 px-4 rounded-lg hover:bg-teal-600 transition duration-300"
         >
-          {loading ? 'Searching...' : 'Search'}
+          Search
         </button>
       </div>
 
-      {/* Error Message */}
-      {error && (
-        <div className="p-4 text-red-500 text-center">
-          {error}
-        </div>
-      )}
-
       {/* Search Results */}
-      <div className="p-4 overflow-y-auto max-h-[calc(100vh-200px)]">
+      <div className="p-4">
         {results.length > 0 ? (
           <ul className="bg-white shadow-md rounded-lg">
-            {results.map((user) => (
+            {results.map((account) => (
               <li
-                key={user._id}
+                key={account._id}
                 className="p-4 border-b last:border-b-0 hover:bg-gray-100 cursor-pointer"
               >
-                <p className="font-bold">{user.username}</p>
-                {user.phoneNumber && (
-                  <p className="text-sm text-gray-600">{user.phoneNumber}</p>
-                )}
+                <p className="font-bold">{account.username}</p>
+                <p className="text-sm text-gray-600">{account.email}</p>
               </li>
             ))}
           </ul>
         ) : (
           <p className="text-gray-500 text-center">
-            {loading ? 'Searching...' : searchQuery ? 'No results found.' : 'Start searching for accounts.'}
+            {searchQuery ? 'No results found.' : 'Start searching for accounts.'}
           </p>
         )}
       </div>

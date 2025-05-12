@@ -9,7 +9,9 @@ import {
   updateLastActive,
   getTotalConnections,
   updateProfilePicture,
-  searchUsersByUsername
+  searchUsersByUsername,
+  sendConnectionRequest,
+  acceptConnectionRequest
 } from "../controllers/user.controller.js";
 import { authenticateUser, protect } from "../middleware/auth.middleware.js"; 
 
