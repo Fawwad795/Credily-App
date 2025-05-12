@@ -286,3 +286,34 @@ export const getUnreadCount = async (req, res) => {
     });
   }
 };
+
+// Add this function to your controller file:
+
+export const getMessages = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    
+    // Get all messages for this user (either as sender or receiver)
+    const messages = await Message.find({
+      $or: [
+        { sender: userId },
+        { receiver: userId }
+      ]
+    })
+    .sort({ createdAt: -1 })
+    .populate('sender', 'username email profilePicture')
+    .populate('receiver', 'username email profilePicture');
+
+    res.status(200).json({
+      success: true,
+      data: messages
+    });
+  } catch (error) {
+    console.error("Error fetching messages:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch messages",
+      error: error.message
+    });
+  }
+};
