@@ -8,7 +8,6 @@ const Signup = () => {
   const [countryCode, setCountryCode] = useState("+92");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [username, _setUserName] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -58,7 +57,7 @@ const Signup = () => {
           username,
           phoneNumber: fullPhoneNumber,
           password,
-          username
+    
         }),
       });
 
@@ -183,7 +182,7 @@ const Signup = () => {
             <input
               type="username"
               value={username}
-              onChange={(e) => _setUserName(e.target.value)}
+              onChange={(e) => setUsername(e.target.value)}
               required
               disabled={loading}
               className="w-full px-4 py-2 border glass rounded-lg text-gray-800 focus:outline-none focus:ring-2 focus:ring-teal-400"
