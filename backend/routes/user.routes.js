@@ -8,8 +8,8 @@ import {
   getTopUsers,
   updateLastActive,
   getTotalConnections,
-  sendConnectionRequest,
-  acceptConnectionRequest
+  updateProfilePicture,
+  searchUsersByUsername
 } from "../controllers/user.controller.js";
 import { authenticateUser, protect } from "../middleware/auth.middleware.js"; 
 
@@ -32,7 +32,7 @@ router.put("/connections/:connectionId/accept", acceptConnectionRequest);
 router.get("/:id/connections", getTotalConnections);
 
 // Search and listing routes
-router.get("/search", searchUsers);
+router.get("/search", protect, searchUsersByUsername);
 router.get("/top", getTopUsers);
 
 // Activity routes

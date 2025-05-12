@@ -3,50 +3,18 @@ import React, { useState } from 'react';
 const SearchSlider = ({ isOpen, onClose }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [results, setResults] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
 
-  const handleSearch = async () => {
-    if (!searchQuery.trim()) return;
-    
-    try {
-      setLoading(true);
-      setError('');
-      
-      // Get the auth token from localStorage
-      const token = localStorage.getItem('authToken');
-      if (!token) {
-        throw new Error('Please login to search users');
-      }
-
-      const response = await fetch(`http://localhost:5000/api/users/search?query=${encodeURIComponent(searchQuery)}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (!response.ok) {
-        if (response.status === 401) {
-          throw new Error('Please login again to continue');
-        }
-        throw new Error('Search failed');
-      }
-
-      const data = await response.json();
-      setResults(data.data.users || []);
-    } catch (error) {
-      console.error('Error fetching search results:', error);
-      setError(error.message);
-      setResults([]);
-    } finally {
-      setLoading(false);
-    }
+  // Simulate a search API call
+  const handleSearch = () => {
+    fetch(`/api/users/search?query=${searchQuery}`) // Updated endpoint
+      .then((response) => response.json())
+      .then((data) => setResults(data.data)) // Use `data.data` to access the user list
+      .catch((error) => console.error("Error fetching search results:", error));
   };
 
   return (
     <div
-      className={`fixed top-0 right-0 h-full w-1/3 bg-white shadow-lg transform ${
+      className={`fixed top-0 right-0 h-full w-1/4 bg-white shadow-lg transform ${
         isOpen ? 'translate-x-0' : 'translate-x-full'
       } transition-transform duration-300 z-50`}
     >
@@ -67,18 +35,12 @@ const SearchSlider = ({ isOpen, onClose }) => {
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          onKeyPress={(e) => {
-            if (e.key === 'Enter') {
-              handleSearch();
-            }
-          }}
-          placeholder="Search by username, email, or phone..."
-          className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-400"
+          placeholder="Search for accounts..."
+          className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:grad"
         />
         <button
           onClick={handleSearch}
-          disabled={loading}
-          className="mt-4 w-full bg-teal-500 text-white py-2 px-4 rounded-lg hover:bg-teal-600 transition duration-300 disabled:bg-teal-300"
+          className="mt-4 w-full grad text-white py-2 px-4 rounded-lg hover:bg-teal-600 transition duration-300"
         >
           {loading ? 'Searching...' : 'Search'}
         </button>
