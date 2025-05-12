@@ -61,8 +61,19 @@ const SearchSlider = ({ isOpen, onClose }) => {
                 key={account._id}
                 className="p-4 border-b last:border-b-0 hover:bg-gray-100 cursor-pointer"
               >
-                <p className="font-bold">{account.username}</p>
-                <p className="text-sm text-gray-600">{account.email}</p>
+                <div className="flex items-center gap-3">
+                  <img
+                  src={account.profilePicture || '/default-avatar.png'}
+                  alt="Profile"
+                   className="w-10 h-10 rounded-full object-cover"
+                  />
+  <div>
+    <p className="font-bold">{account.username}</p>
+    <p className="text-sm text-gray-600">{account.email}</p>
+  </div>
+</div>
+
+               
               </li>
             ))}
           </ul>
