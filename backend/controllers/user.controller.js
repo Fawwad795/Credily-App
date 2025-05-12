@@ -248,9 +248,16 @@ export const searchUsersByUsername = async (req, res) => {
       });
     }
 
-    // Perform a case-insensitive search for usernames, excluding the current user
+    // Escape any special regex characters in the query to avoid regex injection
+    const sanitizedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+    // Create a regex pattern that matches usernames starting with the query
+    // The ^ anchor ensures matching from the start of the string
+    const regex = new RegExp(`^${sanitizedQuery}`, "i");
+
+    // Perform a prefix search for usernames
     const users = await User.find({
-      username: { $regex: query, $options: "i" }, // Case-insensitive regex search
+      username: { $regex: regex }, // Match usernames that start with the query
       _id: { $ne: currentUserId }, // Exclude the current user
     }).select("username email profilePicture"); // Select only necessary fields
 
