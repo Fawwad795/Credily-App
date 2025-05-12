@@ -10,6 +10,7 @@ import Signup from "./pages/Signup";
 import SearchPage from "./pages/SearchPage";
 import Login from "./pages/Login";
 import Home from "./pages/Home";
+import Profile from "./pages/Profile";
 import Follow from "./pages/Follow";
 
 const App = () => {
@@ -22,7 +23,9 @@ const App = () => {
         <Route path="/login" element={<Login />} />
         <Route path="/message" element={<MessagingPage />} />
         <Route path="/search" element={<SearchPage />} />
+        <Route path="/profile" element={<Profile />} />
         <Route path="/profile/:id" element={<Follow />} />
+        <Route path="/profile" element={<Profile />} />
       </Routes>
     </Router>
   );

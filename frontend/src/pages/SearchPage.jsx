@@ -1,52 +1,60 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 
 const SearchSlider = ({ isOpen, onClose }) => {
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [results, setResults] = useState([]);
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleSearch = () => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      console.error("No authentication token found");
-      return;
-    }
-
-    fetch(`/api/users/search?query=${searchQuery}`, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
-    })
-    .then((response) => {
-      if (!response.ok) {
-        throw new Error('Search request failed');
-      }
-      return response.json();
-    })
-    .then((data) => {
-      if (data.success && data.data) {
-        setResults(data.data);
+  // Handle real-time search as user types
+  useEffect(() => {
+    const delaySearch = setTimeout(() => {
+      if (searchQuery.trim().length > 0) {
+        handleSearch();
       } else {
         setResults([]);
       }
+    }, 500); // 500ms delay to avoid too many requests
+
+    return () => clearTimeout(delaySearch);
+  }, [searchQuery]);
+
+  // Search API call
+  const handleSearch = () => {
+    if (!searchQuery.trim()) return;
+
+    setLoading(true);
+    const token =
+      localStorage.getItem("authToken") || localStorage.getItem("token");
+
+    fetch(`/api/users/search?query=${searchQuery}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
     })
-    .catch((error) => {
-      console.error("Error fetching search results:", error);
-      setResults([]);
-    });
+      .then((response) => response.json())
+      .then((data) => {
+        setResults(data.data || []);
+        setLoading(false);
+      })
+      .catch((error) => {
+        console.error("Error fetching search results:", error);
+        setLoading(false);
+      });
   };
 
+  // Navigate to user profile when clicked
   const handleProfileClick = (userId) => {
+    navigate(`/profile/${userId}`);
     onClose(); // Close the search slider
-    navigate(`/profile/${userId}`); // Navigate to the user's profile
   };
 
   return (
     <div
       className={`fixed top-0 right-0 h-full w-1/4 bg-white shadow-lg transform ${
-        isOpen ? 'translate-x-0' : 'translate-x-full'
+        isOpen ? "translate-x-0" : "translate-x-full"
       } transition-transform duration-300 z-50`}
     >
       {/* Header */}
@@ -69,27 +77,24 @@ const SearchSlider = ({ isOpen, onClose }) => {
           placeholder="Search for accounts..."
           className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:grad"
         />
-        <button
-          onClick={handleSearch}
-          className="mt-4 w-full grad text-white py-2 px-4 rounded-lg hover:bg-teal-600 transition duration-300"
-        >
-          Search
-        </button>
       </div>
 
       {/* Search Results */}
       <div className="p-4">
-        {results.length > 0 ? (
+        {loading ? (
+          <p className="text-center py-4">Loading...</p>
+        ) : results.length > 0 ? (
           <ul className="bg-white shadow-md rounded-lg">
             {results.map((account) => (
               <li
                 key={account._id}
                 onClick={() => handleProfileClick(account._id)}
                 className="p-4 border-b last:border-b-0 hover:bg-gray-100 cursor-pointer"
+                onClick={() => handleProfileClick(account._id)}
               >
                 <div className="flex items-center gap-3">
                   <img
-                    src={account.profilePicture || '/default-avatar.png'}
+                    src={account.profilePicture || "/default-avatar.png"}
                     alt="Profile"
                     className="w-10 h-10 rounded-full object-cover"
                   />
@@ -103,7 +108,9 @@ const SearchSlider = ({ isOpen, onClose }) => {
           </ul>
         ) : (
           <p className="text-gray-500 text-center">
-            {searchQuery ? 'No results found.' : 'Start searching for accounts.'}
+            {searchQuery
+              ? "No results found."
+              : "Start typing to search for accounts."}
           </p>
         )}
       </div>
