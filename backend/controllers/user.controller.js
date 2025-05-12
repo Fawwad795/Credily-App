@@ -239,6 +239,7 @@ export const searchUsers = async (req, res) => {
 export const searchUsersByUsername = async (req, res) => {
   try {
     const { query } = req.query; // Get the search query from the request
+    const currentUserId = req.user._id; // Get the current user's ID from the request
 
     if (!query) {
       return res.status(400).json({
@@ -247,9 +248,10 @@ export const searchUsersByUsername = async (req, res) => {
       });
     }
 
-    // Perform a case-insensitive search for usernames
+    // Perform a case-insensitive search for usernames, excluding the current user
     const users = await User.find({
       username: { $regex: query, $options: "i" }, // Case-insensitive regex search
+      _id: { $ne: currentUserId }, // Exclude the current user
     }).select("username email profilePicture"); // Select only necessary fields
 
     res.status(200).json({
