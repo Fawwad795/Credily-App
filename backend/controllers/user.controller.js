@@ -79,10 +79,10 @@ export const registerUser = async (req, res) => {
 // Login user
 export const loginUser = async (req, res) => {
   try {
-    const { phoneNumber, password } = req.body;
+    const { username, password } = req.body;
 
     // Check if user exists
-    const user = await User.findOne({ phoneNumber }).select("+password");
+    const user = await User.findOne({ username }).select("+password");
     if (!user) {
       return res.status(401).json({
         success: false,
