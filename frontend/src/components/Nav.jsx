@@ -7,37 +7,147 @@ import axios from "axios";
 const Notifications = ({ isOpen, onClose }) => {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    const fetchNotifications = async () => {
-      try {
-        const response = await axios.get("/api/notifications");
-        setNotifications(response.data.data);
-      } catch (error) {
-        console.error("Error fetching notifications:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+    if (isOpen) {
+      fetchNotifications();
+    }
+  }, [isOpen]);
 
-    fetchNotifications();
-  }, []);
+  const fetchNotifications = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem("token");
+
+      if (!token) {
+        setError("Not authenticated");
+        setLoading(false);
+        return;
+      }
+
+      const response = await axios.get("/api/notifications", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.data && response.data.data) {
+        // Check if notifications property exists in the response data structure
+        const notificationsData =
+          response.data.data.notifications || response.data.data;
+        setNotifications(notificationsData);
+      } else {
+        setNotifications([]);
+      }
+      setError(null);
+    } catch (error) {
+      console.error("Error fetching notifications:", error);
+      setError("Failed to load notifications");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAcceptRequest = async (connectionId) => {
+    try {
+      const token = localStorage.getItem("token");
+
+      if (!token) return;
+
+      const response = await axios.put(
+        `/api/users/connections/${connectionId}/accept`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.data && response.data.success) {
+        // Remove this notification from the list
+        setNotifications((prev) =>
+          prev.filter(
+            (notification) => notification.referenceId !== connectionId
+          )
+        );
+        // Refresh notifications to show any new "connection accepted" notifications
+        fetchNotifications();
+      }
+    } catch (error) {
+      console.error("Error accepting connection request:", error);
+      alert("Failed to accept connection request. Please try again.");
+    }
+  };
+
+  const handleRejectRequest = async (connectionId) => {
+    try {
+      const token = localStorage.getItem("token");
+
+      if (!token) return;
+
+      // Use the dedicated reject endpoint
+      const response = await axios.put(
+        `/api/users/connections/${connectionId}/reject`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.data && response.data.success) {
+        // Remove this notification from the list
+        setNotifications((prev) =>
+          prev.filter(
+            (notification) => notification.referenceId !== connectionId
+          )
+        );
+      }
+    } catch (error) {
+      console.error("Error rejecting connection request:", error);
+      alert("Failed to reject connection request. Please try again.");
+    }
+  };
 
   const markAsRead = async (notificationId) => {
     try {
-      await axios.post(`/api/notifications/${notificationId}/mark-as-read`);
+      const token = localStorage.getItem("token");
+
+      if (!token) return;
+
+      await axios.post(
+        `/api/notifications/mark-read`,
+        { notificationIds: [notificationId] },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      // Update the notification as read in the UI
       setNotifications((prev) =>
-        prev.filter((notification) => notification._id !== notificationId)
+        prev.map((notification) =>
+          notification._id === notificationId
+            ? { ...notification, isRead: true }
+            : notification
+        )
       );
     } catch (error) {
       console.error("Error marking notification as read:", error);
     }
   };
 
-  const connectionNotifications = notifications.filter(
-    (notification) =>
-      notification.type === "connection_request" ||
-      notification.type === "connection_accepted"
+  // Filter notifications by type
+  const connectionRequestNotifications = notifications.filter(
+    (notification) => notification.type === "connection_request"
+  );
+
+  const otherNotifications = notifications.filter(
+    (notification) => notification.type !== "connection_request"
   );
 
   return (
@@ -54,25 +164,80 @@ const Notifications = ({ isOpen, onClose }) => {
       </div>
       <div className="p-4 overflow-y-auto h-full">
         {loading ? (
-          <p>Loading...</p>
-        ) : connectionNotifications.length === 0 ? (
-          <p>No connection-related notifications.</p>
+          <p>Loading notifications...</p>
+        ) : error ? (
+          <p className="text-red-500">{error}</p>
+        ) : notifications.length === 0 ? (
+          <p>No notifications yet.</p>
         ) : (
-          <ul>
-            {connectionNotifications.map((notification) => (
-              <li
-                key={notification._id}
-                className="p-4 border-b cursor-pointer"
-                onClick={() => markAsRead(notification._id)}
-              >
-                <h3 className="font-bold">{notification.title}</h3>
-                <p>{notification.content}</p>
-                <small className="text-gray-500">
-                  {new Date(notification.createdAt).toLocaleString()}
-                </small>
-              </li>
-            ))}
-          </ul>
+          <div>
+            {/* Connection Request Notifications with Accept/Reject buttons */}
+            {connectionRequestNotifications.length > 0 && (
+              <div className="mb-6">
+                <h3 className="font-bold mb-2 text-green-800">
+                  Connection Requests
+                </h3>
+                <ul>
+                  {connectionRequestNotifications.map((notification) => (
+                    <li
+                      key={notification._id}
+                      className="p-3 border rounded-lg mb-2 bg-green-50"
+                    >
+                      <h4 className="font-semibold">{notification.title}</h4>
+                      <p className="mb-2">{notification.content}</p>
+                      <div className="flex justify-between mt-2">
+                        <button
+                          onClick={() =>
+                            handleAcceptRequest(notification.referenceId)
+                          }
+                          className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600"
+                        >
+                          Accept
+                        </button>
+                        <button
+                          onClick={() =>
+                            handleRejectRequest(notification.referenceId)
+                          }
+                          className="px-3 py-1 bg-gray-300 text-gray-700 rounded hover:bg-gray-400"
+                        >
+                          Reject
+                        </button>
+                      </div>
+                      <small className="text-gray-500 block mt-2">
+                        {new Date(notification.createdAt).toLocaleString()}
+                      </small>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Other Notifications */}
+            {otherNotifications.length > 0 && (
+              <div>
+                <h3 className="font-bold mb-2 text-gray-800">
+                  Other Notifications
+                </h3>
+                <ul>
+                  {otherNotifications.map((notification) => (
+                    <li
+                      key={notification._id}
+                      className={`p-3 border rounded-lg mb-2 ${
+                        notification.isRead ? "bg-gray-50" : "bg-white"
+                      }`}
+                      onClick={() => markAsRead(notification._id)}
+                    >
+                      <h4 className="font-semibold">{notification.title}</h4>
+                      <p>{notification.content}</p>
+                      <small className="text-gray-500 block mt-2">
+                        {new Date(notification.createdAt).toLocaleString()}
+                      </small>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
         )}
       </div>
     </div>
@@ -107,24 +272,26 @@ const Nav = () => {
       >
         <div className="h-full px-3 py-4 color overflow-y-auto bg-white dark:bg-gray-800">
           <ul className="space-y-2 font-medium">
-         <Link to ="/profile">   <li>
-              <a
-                href="#"
-                className="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-green-100 dark:hover:bg-green-700 group"
-              >
-                <svg
-                  className="w-5 h-5 text-gray-500 transition duration-75 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white"
-                  aria-hidden="true"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="currentColor"
-                  viewBox="0 0 22 21"
+            <Link to="/profile">
+              {" "}
+              <li>
+                <a
+                  href="#"
+                  className="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-green-100 dark:hover:bg-green-700 group"
                 >
-                  <path d="M16.975 11H10V4.025a1 1 0 0 0-1.066-.998 8.5 8.5 0 1 0 9.039 9.039.999.999 0 0 0-1-1.066h.002Z" />
-                  <path d="M12.5 0c-.157 0-.311.01-.565.027A1 1 0 0 0 11 1.02V10h8.975a1 1 0 0 0 1-.935c.013-.188.028-.374.028-.565A8.51 8.51 0 0 0 12.5 0Z" />
-                </svg>
-                <span className="ms-3 text-gray-900">Profile</span>
-              </a>
-            </li>
+                  <svg
+                    className="w-5 h-5 text-gray-500 transition duration-75 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white"
+                    aria-hidden="true"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="currentColor"
+                    viewBox="0 0 22 21"
+                  >
+                    <path d="M16.975 11H10V4.025a1 1 0 0 0-1.066-.998 8.5 8.5 0 1 0 9.039 9.039.999.999 0 0 0-1-1.066h.002Z" />
+                    <path d="M12.5 0c-.157 0-.311.01-.565.027A1 1 0 0 0 11 1.02V10h8.975a1 1 0 0 0 1-.935c.013-.188.028-.374.028-.565A8.51 8.51 0 0 0 12.5 0Z" />
+                  </svg>
+                  <span className="ms-3 text-gray-900">Profile</span>
+                </a>
+              </li>
             </Link>
             <li>
               <button

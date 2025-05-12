@@ -5,6 +5,7 @@ import connectDB from "./config/db.js";
 import { createRequire } from "module";
 import userRoutes from "./routes/user.routes.js";
 import messageRoutes from "./routes/message.routes.js";
+import notificationRoutes from "./routes/notification.routes.js";
 
 // For ES modules to use process
 const require = createRequire(import.meta.url);
@@ -22,17 +23,18 @@ connectDB();
 
 // Middleware
 app.use(cors());
-app.use(express.json({ limit: "10mb" }));
-app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // Routes
 app.use("/api/users", userRoutes);
 app.use("/api/messages", messageRoutes);
 app.use("/api/posts", messageRoutes);
+app.use("/api/notifications", notificationRoutes);
 
-// Basic route
+// Root route for testing
 app.get("/", (req, res) => {
-  res.send("Credily API is running...");
+  res.send("API is running...");
 });
 
 // Server startup
