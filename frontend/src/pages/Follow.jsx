@@ -26,6 +26,7 @@ const Follow = () => {
     profilePicture: "",
     bio: "",
     location: "",
+    phoneNumber: "",
   });
 
   useEffect(() => {
@@ -41,25 +42,51 @@ const Follow = () => {
   const fetchUserData = async () => {
     try {
       console.log("Fetching user data for ID:", id);
+
+      // Add authorization token to the request
+      const token =
+        localStorage.getItem("token") || localStorage.getItem("authToken");
+      const headers = token
+        ? {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          }
+        : { "Content-Type": "application/json" };
+
       // Updated to use the correct API endpoint based on backend routes
-      const response = await fetch(`/api/users/profile/${id}`);
+      const response = await fetch(`/api/users/profile/${id}`, {
+        headers: headers,
+      });
+
       const data = await response.json();
 
       console.log("User data response:", data);
 
       if (response.ok && data.success) {
+        // Set all fields from the data object, using fallbacks if properties are missing
+        const profile = data.data || {};
+
         setUserData({
-          username: data.data.username || "User",
-          email: data.data.email || "email@example.com",
-          profilePicture: data.data.profilePicture || "",
-          bio: data.data.bio || "No bio available",
-          location: data.data.location || "Location not specified",
+          username: profile.username || "User",
+          email: profile.email || "email@example.com",
+          profilePicture: profile.profilePicture || "",
+          bio: profile.bio || "No bio available",
+          location: profile.location || "Location not specified",
+          phoneNumber: profile.phoneNumber || "",
         });
+
+        console.log("User data set:", profile);
       } else {
         console.error("Failed to fetch user data:", data.message);
+        // Set an error state or show notification to user
+        alert(
+          `Error fetching user profile: ${data.message || "Unknown error"}`
+        );
       }
     } catch (error) {
       console.error("Error fetching user data:", error);
+      // Set an error state or show notification to user
+      alert("Error fetching user profile. Please try again later.");
     }
   };
 
