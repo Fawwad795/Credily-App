@@ -175,20 +175,7 @@ const Signup = () => {
               />
             </div>
           </div>
-          <div className="mb-4">
-            <label className="block text-black font-medium mb-2">
-              Username
-            </label>
-            <input
-              type="username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              required
-              disabled={loading}
-              className="w-full px-4 py-2 border glass rounded-lg text-gray-800 focus:outline-none focus:ring-2 focus:ring-teal-400"
-              placeholder="Enter your password"
-            />
-          </div>
+          
 
           <div className="mb-4">
             <label className="block text-black font-medium mb-2">
