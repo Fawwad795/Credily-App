@@ -88,7 +88,6 @@ const SearchSlider = ({ isOpen, onClose }) => {
             {results.map((account) => (
               <li
                 key={account._id}
-                onClick={() => handleProfileClick(account._id)}
                 className="p-4 border-b last:border-b-0 hover:bg-gray-100 cursor-pointer"
                 onClick={() => handleProfileClick(account._id)}
               >
