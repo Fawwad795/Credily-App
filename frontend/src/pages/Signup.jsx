@@ -3,6 +3,7 @@ import background from "../assets/background.png"; // Updated path to reference 
 import { useNavigate } from "react-router-dom";
 
 const Signup = () => {
+  const [username, setUsername] = useState("");
   const [phone, setPhone] = useState("");
   const [countryCode, setCountryCode] = useState("+92");
   const [password, setPassword] = useState("");
@@ -16,6 +17,18 @@ const Signup = () => {
 
     // Reset error state
     setError("");
+
+    // Validate username
+    if (!username.trim()) {
+      setError("Username is required!");
+      return;
+    }
+
+    // Validate username length
+    if (username.length < 3) {
+      setError("Username must be at least 3 characters long");
+      return;
+    }
 
     // Validate passwords match
     if (password !== confirmPassword) {
@@ -41,6 +54,7 @@ const Signup = () => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
+          username,
           phoneNumber: fullPhoneNumber,
           password,
         }),
@@ -110,6 +124,21 @@ const Signup = () => {
               {error}
             </div>
           )}
+
+          <div className="mb-4">
+            <label className="block text-black font-medium mb-2">
+              Username
+            </label>
+            <input
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              required
+              disabled={loading}
+              className="w-full px-4 py-2 border rounded-lg glass text-gray-800 focus:outline-none focus:ring-2 focus:ring-teal-400"
+              placeholder="Choose a username"
+            />
+          </div>
 
           <div className="mb-4">
             <label className="block text-black font-medium mb-2">

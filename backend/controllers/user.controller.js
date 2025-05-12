@@ -15,12 +15,21 @@ const generateToken = (id) => {
 // Register a new user
 export const registerUser = async (req, res) => {
   try {
-    const { phoneNumber, password } = req.body;
+    const { username, phoneNumber, password } = req.body;
 
-    if (!phoneNumber || !password) {
+    if (!username || !phoneNumber || !password) {
       return res.status(400).json({
         success: false,
-        message: "Phone number and password are required",
+        message: "Username, phone number and password are required",
+      });
+    }
+
+    // Check if username already exists
+    const usernameExists = await User.findOne({ username });
+    if (usernameExists) {
+      return res.status(400).json({
+        success: false,
+        message: "Username is already taken",
       });
     }
 
@@ -33,13 +42,9 @@ export const registerUser = async (req, res) => {
       });
     }
 
-    // Generate a username based on phone number (just for initial account creation)
-    const username = `user_${Date.now().toString().slice(-6)}`;
-
-    // Create new user without requiring email
+    // Create new user
     const user = await User.create({
       username,
-      // No email field - it's optional now
       password,
       phoneNumber,
     });
