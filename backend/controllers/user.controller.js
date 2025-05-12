@@ -356,7 +356,14 @@ export const getTotalConnections = async (req, res) => {
 export const sendConnectionRequest = async (req, res) => {
   try {
     const { recipientId } = req.body;
-    const requesterId = req.user._id; // Assuming you have authentication middleware
+    const requesterId = req.user._id; // Get the authenticated user's ID
+
+    if (!recipientId) {
+      return res.status(400).json({
+        success: false,
+        message: "Recipient ID is required",
+      });
+    }
 
     // Check if users exist
     const [requester, recipient] = await Promise.all([
@@ -418,6 +425,7 @@ export const sendConnectionRequest = async (req, res) => {
     });
   }
 };
+
 export const updateProfilePicture = async (req, res) => {
   try {
     const userId = req.user.id; // Assuming you're using authentication middleware

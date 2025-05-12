@@ -1,21 +1,46 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 const SearchSlider = ({ isOpen, onClose }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [results, setResults] = useState([]);
+  const navigate = useNavigate();
 
-  // Simulate a search API call
   const handleSearch = () => {
-    const token = localStorage.getItem('authToken');
+    const token = localStorage.getItem('token');
+    if (!token) {
+      console.error("No authentication token found");
+      return;
+    }
+
     fetch(`/api/users/search?query=${searchQuery}`, {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
       }
     })
-          .then((response) => response.json())
-      .then((data) => setResults(data.data))
-      .catch((error) => console.error("Error fetching search results:", error));
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error('Search request failed');
+      }
+      return response.json();
+    })
+    .then((data) => {
+      if (data.success && data.data) {
+        setResults(data.data);
+      } else {
+        setResults([]);
+      }
+    })
+    .catch((error) => {
+      console.error("Error fetching search results:", error);
+      setResults([]);
+    });
+  };
+
+  const handleProfileClick = (userId) => {
+    onClose(); // Close the search slider
+    navigate(`/profile/${userId}`); // Navigate to the user's profile
   };
 
   return (
@@ -59,21 +84,20 @@ const SearchSlider = ({ isOpen, onClose }) => {
             {results.map((account) => (
               <li
                 key={account._id}
+                onClick={() => handleProfileClick(account._id)}
                 className="p-4 border-b last:border-b-0 hover:bg-gray-100 cursor-pointer"
               >
                 <div className="flex items-center gap-3">
                   <img
-                  src={account.profilePicture || '/default-avatar.png'}
-                  alt="Profile"
-                   className="w-10 h-10 rounded-full object-cover"
+                    src={account.profilePicture || '/default-avatar.png'}
+                    alt="Profile"
+                    className="w-10 h-10 rounded-full object-cover"
                   />
-  <div>
-    <p className="font-bold">{account.username}</p>
-    <p className="text-sm text-gray-600">{account.email}</p>
-  </div>
-</div>
-
-               
+                  <div>
+                    <p className="font-bold">{account.username}</p>
+                    <p className="text-sm text-gray-600">{account.email}</p>
+                  </div>
+                </div>
               </li>
             ))}
           </ul>
