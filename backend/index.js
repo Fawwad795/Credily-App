@@ -28,6 +28,7 @@ app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 // Routes
 app.use("/api/users", userRoutes);
 app.use("/api/messages", messageRoutes);
+app.use("/api/posts", messageRoutes);
 
 // Basic route
 app.get("/", (req, res) => {
