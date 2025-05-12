@@ -6,19 +6,25 @@ import ReviewList from "../components/ReviewList";
 import PostSection from "../components/PostSection";
 import Analytics from "../components/Analytics";
 
+// Function to generate placeholder image URL for new posts
+const getDefaultPostImage = () => {
+  return "https://placehold.co/600x350/red/white?text=New+Post";
+};
+
 const reviewsData = [
   {
     name: "Alice",
-    image: "https://via.placeholder.com/50?text=A",
+    image: "https://placehold.co/50/blue/white?text=A",
     content: "Really insightful content!",
   },
   {
     name: "Bob",
-    image: "https://via.placeholder.com/50?text=B",
+    image: "https://placehold.co/50/teal/white?text=B",
     content: "Great attention to detail and presentation.",
   },
   {
     name: "Charlie",
+    image: "https://placehold.co/50/green/white?text=C",
     content: "I loved the way the topic was covered!",
   },
 ];
@@ -27,7 +33,7 @@ const samplePosts = [
   {
     title: "Project Update 1",
     description: "Implemented new UI design for user dashboard.",
-    image: "https://via.placeholder.com/300x160?text=Post+1",
+    image: "https://placehold.co/600x350/blue/white?text=Post+1",
     date: "May 11, 2025",
     likes: 24,
     comments: 8,
@@ -35,7 +41,7 @@ const samplePosts = [
   {
     title: "New Feature Launch",
     description: "Launched AI assistant for student queries.",
-    image: "https://via.placeholder.com/300x160?text=Post+2",
+    image: "https://placehold.co/600x350/teal/white?text=Post+2",
     date: "May 12, 2025",
     likes: 30,
     comments: 12,
@@ -49,6 +55,7 @@ const Profile = () => {
   const [userPosts, setUserPosts] = useState([]);
   const [newPost, setNewPost] = useState({
     image: null,
+    imageFile: null,
     caption: "",
   });
 
@@ -204,6 +211,7 @@ const Profile = () => {
       const file = e.target.files[0];
       setNewPost({
         ...newPost,
+        imageFile: file,
         image: URL.createObjectURL(file),
       });
     }
@@ -243,25 +251,53 @@ const Profile = () => {
       return;
     }
 
-    // Use placeholder URL if no image is selected
-    const imageUrl =
-      newPost.image || "https://via.placeholder.com/300x160?text=New+Post";
-
-    // Create post data
-    const postData = {
-      caption: newPost.caption,
-      author: decodedToken.id,
-      media: [
-        {
-          type: "image",
-          url: imageUrl,
-          altText: "",
-        },
-      ],
-      visibility: "public",
-    };
-
     try {
+      let imageUrl;
+
+      // First, upload the image if we have one
+      if (newPost.imageFile) {
+        const formData = new FormData();
+        formData.append("image", newPost.imageFile);
+
+        const uploadResponse = await fetch(
+          "http://localhost:5000/api/uploads/image",
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              // Don't set Content-Type for FormData
+            },
+            body: formData,
+          }
+        );
+
+        const uploadData = await uploadResponse.json();
+
+        if (!uploadData.success) {
+          console.error("Failed to upload image:", uploadData.message);
+          alert("Failed to upload image. Please try again.");
+          return;
+        }
+
+        imageUrl = uploadData.imageUrl;
+      } else {
+        imageUrl = getDefaultPostImage();
+      }
+
+      // Create post data with the Cloudinary URL
+      const postData = {
+        caption: newPost.caption,
+        author: decodedToken.id,
+        media: [
+          {
+            type: "image",
+            url: imageUrl,
+            altText: "",
+          },
+        ],
+        visibility: "public",
+      };
+
       // Send post data to backend
       const response = await fetch("http://localhost:5000/api/posts", {
         method: "POST",
@@ -280,7 +316,7 @@ const Profile = () => {
         fetchUserPosts(decodedToken.id);
         // Reset form and close modal
         setIsModalOpen(false);
-        setNewPost({ image: null, caption: "" });
+        setNewPost({ image: null, imageFile: null, caption: "" });
       } else {
         console.error("Failed to create post:", data.message);
         alert("Failed to create post. Please try again.");
@@ -346,9 +382,20 @@ const Profile = () => {
             {/* Profile Picture */}
             <div className="absolute -top-16 left-6 rounded-full border-4 border-white overflow-hidden">
               <img
-                src={profile.profilePicture}
-                alt="Profile background"
-                className="w-full h-full object-cover"
+                src={
+                  profile.profilePicture ||
+                  `https://placehold.co/150/green/white?text=${
+                    profile.username ? profile.username.charAt(0) : "U"
+                  }`
+                }
+                alt="Profile"
+                className="w-24 h-24 object-cover"
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = `https://placehold.co/150/green/white?text=${
+                    profile.username ? profile.username.charAt(0) : "U"
+                  }`;
+                }}
               />
             </div>
 
@@ -407,7 +454,7 @@ const Profile = () => {
             <button
               onClick={() => {
                 setIsModalOpen(false);
-                setNewPost({ image: null, caption: "" });
+                setNewPost({ image: null, imageFile: null, caption: "" });
               }}
               className="absolute top-3 right-3 text-gray-500 hover:text-gray-700"
             >
@@ -480,7 +527,7 @@ const Profile = () => {
                   type="button"
                   onClick={() => {
                     setIsModalOpen(false);
-                    setNewPost({ image: null, caption: "" });
+                    setNewPost({ image: null, imageFile: null, caption: "" });
                   }}
                   className="mr-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md"
                 >

@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import SearchSlider from "../pages/SearchPage";
 import "../index.css"; // Updated path to reference index.css in the src directory
 import { useState, useEffect } from "react";
-import axios from "axios";
+import api from "../utils/axios";
 
 const Notifications = ({ isOpen, onClose }) => {
   const [notifications, setNotifications] = useState([]);
@@ -26,7 +26,7 @@ const Notifications = ({ isOpen, onClose }) => {
         return;
       }
 
-      const response = await axios.get("/api/notifications", {
+      const response = await api.get("/notifications", {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -55,8 +55,8 @@ const Notifications = ({ isOpen, onClose }) => {
 
       if (!token) return;
 
-      const response = await axios.put(
-        `/api/users/connections/${connectionId}/accept`,
+      const response = await api.put(
+        `/users/connections/${connectionId}/accept`,
         {},
         {
           headers: {
@@ -66,14 +66,21 @@ const Notifications = ({ isOpen, onClose }) => {
       );
 
       if (response.data && response.data.success) {
-        // Remove this notification from the list
+        // Instead of removing the notification, update its type and content
         setNotifications((prev) =>
-          prev.filter(
-            (notification) => notification.referenceId !== connectionId
-          )
+          prev.map((notification) => {
+            if (notification.referenceId === connectionId) {
+              return {
+                ...notification,
+                type: "connection_accepted",
+                title: "Connection Accepted",
+                content: `You accepted the connection request.`,
+                timestamp: new Date().toISOString(),
+              };
+            }
+            return notification;
+          })
         );
-        // Refresh notifications to show any new "connection accepted" notifications
-        fetchNotifications();
       }
     } catch (error) {
       console.error("Error accepting connection request:", error);
@@ -88,8 +95,8 @@ const Notifications = ({ isOpen, onClose }) => {
       if (!token) return;
 
       // Use the dedicated reject endpoint
-      const response = await axios.put(
-        `/api/users/connections/${connectionId}/reject`,
+      const response = await api.put(
+        `/users/connections/${connectionId}/reject`,
         {},
         {
           headers: {
@@ -99,11 +106,20 @@ const Notifications = ({ isOpen, onClose }) => {
       );
 
       if (response.data && response.data.success) {
-        // Remove this notification from the list
+        // Instead of removing the notification, update its type and content
         setNotifications((prev) =>
-          prev.filter(
-            (notification) => notification.referenceId !== connectionId
-          )
+          prev.map((notification) => {
+            if (notification.referenceId === connectionId) {
+              return {
+                ...notification,
+                type: "connection_rejected",
+                title: "Connection Rejected",
+                content: `You rejected the connection request.`,
+                timestamp: new Date().toISOString(),
+              };
+            }
+            return notification;
+          })
         );
       }
     } catch (error) {
@@ -118,8 +134,8 @@ const Notifications = ({ isOpen, onClose }) => {
 
       if (!token) return;
 
-      await axios.post(
-        `/api/notifications/mark-read`,
+      await api.post(
+        `/notifications/mark-read`,
         { notificationIds: [notificationId] },
         {
           headers: {
@@ -146,15 +162,27 @@ const Notifications = ({ isOpen, onClose }) => {
     (notification) => notification.type === "connection_request"
   );
 
+  const connectionAcceptedNotifications = notifications.filter(
+    (notification) => notification.type === "connection_accepted"
+  );
+
+  const connectionRejectedNotifications = notifications.filter(
+    (notification) => notification.type === "connection_rejected"
+  );
+
   const otherNotifications = notifications.filter(
-    (notification) => notification.type !== "connection_request"
+    (notification) =>
+      notification.type !== "connection_request" &&
+      notification.type !== "connection_accepted" &&
+      notification.type !== "connection_rejected"
   );
 
   return (
     <div
-      className={`fixed top-0 right-0 h-full w-80 bg-white shadow-lg transform transition-transform duration-300 ${
+      className={`fixed top-0 right-0 h-full w-80 bg-white shadow-lg transform transition-transform duration-300 z-[101] pointer-events-auto ${
         isOpen ? "translate-x-0" : "translate-x-full"
       }`}
+      style={{ zIndex: 101 }}
     >
       <div className="p-4 border-b flex justify-between items-center">
         <h2 className="text-lg font-bold">Notifications</h2>
@@ -185,26 +213,78 @@ const Notifications = ({ isOpen, onClose }) => {
                     >
                       <h4 className="font-semibold">{notification.title}</h4>
                       <p className="mb-2">{notification.content}</p>
-                      <div className="flex justify-between mt-2">
+                      <div className="flex justify-between mt-2 pointer-events-auto">
                         <button
-                          onClick={() =>
-                            handleAcceptRequest(notification.referenceId)
-                          }
-                          className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleAcceptRequest(notification.referenceId);
+                          }}
+                          className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 relative z-[102]"
                         >
                           Accept
                         </button>
                         <button
-                          onClick={() =>
-                            handleRejectRequest(notification.referenceId)
-                          }
-                          className="px-3 py-1 bg-gray-300 text-gray-700 rounded hover:bg-gray-400"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRejectRequest(notification.referenceId);
+                          }}
+                          className="px-3 py-1 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 relative z-[102]"
                         >
                           Reject
                         </button>
                       </div>
                       <small className="text-gray-500 block mt-2">
                         {new Date(notification.createdAt).toLocaleString()}
+                      </small>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Connection Accepted Notifications */}
+            {connectionAcceptedNotifications.length > 0 && (
+              <div className="mb-6">
+                <h3 className="font-bold mb-2 text-green-800">
+                  Accepted Connections
+                </h3>
+                <ul>
+                  {connectionAcceptedNotifications.map((notification) => (
+                    <li
+                      key={notification._id}
+                      className="p-3 border rounded-lg mb-2 bg-green-100"
+                    >
+                      <h4 className="font-semibold">{notification.title}</h4>
+                      <p className="mb-2">{notification.content}</p>
+                      <small className="text-gray-500 block mt-2">
+                        {new Date(
+                          notification.timestamp || notification.createdAt
+                        ).toLocaleString()}
+                      </small>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Connection Rejected Notifications */}
+            {connectionRejectedNotifications.length > 0 && (
+              <div className="mb-6">
+                <h3 className="font-bold mb-2 text-red-800">
+                  Rejected Connections
+                </h3>
+                <ul>
+                  {connectionRejectedNotifications.map((notification) => (
+                    <li
+                      key={notification._id}
+                      className="p-3 border rounded-lg mb-2 bg-red-50"
+                    >
+                      <h4 className="font-semibold">{notification.title}</h4>
+                      <p className="mb-2">{notification.content}</p>
+                      <small className="text-gray-500 block mt-2">
+                        {new Date(
+                          notification.timestamp || notification.createdAt
+                        ).toLocaleString()}
                       </small>
                     </li>
                   ))}
@@ -272,27 +352,24 @@ const Nav = () => {
       >
         <div className="h-full px-3 py-4 color overflow-y-auto bg-white dark:bg-gray-800">
           <ul className="space-y-2 font-medium">
-            <Link to="/profile">
-              {" "}
-              <li>
-                <a
-                  href="#"
-                  className="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-green-100 dark:hover:bg-green-700 group"
+            <li>
+              <Link
+                to="/profile"
+                className="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-green-100 dark:hover:bg-green-700 group"
+              >
+                <svg
+                  className="w-5 h-5 text-gray-500 transition duration-75 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white"
+                  aria-hidden="true"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="currentColor"
+                  viewBox="0 0 22 21"
                 >
-                  <svg
-                    className="w-5 h-5 text-gray-500 transition duration-75 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white"
-                    aria-hidden="true"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="currentColor"
-                    viewBox="0 0 22 21"
-                  >
-                    <path d="M16.975 11H10V4.025a1 1 0 0 0-1.066-.998 8.5 8.5 0 1 0 9.039 9.039.999.999 0 0 0-1-1.066h.002Z" />
-                    <path d="M12.5 0c-.157 0-.311.01-.565.027A1 1 0 0 0 11 1.02V10h8.975a1 1 0 0 0 1-.935c.013-.188.028-.374.028-.565A8.51 8.51 0 0 0 12.5 0Z" />
-                  </svg>
-                  <span className="ms-3 text-gray-900">Profile</span>
-                </a>
-              </li>
-            </Link>
+                  <path d="M16.975 11H10V4.025a1 1 0 0 0-1.066-.998 8.5 8.5 0 1 0 9.039 9.039.999.999 0 0 0-1-1.066h.002Z" />
+                  <path d="M12.5 0c-.157 0-.311.01-.565.027A1 1 0 0 0 11 1.02V10h8.975a1 1 0 0 0 1-.935c.013-.188.028-.374.028-.565A8.51 8.51 0 0 0 12.5 0Z" />
+                </svg>
+                <span className="ms-3 text-gray-900">Profile</span>
+              </Link>
+            </li>
             <li>
               <button
                 onClick={() => setActiveSlider("search")}

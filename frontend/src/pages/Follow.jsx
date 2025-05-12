@@ -432,9 +432,26 @@ const Follow = () => {
         {/* Profile Header */}
         <div className="w-full bg-black text-white py-8 flex flex-col items-center">
           <div className="w-24 h-24 rounded-full bg-gray-300 mb-4">
-            {userData.profilePicture && (
+            {userData.profilePicture ? (
               <img
                 src={userData.profilePicture}
+                alt={userData.username}
+                className="w-full h-full rounded-full object-cover"
+                onError={(e) => {
+                  e.target.onerror = null;
+                  const initial = userData.username
+                    ? userData.username.charAt(0).toUpperCase()
+                    : "U";
+                  e.target.src = `https://placehold.co/150/purple/white?text=${initial}`;
+                }}
+              />
+            ) : (
+              <img
+                src={`https://placehold.co/150/purple/white?text=${
+                  userData.username
+                    ? userData.username.charAt(0).toUpperCase()
+                    : "U"
+                }`}
                 alt={userData.username}
                 className="w-full h-full rounded-full object-cover"
               />

@@ -495,6 +495,15 @@ export const updateProfilePicture = async (req, res) => {
 export const acceptConnectionRequest = async (req, res) => {
   try {
     const { connectionId } = req.params;
+
+    // Add check to ensure req.user exists
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: "Authentication required. User is not authenticated.",
+      });
+    }
+
     const userId = req.user._id; // Assuming you have authentication middleware
 
     // Find the connection request
@@ -775,6 +784,15 @@ export const cancelConnectionRequest = async (req, res) => {
 export const rejectConnectionRequest = async (req, res) => {
   try {
     const { connectionId } = req.params;
+
+    // Add check to ensure req.user exists
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: "Authentication required. User is not authenticated.",
+      });
+    }
+
     const userId = req.user._id;
 
     // Find the connection request

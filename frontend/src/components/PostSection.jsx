@@ -13,9 +13,20 @@ const PostSection = ({ posts, onCreate }) => {
     });
   };
 
+  // Function to generate a simple post image
+  const generatePostImage = (index) => {
+    const colors = ["#4F46E5", "#0EA5E9", "#10B981", "#F59E0B", "#EF4444"];
+    const color = colors[index % colors.length];
+    const text = `Post ${index + 1}`;
+    return `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='160' viewBox='0 0 300 160'%3E%3Crect width='300' height='160' fill='${color.replace(
+      "#",
+      "%23"
+    )}'/%3E%3Ctext x='150' y='80' font-family='Arial' font-size='24' fill='white' text-anchor='middle'%3E${text}%3C/text%3E%3C/svg%3E`;
+  };
+
   // Function to get image URL from post
-  const getPostImage = (post) => {
-    if (!post) return "https://via.placeholder.com/300x160";
+  const getPostImage = (post, index) => {
+    if (!post) return generatePostImage(index);
 
     // If this is our database post format
     if (post.media && post.media.length > 0 && post.media[0].url) {
@@ -27,7 +38,7 @@ const PostSection = ({ posts, onCreate }) => {
       return post.image;
     }
 
-    return "https://via.placeholder.com/300x160";
+    return generatePostImage(index);
   };
 
   // Function to get post title
@@ -73,7 +84,7 @@ const PostSection = ({ posts, onCreate }) => {
               >
                 <img
                   className="w-full h-40 object-cover"
-                  src={getPostImage(post)}
+                  src={getPostImage(post, index)}
                   alt={getPostTitle(post, index)}
                 />
                 <div className="p-4">
@@ -105,7 +116,7 @@ const PostSection = ({ posts, onCreate }) => {
       </div>
 
       {/* Custom style for hiding scrollbar */}
-      <style jsx>{`
+      <style jsx="true">{`
         .hide-scrollbar::-webkit-scrollbar {
           display: none;
         }

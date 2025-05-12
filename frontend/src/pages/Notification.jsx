@@ -6,6 +6,20 @@ const Notifications = ({ isOpen, onClose }) => {
   const [loading, setLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
 
+  // Generate placeholder avatar for profile pictures
+  const generatePlaceholderAvatar = (sender) => {
+    const initial = sender?.username
+      ? sender.username.charAt(0).toUpperCase()
+      : "U";
+    return `https://placehold.co/50/teal/white?text=${initial}`;
+  };
+
+  // Handle image error by replacing with placeholder
+  const handleImageError = (e, sender) => {
+    e.target.onerror = null; // Prevent infinite callbacks
+    e.target.src = generatePlaceholderAvatar(sender);
+  };
+
   useEffect(() => {
     const fetchNotifications = async () => {
       try {
@@ -79,24 +93,27 @@ const Notifications = ({ isOpen, onClose }) => {
           <ul>
             {connectionNotifications.map((notification) => (
               <li
-              key={notification._id}
-              className="p-4 border-b cursor-pointer flex gap-3 items-start"
-              onClick={() => markAsRead(notification._id)}
-            >
-              <img
-                src={notification.sender?.profilePicture || "/images/default_profile.png"}
-                alt="profile"
-                className="w-10 h-10 rounded-full object-cover"
-              />
-              <div>
-                <h3 className="font-bold">{notification.title}</h3>
-                <p>{notification.content}</p>
-                <small className="text-gray-500">
-                  {new Date(notification.createdAt).toLocaleString()}
-                </small>
-              </div>
-            </li>
-            
+                key={notification._id}
+                className="p-4 border-b cursor-pointer flex gap-3 items-start"
+                onClick={() => markAsRead(notification._id)}
+              >
+                <img
+                  src={
+                    notification.sender?.profilePicture ||
+                    generatePlaceholderAvatar(notification.sender)
+                  }
+                  alt="profile"
+                  className="w-10 h-10 rounded-full object-cover"
+                  onError={(e) => handleImageError(e, notification.sender)}
+                />
+                <div>
+                  <h3 className="font-bold">{notification.title}</h3>
+                  <p>{notification.content}</p>
+                  <small className="text-gray-500">
+                    {new Date(notification.createdAt).toLocaleString()}
+                  </small>
+                </div>
+              </li>
             ))}
           </ul>
         )}

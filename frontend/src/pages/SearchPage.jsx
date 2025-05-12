@@ -51,6 +51,18 @@ const SearchSlider = ({ isOpen, onClose }) => {
     onClose(); // Close the search slider
   };
 
+  // Generate a placeholder image for users with invalid profile pictures
+  const generatePlaceholderAvatar = (username) => {
+    const initial = username ? username.charAt(0).toUpperCase() : "U";
+    return `https://placehold.co/50/purple/white?text=${initial}`;
+  };
+
+  // Handle image error by replacing with placeholder
+  const handleImageError = (e, username) => {
+    e.target.onerror = null; // Prevent infinite callbacks
+    e.target.src = generatePlaceholderAvatar(username);
+  };
+
   return (
     <div
       className={`fixed top-0 right-0 h-full w-1/4 bg-white shadow-lg transform ${
@@ -93,9 +105,13 @@ const SearchSlider = ({ isOpen, onClose }) => {
               >
                 <div className="flex items-center gap-3">
                   <img
-                    src={account.profilePicture || "/default-avatar.png"}
+                    src={
+                      account.profilePicture ||
+                      generatePlaceholderAvatar(account.username)
+                    }
                     alt="Profile"
                     className="w-10 h-10 rounded-full object-cover"
+                    onError={(e) => handleImageError(e, account.username)}
                   />
                   <div>
                     <p className="font-bold">{account.username}</p>

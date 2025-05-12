@@ -6,40 +6,40 @@ const Home = () => {
   const posts = [
     {
       authorName: "Alice",
-      authorImage: "https://via.placeholder.com/50?text=A",
-      postImage: "https://via.placeholder.com/300x160?text=Post+1",
+      authorImage: "https://placehold.co/50/blue/white?text=A",
+      postImage: "https://placehold.co/600x350/blue/white?text=Post+1",
       postCaption: "Exploring the beauty of nature.",
       comments: ["Amazing!", "Beautiful scenery!", "Love this!"],
     },
     {
       authorName: "Bob",
-      authorImage: "https://via.placeholder.com/50?text=B",
-      postImage: "https://via.placeholder.com/300x160?text=Post+2",
+      authorImage: "https://placehold.co/50/teal/white?text=B",
+      postImage: "https://placehold.co/600x350/teal/white?text=Post+2",
       postCaption: "A day in the life of a developer.",
       comments: ["So relatable!", "Great post!", "Keep it up!"],
     },
     {
       authorName: "Charlie",
-      authorImage: "https://via.placeholder.com/50?text=C",
-      postImage: "https://via.placeholder.com/300x160?text=Post+3",
+      authorImage: "https://placehold.co/50/green/white?text=C",
+      postImage: "https://placehold.co/600x350/green/white?text=Post+3",
       postCaption: "Tips for staying productive.",
       comments: ["Very helpful!", "Thanks for sharing!", "Great tips!"],
     },
     {
       authorName: "Diana",
-      authorImage: "https://via.placeholder.com/50?text=D",
-      postImage: "https://via.placeholder.com/300x160?text=Post+4",
+      authorImage: "https://placehold.co/50/orange/white?text=D",
+      postImage: "https://placehold.co/600x350/orange/white?text=Post+4",
       postCaption: "My latest photography project.",
       comments: ["Stunning shots!", "You're so talented!", "Love this!"],
     },
   ];
 
   const peopleYouKnow = [
-    { name: "Eve", image: "https://via.placeholder.com/50?text=E" },
-    { name: "Frank", image: "https://via.placeholder.com/50?text=F" },
-    { name: "Grace", image: "https://via.placeholder.com/50?text=G" },
-    { name: "Hank", image: "https://via.placeholder.com/50?text=H" },
-    { name: "Ivy", image: "https://via.placeholder.com/50?text=I" },
+    { name: "Eve", image: "https://placehold.co/50/red/white?text=E" },
+    { name: "Frank", image: "https://placehold.co/50/purple/white?text=F" },
+    { name: "Grace", image: "https://placehold.co/50/pink/white?text=G" },
+    { name: "Hank", image: "https://placehold.co/50/cyan/white?text=H" },
+    { name: "Ivy", image: "https://placehold.co/50/indigo/white?text=I" },
   ];
 
   return (
@@ -72,7 +72,10 @@ const Home = () => {
         <div className="mt-5 font-bold text-lg">People You Know</div>
         <ul className="mt-4 w-full  space-y-4">
           {peopleYouKnow.map((person, index) => (
-            <li key={index} className="flex items-center rounded-lg space-y-2 shadow-sm space-x-4">
+            <li
+              key={index}
+              className="flex items-center rounded-lg space-y-2 shadow-sm space-x-4"
+            >
               <img
                 src={person.image}
                 alt={person.name}
@@ -85,7 +88,7 @@ const Home = () => {
       </div>
 
       {/* Custom style for hiding scrollbar */}
-      <style jsx>{`
+      <style jsx="true">{`
         .hide-scrollbar::-webkit-scrollbar {
           display: none;
         }

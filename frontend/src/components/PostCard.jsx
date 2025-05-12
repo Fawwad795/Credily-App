@@ -13,6 +13,8 @@ export default function PostCard({
   const [commentsVisible, setCommentsVisible] = useState(false);
   const [comments, setComments] = useState(initialComments);
   const [newComment, setNewComment] = useState("");
+  const [postImgSrc, setPostImgSrc] = useState(postImage);
+  const [authorImgSrc, setAuthorImgSrc] = useState(authorImage);
 
   const toggleLike = () => {
     setLiked(!liked);
@@ -27,13 +29,33 @@ export default function PostCard({
     }
   };
 
+  // Generate fallback images using placehold.co if the original images fail to load
+  const generatePostFallback = () => {
+    return `https://placehold.co/600x350/gray/white?text=Post+Image`;
+  };
+
+  const generateAuthorFallback = () => {
+    const initial = authorName ? authorName.charAt(0) : "U";
+    return `https://placehold.co/50/gray/white?text=${initial}`;
+  };
+
+  // Handle image load errors
+  const handlePostImageError = () => {
+    setPostImgSrc(generatePostFallback());
+  };
+
+  const handleAuthorImageError = () => {
+    setAuthorImgSrc(generateAuthorFallback());
+  };
+
   return (
     <div className="mx-auto px-4 max-w-xl my-15">
       <div className="bg-white shadow-2xl rounded-lg tracking-wide">
         <img
-          src={postImage}
+          src={postImgSrc}
           alt="Post"
           className="w-full h-64 object-cover rounded-t-lg"
+          onError={handlePostImageError}
         />
 
         <div className="px-4 py-2">
@@ -46,11 +68,14 @@ export default function PostCard({
           <div className="author flex items-center mt-5">
             <img
               className="w-12 h-12 object-cover rounded-full shadow mr-4"
-              src={authorImage}
+              src={authorImgSrc}
               alt="Author"
+              onError={handleAuthorImageError}
             />
             <div>
-              <p className="text-sm text-gray-900 font-semibold">{authorName}</p>
+              <p className="text-sm text-gray-900 font-semibold">
+                {authorName}
+              </p>
               <span className="text-xs text-gray-600">21 SEP 2015</span>
             </div>
           </div>
@@ -66,7 +91,10 @@ export default function PostCard({
 
             {commentsVisible && (
               <div className="mt-4 border-t pt-2">
-                <form onSubmit={handleCommentSubmit} className="flex items-center space-x-2">
+                <form
+                  onSubmit={handleCommentSubmit}
+                  className="flex items-center space-x-2"
+                >
                   <input
                     type="text"
                     className="w-full border px-3 py-1 rounded text-sm focus:outline-none"
@@ -74,7 +102,10 @@ export default function PostCard({
                     value={newComment}
                     onChange={(e) => setNewComment(e.target.value)}
                   />
-                  <button type="submit" className="text-blue-500 text-sm font-medium">
+                  <button
+                    type="submit"
+                    className="text-blue-500 text-sm font-medium"
+                  >
                     Post
                   </button>
                 </form>
@@ -93,7 +124,10 @@ export default function PostCard({
         {/* Footer Section */}
         <div className="flex items-center justify-between px-4 py-4">
           {/* Like Button */}
-          <button onClick={toggleLike} className="flex items-center text-gray-700">
+          <button
+            onClick={toggleLike}
+            className="flex items-center text-gray-700"
+          >
             {liked ? (
               <FaHeart className="text-red-500 w-5 h-5 mr-1" />
             ) : (

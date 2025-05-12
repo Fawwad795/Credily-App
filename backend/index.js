@@ -7,10 +7,17 @@ import userRoutes from "./routes/user.routes.js";
 import messageRoutes from "./routes/message.routes.js";
 import postRoutes from "./routes/post.routes.js";
 import notificationRoutes from "./routes/notification.routes.js";
+import uploadRoutes from "./routes/upload.routes.js";
+import path from "path";
+import { fileURLToPath } from "url";
 
 // For ES modules to use process
 const require = createRequire(import.meta.url);
 const process = require("process");
+
+// For __dirname in ES module
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Load environment variables
 dotenv.config();
@@ -24,14 +31,18 @@ connectDB();
 
 // Middleware
 app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: "50mb" })); // Increased limit for base64 images
+app.use(express.urlencoded({ extended: true, limit: "50mb" }));
+
+// Serve static files from uploads directory
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // Routes
 app.use("/api/users", userRoutes);
 app.use("/api/messages", messageRoutes);
 app.use("/api/posts", postRoutes);
 app.use("/api/notifications", notificationRoutes);
+app.use("/api/uploads", uploadRoutes);
 
 // Root route for testing
 app.get("/", (req, res) => {
