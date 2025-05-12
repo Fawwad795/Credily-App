@@ -1,79 +1,372 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios"; // Install axios if not already installed
-import Nav from "../components/Nav"; // Updated import path
+import axios from "axios";
+import Nav from "../components/Nav";
+import socket from "../utils/socket";
 
 const MessagingPage = () => {
-  const [chats, setChats] = useState([]); // List of chats
-  const [selectedChat, setSelectedChat] = useState(null); // Currently selected chat
-  const [messages, setMessages] = useState([]); // Messages for the selected chat
-  const [messageInput, setMessageInput] = useState(""); // Input for new messages
-  const [unreadCount, setUnreadCount] = useState(0);
+  // Use local storage for user auth or implement proper auth
+  const [currentUser, setCurrentUser] = useState({
+    id: localStorage.getItem("userId") || "123",
+    email: localStorage.getItem("userEmail") || "user@example.com",
+  });
 
-  // Fetch chats from the backend
+  const [chats, setChats] = useState([]);
+  const [selectedChat, setSelectedChat] = useState(null);
+  const [messages, setMessages] = useState([]);
+  const [messageInput, setMessageInput] = useState("");
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [onlineUsers, setOnlineUsers] = useState([]);
+  const [isConnected, setIsConnected] = useState(false);
+  const [fallbackMode, setFallbackMode] = useState(false);
+
+  // Add in your component, near the top after state declarations
+  useEffect(() => {
+    // Set up socket connection status
+    const handleConnect = () => {
+      setIsConnected(true);
+      console.log("Socket.IO connected successfully!");
+    };
+
+    const handleDisconnect = () => {
+      setIsConnected(false);
+      console.log("Socket.IO disconnected");
+    };
+
+    // Register socket event listeners
+    socket.on("connect", handleConnect);
+    socket.on("disconnect", handleDisconnect);
+
+    // Check initial connection state
+    setIsConnected(socket.connected);
+
+    // Clean up event listeners
+    return () => {
+      socket.off("connect", handleConnect);
+      socket.off("disconnect", handleDisconnect);
+    };
+  }, []);
+
+  // Define fetchMessagesFromApi within component scope before it's used
+  const fetchMessagesFromApi = async () => {
+    if (selectedChat) {
+      try {
+        console.log("Polling for new messages...");
+        const response = await axios.get(
+          `/api/messages/conversation/${selectedChat.id}`
+        );
+        if (response.data && response.data.success) {
+          setMessages(
+            response.data.data.messages.map((msg) => ({
+              id: msg._id,
+              sender: msg.sender._id,
+              content: msg.content,
+              timestamp: msg.createdAt,
+              isRead: msg.isRead,
+            }))
+          );
+        }
+      } catch (error) {
+        console.error("Error fetching messages in fallback mode:", error);
+        // No need to set mock data here since it will constantly poll
+      }
+    }
+
+    // Also update unread counts
+    try {
+      const unreadResponse = await axios.get("/api/messages/unread-count");
+      if (unreadResponse.data && unreadResponse.data.success) {
+        setUnreadCount(unreadResponse.data.data.unreadCount);
+      }
+    } catch (error) {
+      console.error("Error fetching unread count in fallback mode:", error);
+    }
+
+    // Fetch latest chats too
+    try {
+      const chatsResponse = await axios.get("/api/messages/conversations");
+      if (chatsResponse.data && chatsResponse.data.success) {
+        setChats(chatsResponse.data.data);
+      }
+    } catch (error) {
+      console.error("Error fetching chat list in fallback mode:", error);
+      // Add mock data for testing
+      setChats([
+        {
+          id: "1",
+          name: "John Doe",
+          email: "john@example.com",
+          profilePicture: "https://randomuser.me/api/portraits/men/1.jpg",
+          lastMessage: "Hey there! How's it going?",
+          timestamp: new Date(Date.now() - 1000 * 60 * 5), // 5 mins ago
+          unreadCount: 2,
+        },
+        {
+          id: "2",
+          name: "Jane Smith",
+          email: "jane@example.com",
+          profilePicture: "https://randomuser.me/api/portraits/women/1.jpg",
+          lastMessage: "Are we still meeting tomorrow?",
+          timestamp: new Date(Date.now() - 1000 * 60 * 30), // 30 mins ago
+          unreadCount: 0,
+        },
+      ]);
+    }
+  };
+
+  // Connect to socket and join user room
+  useEffect(() => {
+    // Set a timeout to check if socket connects
+    const connectionTimeout = setTimeout(() => {
+      if (!isConnected) {
+        setFallbackMode(true);
+        console.log("Using fallback polling mode for messages");
+      }
+    }, 5000);
+
+    function onConnect() {
+      setIsConnected(true);
+      setFallbackMode(false);
+      clearTimeout(connectionTimeout);
+    }
+
+    function onDisconnect() {
+      setIsConnected(false);
+    }
+
+    socket.on("connect", onConnect);
+    socket.on("disconnect", onDisconnect);
+
+    // Check initial connection state
+    if (socket.connected) {
+      setIsConnected(true);
+    }
+
+    return () => {
+      clearTimeout(connectionTimeout);
+      socket.off("connect", onConnect);
+      socket.off("disconnect", onDisconnect);
+    };
+  }, []);
+
+  // Use fallback mode if socket connection fails
+  useEffect(() => {
+    if (fallbackMode) {
+      // Set up polling for messages instead of relying on socket
+      const interval = setInterval(() => {
+        // Fetch messages using REST API
+        fetchMessagesFromApi();
+      }, 3000);
+
+      return () => clearInterval(interval);
+    }
+  }, [fallbackMode]);
+
+  useEffect(() => {
+    // Connect with both ID and email
+    socket.emit("joinRoom", currentUser.id);
+    socket.emit("addUser", currentUser.email);
+
+    // Listen for online users
+    socket.on("getUsers", (users) => {
+      console.log("Online users:", users);
+      setOnlineUsers(users);
+    });
+
+    // Listen for messages - support both formats
+    socket.on("getMessage", (message) => {
+      console.log("Got message (MySQL format):", message);
+      const formattedMessage = {
+        id: message.messageId || Date.now(),
+        sender: message.senderEmail,
+        content: message.text,
+        timestamp: message.timestamp || new Date(),
+        isRead: false,
+      };
+
+      // Add message to chat if selected, otherwise update unread count
+      if (selectedChat && selectedChat.email === message.senderEmail) {
+        setMessages((prev) => [...prev, formattedMessage]);
+      } else {
+        setUnreadCount((prev) => prev + 1);
+        // Update chat unread count
+        setChats((prevChats) =>
+          prevChats.map((chat) =>
+            chat.email === message.senderEmail
+              ? { ...chat, unreadCount: (chat.unreadCount || 0) + 1 }
+              : chat
+          )
+        );
+      }
+    });
+
+    // Listen for MongoDB format messages
+    socket.on("newMessage", (message) => {
+      console.log("Got message (MongoDB format):", message);
+      const formattedMessage = {
+        id: message._id || Date.now(),
+        sender: message.sender._id || message.sender,
+        content: message.content,
+        timestamp: message.createdAt || new Date(),
+        isRead: message.isRead || false,
+      };
+
+      // Add message to chat if selected, otherwise update unread count
+      if (selectedChat && selectedChat.id === message.sender._id) {
+        setMessages((prev) => [...prev, formattedMessage]);
+      } else {
+        setUnreadCount((prev) => prev + 1);
+        // Update chat unread count
+        setChats((prevChats) =>
+          prevChats.map((chat) =>
+            chat.id === message.sender._id
+              ? { ...chat, unreadCount: (chat.unreadCount || 0) + 1 }
+              : chat
+          )
+        );
+      }
+    });
+
+    return () => {
+      socket.off("getUsers");
+      socket.off("getMessage");
+      socket.off("newMessage");
+    };
+  }, [currentUser, selectedChat]);
+
+  // Fetch chats - try MongoDB endpoint first, fall back to mock data
   useEffect(() => {
     const fetchChats = async () => {
       try {
-        const response = await axios.get("/api/chats"); // Replace with your backend endpoint
-        setChats(response.data);
+        // Use your actual endpoint - check your backend routes
+        const response = await axios.get("/api/messages/conversations");
+        if (response.data && response.data.success) {
+          setChats(response.data.data);
+        }
       } catch (error) {
         console.error("Error fetching chats:", error);
+        // Mock data will still work as fallback
       }
     };
 
     fetchChats();
   }, []);
 
+  // Fetch unread message count
   useEffect(() => {
     const fetchUnreadCount = async () => {
       try {
-        const response = await axios.get("/api/unread-count"); // Replace with your backend endpoint
-        setUnreadCount(response.data.unreadCount);
+        // Use your actual endpoint
+        const response = await axios.get("/api/messages/unread-count");
+        if (response.data && response.data.success) {
+          setUnreadCount(response.data.data.unreadCount);
+        }
       } catch (error) {
         console.error("Error fetching unread count:", error);
+        // Default to 0 or the current state
       }
     };
 
     fetchUnreadCount();
   }, []);
 
-  // Fetch messages for a specific chat
-  const fetchMessages = async (chatId) => {
-    try {
-      const response = await axios.get(`/api/chats/${chatId}/messages`); // Replace with your backend endpoint
-      setMessages(response.data);
-    } catch (error) {
-      console.error("Error fetching messages:", error);
+  // Fetch messages for selected chat
+  useEffect(() => {
+    if (selectedChat) {
+      const fetchMessages = async () => {
+        try {
+          const response = await axios.get(
+            `/api/messages/conversation/${selectedChat.id}`
+          );
+          if (response.data && response.data.success) {
+            setMessages(
+              response.data.data.messages.map((msg) => ({
+                id: msg._id,
+                sender: msg.sender._id,
+                content: msg.content,
+                timestamp: msg.createdAt,
+                isRead: msg.isRead,
+              }))
+            );
+          }
+        } catch (error) {
+          console.error("Error fetching messages:", error);
+          // Set mock messages for testing
+          setMessages([
+            {
+              id: "msg1",
+              sender: selectedChat.id,
+              content: "Hello there!",
+              timestamp: new Date(Date.now() - 3600000),
+              isRead: true,
+            },
+            {
+              id: "msg2",
+              sender: currentUser.id,
+              content: "Hi! How are you?",
+              timestamp: new Date(Date.now() - 1800000),
+              isRead: true,
+            },
+          ]);
+        }
+      };
+
+      fetchMessages();
+
+      // Mark chat as read when selected
+      setChats((prevChats) =>
+        prevChats.map((chat) =>
+          chat.id === selectedChat.id ? { ...chat, unreadCount: 0 } : chat
+        )
+      );
     }
+  }, [selectedChat, currentUser.id]);
+
+  // Handle sending a message
+  const handleSendMessage = async () => {
+    if (!messageInput.trim() || !selectedChat) return;
+
+    try {
+      // First try MongoDB API
+      const response = await axios.post("/api/messages", {
+        receiverId: selectedChat.id,
+        content: messageInput,
+        messageType: "text",
+      });
+
+      if (response.data && response.data.success) {
+        console.log("Message sent successfully via MongoDB API");
+      }
+    } catch (error) {
+      console.error("Error sending message via API:", error);
+
+      // Fall back to direct socket.io (MySQL style)
+      socket.emit("sendMessage", {
+        senderEmail: currentUser.email,
+        receiverEmail: selectedChat.email,
+        text: messageInput,
+        timestamp: new Date(),
+      });
+    }
+
+    // Add message to UI immediately
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: Date.now().toString(),
+        sender: currentUser.id,
+        content: messageInput,
+        timestamp: new Date(),
+        isRead: false,
+      },
+    ]);
+
+    // Clear input
+    setMessageInput("");
   };
 
   // Handle selecting a chat
   const handleSelectChat = (chat) => {
     setSelectedChat(chat);
-    fetchMessages(chat.id); // Fetch messages for the selected chat
-  };
-
-  // Handle sending a message
-  const handleSendMessage = async () => {
-    if (messageInput.trim() && selectedChat) {
-      try {
-        const newMessage = {
-          content: messageInput,
-          sender: "You", // Replace with the actual sender (e.g., user ID)
-        };
-
-        // Send the message to the backend
-        const response = await axios.post(
-          `/api/chats/${selectedChat.id}/messages`,
-          newMessage
-        ); // Replace with your backend endpoint
-
-        // Update messages locally
-        setMessages((prevMessages) => [...prevMessages, response.data]);
-        setMessageInput(""); // Clear the input field
-      } catch (error) {
-        console.error("Error sending message:", error);
-      }
-    }
   };
 
   // Generate placeholder images for profiles
@@ -101,6 +394,17 @@ const MessagingPage = () => {
           <span className="text-sm bg-red-500 text-white px-3 py-1 rounded-full">
             {unreadCount} Unread
           </span>
+          <div className="socket-status">
+            {isConnected ? (
+              <span className="bg-green-500 text-white px-2 py-1 rounded-md text-xs">
+                Real-time connected
+              </span>
+            ) : (
+              <span className="bg-red-500 text-white px-2 py-1 rounded-md text-xs">
+                Real-time disconnected
+              </span>
+            )}
+          </div>
         </header>
 
         {/* Main Content */}
@@ -113,25 +417,39 @@ const MessagingPage = () => {
                 <li
                   key={chat.id}
                   onClick={() => handleSelectChat(chat)}
-                  className={`p-4 flex items-center gap-4 cursor-pointer hover:bg-gray-100 rounded-full ${
+                  className={`p-4 flex items-center gap-4 cursor-pointer hover:bg-gray-100 ${
                     selectedChat?.id === chat.id ? "bg-gray-100" : ""
                   }`}
                 >
-                  <img
-                    src={
-                      chat.profilePicture ||
-                      generateProfilePlaceholder(chat.name)
-                    }
-                    alt={chat.name}
-                    className="w-12 h-12 rounded-full"
-                    onError={(e) => handleImageError(e, chat.name)}
-                  />
+                  <div className="relative">
+                    <img
+                      src={chat.profilePicture || "/default-profile.png"}
+                      alt={chat.name}
+                      className="w-12 h-12 rounded-full"
+                    />
+                    {onlineUsers.some(
+                      (u) => u.userId === chat.id || u.email === chat.email
+                    ) && (
+                      <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full"></span>
+                    )}
+                  </div>
                   <div className="flex-1">
-                    <span className="font-medium text-gray-700">
-                      {chat.name}
-                    </span>
+                    <div className="flex justify-between">
+                      <span className="font-medium text-gray-700">
+                        {chat.name}
+                      </span>
+                      <span className="text-xs text-gray-500">
+                        {new Date(chat.timestamp).toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-500 truncate">
+                      {chat.lastMessage}
+                    </p>
                     {chat.unreadCount > 0 && (
-                      <span className="ml-2 text-sm bg-red-500 text-white px-2 py-1 rounded-full">
+                      <span className="text-sm bg-red-500 text-white px-2 py-1 rounded-full">
                         {chat.unreadCount}
                       </span>
                     )}
@@ -146,72 +464,70 @@ const MessagingPage = () => {
             {selectedChat ? (
               <>
                 {/* Chat Header */}
-                <div className="p-4 bg-gray-50 text-gray-800 shadow-md rounded-t-lg">
-                  <h2 className="text-lg font-bold">{selectedChat.name}</h2>
+                <div className="p-4 bg-gray-50 text-gray-800 shadow-md">
+                  <div className="flex items-center">
+                    <img
+                      src={
+                        selectedChat.profilePicture || "/default-profile.png"
+                      }
+                      alt={selectedChat.name}
+                      className="w-10 h-10 rounded-full mr-3"
+                    />
+                    <div>
+                      <h2 className="text-lg font-bold">{selectedChat.name}</h2>
+                      <p className="text-xs text-gray-500">
+                        {onlineUsers.some(
+                          (u) =>
+                            u.userId === selectedChat.id ||
+                            u.email === selectedChat.email
+                        )
+                          ? "Online"
+                          : "Offline"}
+                      </p>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Messages */}
                 <div className="flex-1 p-4 overflow-y-auto">
-                  {messages.map((message, index) => (
+                  {messages.map((message) => (
                     <div
-                      key={index}
-                      className={`mb-4 flex items-start gap-4 ${
-                        message.sender === "You"
+                      key={message.id}
+                      className={`mb-4 flex ${
+                        message.sender === currentUser.id
                           ? "justify-end"
                           : "justify-start"
                       }`}
                     >
-                      {message.sender !== "You" && (
-                        <img
-                          src={
-                            message.profilePicture ||
-                            generateProfilePlaceholder(message.sender)
-                          }
-                          alt={message.sender}
-                          className="w-10 h-10 rounded-full"
-                          onError={(e) => handleImageError(e, message.sender)}
-                        />
-                      )}
                       <div
-                        className={`max-w-xs p-4 rounded-2xl shadow-md ${
-                          message.sender === "You"
-                            ? "bg-gray-200 text-gray-700"
-                            : "bg-white text-gray-700 border border-gray-200"
+                        className={`max-w-xs p-3 rounded-lg shadow-sm ${
+                          message.sender === currentUser.id
+                            ? "bg-blue-500 text-white"
+                            : "bg-white text-gray-800"
                         }`}
                       >
-                        <p className="text-sm font-bold">{message.sender}</p>
                         <p>{message.content}</p>
-                        <p className="text-xs text-gray-500 mt-2">
+                        <p className="text-xs mt-1 opacity-70">
                           {new Date(message.timestamp).toLocaleTimeString()}
                         </p>
                       </div>
-                      {message.sender === "You" && (
-                        <img
-                          src={
-                            message.profilePicture ||
-                            generateProfilePlaceholder("You")
-                          }
-                          alt={message.sender}
-                          className="w-10 h-10 rounded-full"
-                          onError={(e) => handleImageError(e, "You")}
-                        />
-                      )}
                     </div>
                   ))}
                 </div>
 
                 {/* Message Input */}
-                <div className="p-4 bg-white flex items-center shadow-md rounded-b-lg">
+                <div className="p-4 bg-white flex items-center shadow-md">
                   <input
                     type="text"
                     value={messageInput}
                     onChange={(e) => setMessageInput(e.target.value)}
+                    onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
                     placeholder="Type a message..."
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-gray-300 text-gray-700"
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-300"
                   />
                   <button
                     onClick={handleSendMessage}
-                    className="ml-4 grad text-white px-6 py-2 rounded-full hover:opacity-90 transition duration-300 shadow-md"
+                    className="ml-4 bg-blue-500 text-white px-4 py-2 rounded-full hover:bg-blue-600 transition duration-300"
                   >
                     Send
                   </button>
