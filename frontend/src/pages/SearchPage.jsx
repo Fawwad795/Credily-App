@@ -3,13 +3,45 @@ import React, { useState } from 'react';
 const SearchSlider = ({ isOpen, onClose }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [results, setResults] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  // Simulate a search API call
-  const handleSearch = () => {
-    fetch(`/api/accounts?query=${searchQuery}`) // Replace with your backend API endpoint
-      .then((response) => response.json())
-      .then((data) => setResults(data))
-      .catch((error) => console.error('Error fetching search results:', error));
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) return;
+    
+    try {
+      setLoading(true);
+      setError('');
+      
+      // Get the auth token from localStorage
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        throw new Error('Please login to search users');
+      }
+
+      const response = await fetch(`http://localhost:5000/api/users/search?query=${encodeURIComponent(searchQuery)}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error('Please login again to continue');
+        }
+        throw new Error('Search failed');
+      }
+
+      const data = await response.json();
+      setResults(data.data.users || []);
+    } catch (error) {
+      console.error('Error fetching search results:', error);
+      setError(error.message);
+      setResults([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -22,7 +54,7 @@ const SearchSlider = ({ isOpen, onClose }) => {
       <div className="p-4 border-b flex justify-between items-center">
         <h2 className="text-lg font-bold">Search Accounts</h2>
         <button
-          onClick={onClose} // Close the slider
+          onClick={onClose}
           className="text-gray-500 hover:text-gray-700"
         >
           Close
@@ -35,34 +67,49 @@ const SearchSlider = ({ isOpen, onClose }) => {
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search for accounts..."
+          onKeyPress={(e) => {
+            if (e.key === 'Enter') {
+              handleSearch();
+            }
+          }}
+          placeholder="Search by username, email, or phone..."
           className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-400"
         />
         <button
           onClick={handleSearch}
-          className="mt-4 w-full bg-teal-500 text-white py-2 px-4 rounded-lg hover:bg-teal-600 transition duration-300"
+          disabled={loading}
+          className="mt-4 w-full bg-teal-500 text-white py-2 px-4 rounded-lg hover:bg-teal-600 transition duration-300 disabled:bg-teal-300"
         >
-          Search
+          {loading ? 'Searching...' : 'Search'}
         </button>
       </div>
 
+      {/* Error Message */}
+      {error && (
+        <div className="p-4 text-red-500 text-center">
+          {error}
+        </div>
+      )}
+
       {/* Search Results */}
-      <div className="p-4">
+      <div className="p-4 overflow-y-auto max-h-[calc(100vh-200px)]">
         {results.length > 0 ? (
           <ul className="bg-white shadow-md rounded-lg">
-            {results.map((account) => (
+            {results.map((user) => (
               <li
-                key={account.id}
+                key={user._id}
                 className="p-4 border-b last:border-b-0 hover:bg-gray-100 cursor-pointer"
               >
-                <p className="font-bold">{account.name}</p>
-                <p className="text-sm text-gray-600">{account.email}</p>
+                <p className="font-bold">{user.username}</p>
+                {user.phoneNumber && (
+                  <p className="text-sm text-gray-600">{user.phoneNumber}</p>
+                )}
               </li>
             ))}
           </ul>
         ) : (
           <p className="text-gray-500 text-center">
-            {searchQuery ? 'No results found.' : 'Start searching for accounts.'}
+            {loading ? 'Searching...' : searchQuery ? 'No results found.' : 'Start searching for accounts.'}
           </p>
         )}
       </div>

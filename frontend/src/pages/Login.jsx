@@ -39,9 +39,9 @@ const Login = () => {
         // Use the specific error message from the backend
         throw new Error(data.message);
       }
-
       // Store user data in localStorage or context
       localStorage.setItem("user", JSON.stringify(data.data));
+      localStorage.setItem('authToken', data.token);
 
       // Redirect to home page after successful login
       navigate("/home");
