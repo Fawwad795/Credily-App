@@ -8,7 +8,6 @@ import {
   loadHome,
   getUserPosts,
 } from "../controllers/post.controller.js";
-import { authenticateUser } from "../middleware/auth.middleware.js";
 
 const router = express.Router();
 
@@ -18,9 +17,7 @@ router.post("/like", likePost);
 router.post("/comment", commentPost);
 router.post("/delete", deletePost);
 router.post("/loadhome", loadHome);
-router.get("/userposts", getUserPosts); // Route to get user posts by user ID
-
-// Route to load home posts
-router.get("/home", authenticateUser, loadHome);
+router.post("/userposts", getUserPosts);
+router.get("/home", loadHome);
 
 export default router;

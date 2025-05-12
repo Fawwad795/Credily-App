@@ -2,6 +2,53 @@ import React from "react";
 import { Camera } from "lucide-react"; // adjust if you use a different icon lib
 
 const PostSection = ({ posts, onCreate }) => {
+  // Function to format date for display
+  const formatDate = (dateString) => {
+    if (!dateString) return "May 10, 2025";
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  };
+
+  // Function to get image URL from post
+  const getPostImage = (post) => {
+    if (!post) return "https://via.placeholder.com/300x160";
+
+    // If this is our database post format
+    if (post.media && post.media.length > 0 && post.media[0].url) {
+      return post.media[0].url;
+    }
+
+    // If this is the sample post format
+    if (post.image) {
+      return post.image;
+    }
+
+    return "https://via.placeholder.com/300x160";
+  };
+
+  // Function to get post title
+  const getPostTitle = (post, index) => {
+    if (post.title) return post.title;
+    if (post.caption) {
+      // Use first 20 chars of caption as title
+      return post.caption.length > 20
+        ? post.caption.substring(0, 20) + "..."
+        : post.caption;
+    }
+    return `Post ${index + 1}`;
+  };
+
+  // Function to get post description
+  const getPostDescription = (post) => {
+    if (post.description) return post.description;
+    if (post.caption) return post.caption;
+    return "A short description of this post.";
+  };
+
   return (
     <div className="max-w-4xl mx-auto my-6">
       <div className="flex justify-between items-center mb-4">
@@ -26,21 +73,25 @@ const PostSection = ({ posts, onCreate }) => {
               >
                 <img
                   className="w-full h-40 object-cover"
-                  src={post.image || "https://via.placeholder.com/300x160"}
-                  alt={post.title || `Post ${index + 1}`}
+                  src={getPostImage(post)}
+                  alt={getPostTitle(post, index)}
                 />
                 <div className="p-4">
                   <h5 className="mb-1 text-lg font-bold tracking-tight text-gray-900">
-                    {post.title || `Post ${index + 1}`}
+                    {getPostTitle(post, index)}
                   </h5>
                   <p className="mb-3 text-sm text-gray-700">
-                    {post.description || "A short description of this post."}
+                    {getPostDescription(post)}
                   </p>
                   <div className="flex justify-between items-center text-xs text-gray-500">
-                    <p>{post.date || "May 10, 2025"}</p>
+                    <p>{formatDate(post.createdAt || post.date)}</p>
                     <div className="flex items-center">
-                      <span className="mr-3">{post.likes || 0} likes</span>
-                      <span>{post.comments || 0} comments</span>
+                      <span className="mr-3">
+                        {post.totalLikes || post.likes || 0} likes
+                      </span>
+                      <span>
+                        {post.totalComments || post.comments || 0} comments
+                      </span>
                     </div>
                   </div>
                 </div>

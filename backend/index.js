@@ -4,6 +4,7 @@ import http from "http";
 import { Server } from "socket.io";
 import userRoutes from "./routes/user.routes.js";
 import messageRoutes from "./routes/message.routes.js";
+import postRoutes from "./routes/post.routes.js";
 import notificationRoutes from "./routes/notification.routes.js";
 import dotenv from "dotenv";
 import connectDB from "./config/db.js";
@@ -44,6 +45,7 @@ app.use((req, res, next) => {
 // Routes
 app.use("/api/users", userRoutes);
 app.use("/api/messages", messageRoutes);
+app.use("/api/posts", postRoutes);
 app.use("/api/notifications", notificationRoutes);
 
 // Root route for testing

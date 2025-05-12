@@ -6,7 +6,7 @@ export const leaveReview = async (req, res) => {
     const { revieweeId, content, rating, categories, isAnonymous, isPublic } = req.body;
     const reviewerId = req.user.id; // Assuming `req.user` contains the authenticated user's ID
 
-    // Check if the reviewee exists
+   
     const reviewee = await User.findById(revieweeId);
     if (!reviewee) {
       return res.status(404).json({

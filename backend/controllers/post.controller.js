@@ -20,21 +20,23 @@ export const createPost = async (req, res) => {
   }
 };
 
-
 export const editPost = async (req, res) => {
   try {
-    const { postId, userId, caption, media, tags, location, visibility } = req.body;
+    const { postId, userId, caption, media, tags, location, visibility } =
+      req.body;
     // Finding the post by ID
-    const post = await Post.findById(postId); 
+    const post = await Post.findById(postId);
     if (!post) {
       return res.status(404).json({ message: "Post not found" });
     }
     if (post.author.toString() !== userId) {
-      return res.status(403).json({ message: "Not authorized to edit this post" });
+      return res
+        .status(403)
+        .json({ message: "Not authorized to edit this post" });
     }
-    if (caption !== undefined)  post.caption  = caption;
-    if (media !== undefined)    post.media    = media;
-    if (tags !== undefined)     post.tags     = tags;
+    if (caption !== undefined) post.caption = caption;
+    if (media !== undefined) post.media = media;
+    if (tags !== undefined) post.tags = tags;
     if (location !== undefined) post.location = location;
     if (visibility !== undefined) post.visibility = visibility;
     // Save and return the updated post
@@ -46,12 +48,13 @@ export const editPost = async (req, res) => {
   }
 };
 
-
 export const likePost = async (req, res) => {
   try {
     const { postId, userId } = req.body;
     if (!postId || !userId) {
-      return res.status(400).json({ success: false, message: "postId and userId are required" });
+      return res
+        .status(400)
+        .json({ success: false, message: "postId and userId are required" });
     }
     const post = await Post.findById(postId);
     if (!post) return res.status(404).json({ message: "Post not found" });
@@ -61,18 +64,24 @@ export const likePost = async (req, res) => {
     if (alreadyLiked) {
       post.removeLike(userId);
       await post.save();
-      return res.json({ success: true, liked: false, totalLikes: post.totalLikes });
+      return res.json({
+        success: true,
+        liked: false,
+        totalLikes: post.totalLikes,
+      });
     } else {
       post.addLike(userId);
       await post.save();
-      return res.json({ success: true, liked: true, totalLikes: post.totalLikes });
+      return res.json({
+        success: true,
+        liked: true,
+        totalLikes: post.totalLikes,
+      });
     }
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
 };
-
-
 
 export const loadHome = async (req, res) => {
   try {
@@ -86,20 +95,17 @@ export const loadHome = async (req, res) => {
     }
     const connections = await Connection.find({
       status: "accepted",
-      $or: [
-        { requester: userId },
-        { recipient: userId }
-      ]
+      $or: [{ requester: userId }, { recipient: userId }],
     });
 
-    const connectionUserIds = connections.map(conn => 
+    const connectionUserIds = connections.map((conn) =>
       conn.requester.toString() === userId ? conn.recipient : conn.requester
     );
 
     const posts = await Post.find({ author: { $in: connectionUserIds } })
       .sort({ createdAt: -1 })
       .limit(20)
-      .populate("author", "username phoneNumber"); 
+      .populate("author", "username phoneNumber");
 
     res.status(200).json({
       success: true,
@@ -115,50 +121,58 @@ export const loadHome = async (req, res) => {
   }
 };
 
-
 export const getUserPosts = async (req, res) => {
   try {
     const { userId } = req.body;
 
     if (!userId) {
-      return res.status(400).json({ success: false, message: "User ID is required" });
+      return res
+        .status(400)
+        .json({ success: false, message: "User ID is required" });
     }
 
     const posts = await Post.find({ author: userId })
       .sort({ createdAt: -1 })
-      .populate("author", "username phoneNumber"); // Optional
+      .populate("author", "username phoneNumber");
 
     res.status(200).json({
       success: true,
-      data: posts
+      data: posts,
     });
   } catch (error) {
     console.error("Error loading user posts:", error);
     res.status(500).json({
       success: false,
       message: "Failed to load user posts",
-      error: error.message
+      error: error.message,
     });
   }
 };
 
 export const deletePost = async (req, res) => {
   try {
-    const { postId, userId } = req.body;  
+    const { postId, userId } = req.body;
 
     if (!postId || !userId) {
-      return res.status(400).json({ success: false, message: "postId and userId are required" });
+      return res
+        .status(400)
+        .json({ success: false, message: "postId and userId are required" });
     }
 
     const post = await Post.findById(postId);
     if (!post) return res.status(404).json({ message: "Post not found" });
 
     if (post.author.toString() !== userId.toString()) {
-      return res.status(403).json({ success: false, message: "You do not have permission to delete this post" });
+      return res.status(403).json({
+        success: false,
+        message: "You do not have permission to delete this post",
+      });
     }
 
     await Post.findByIdAndDelete(postId);
-    res.status(200).json({ success: true, message: "Post deleted successfully" });
+    res
+      .status(200)
+      .json({ success: true, message: "Post deleted successfully" });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -169,20 +183,25 @@ export const commentPost = async (req, res) => {
     const { postId, userId, content } = req.body;
 
     if (!postId || !userId || !content) {
-      return res.status(400).json({ success: false, message: "postId, userId, and content are required" });
+      return res.status(400).json({
+        success: false,
+        message: "postId, userId, and content are required",
+      });
     }
 
     const post = await Post.findById(postId);
-    if (!post) return res.status(404).json({ success: false, message: "Post not found" });
+    if (!post)
+      return res
+        .status(404)
+        .json({ success: false, message: "Post not found" });
 
     const comment = post.addComment(userId, content);
     await post.save();
 
-    res.status(201).json({ success: true, comment, totalComments: post.totalComments });
+    res
+      .status(201)
+      .json({ success: true, comment, totalComments: post.totalComments });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
 };
-
-
-
