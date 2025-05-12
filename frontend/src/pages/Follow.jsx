@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import Nav from "../components/Nav"; // Adjust the path to your Nav component
 
@@ -29,17 +29,7 @@ const Follow = () => {
     phoneNumber: "",
   });
 
-  useEffect(() => {
-    // Fetch user data when component mounts
-    if (id) {
-      fetchUserData();
-      checkConnectionStatus();
-      fetchConnectionsCount();
-      checkPendingRequest();
-    }
-  }, [id]);
-
-  const fetchUserData = async () => {
+  const fetchUserData = useCallback(async () => {
     try {
       console.log("Fetching user data for ID:", id);
 
@@ -88,10 +78,10 @@ const Follow = () => {
       // Set an error state or show notification to user
       alert("Error fetching user profile. Please try again later.");
     }
-  };
+  }, [id]);
 
   // Check if the current user is connected to this profile
-  const checkConnectionStatus = async () => {
+  const checkConnectionStatus = useCallback(async () => {
     try {
       const token = localStorage.getItem("token");
       if (!token) return;
@@ -135,10 +125,10 @@ const Follow = () => {
     } catch (error) {
       console.error("Error checking connection status:", error);
     }
-  };
+  }, [id]);
 
   // Check if there's a pending follow request
-  const checkPendingRequest = async () => {
+  const checkPendingRequest = useCallback(async () => {
     try {
       const token = localStorage.getItem("token");
       if (!token) return;
@@ -164,10 +154,10 @@ const Follow = () => {
     } catch (error) {
       console.error("Error checking pending request:", error);
     }
-  };
+  }, [id]);
 
   // Fetch connection counts
-  const fetchConnectionsCount = async () => {
+  const fetchConnectionsCount = useCallback(async () => {
     try {
       // Get total connections count using the available endpoint
       const response = await fetch(`/api/users/${id}/connections`);
@@ -191,7 +181,23 @@ const Follow = () => {
       setFollowingCount(0);
       setPostsCount(0);
     }
-  };
+  }, [id]);
+
+  useEffect(() => {
+    // Fetch user data when component mounts
+    if (id) {
+      fetchUserData();
+      checkConnectionStatus();
+      fetchConnectionsCount();
+      checkPendingRequest();
+    }
+  }, [
+    id,
+    fetchUserData,
+    checkConnectionStatus,
+    fetchConnectionsCount,
+    checkPendingRequest,
+  ]);
 
   const handleFollow = async () => {
     try {
