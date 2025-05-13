@@ -661,12 +661,12 @@ const MessagingPage = () => {
                       <div
                         className={`max-w-[70%] px-4 py-2 rounded-2xl ${
                           isCurrentUser
-                            ? "bg-amber-100 text-gray-800 rounded-tr-none"
-                            : "bg-blue-500 text-white rounded-tl-none shadow-sm"
+                            ? "bg-red-300 text-gray-800 rounded-tr-none"
+                            : "bg-purple-200 text-black rounded-tl-none shadow-sm"
                         }`}
                       >
                         <p className="text-sm break-words">{message.content}</p>
-                        <p className={`text-xs mt-1 ${isCurrentUser ? "text-gray-500" : "text-blue-100"}`}>
+                        <p className={`text-xs mt-1 ${isCurrentUser ? "text-black" : "text-black"}`}>
                           {formattedTime}
                         </p>
                       </div>
@@ -686,14 +686,14 @@ const MessagingPage = () => {
                   onChange={(e) => setMessageInput(e.target.value)}
                   onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
                   placeholder="Message..."
-                  className="flex-1 px-4 py-2 bg-gray-50 border border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-300 text-sm"
+                  className="flex-1 px-4 py-2 bg-gray-50 border border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:grad text-sm"
                 />
                 <button
                   onClick={handleSendMessage}
                   disabled={!messageInput.trim()}
                   className={`p-2 rounded-full ${
                     messageInput.trim()
-                      ? "bg-blue-500 text-white hover:bg-blue-600"
+                      ? "grad text-white hover:grad"
                       : "bg-gray-200 text-gray-400 cursor-not-allowed"
                   } transition duration-200`}
                 >
@@ -701,7 +701,7 @@ const MessagingPage = () => {
                     xmlns="http://www.w3.org/2000/svg"
                     className="h-5 w-5"
                     viewBox="0 0 20 20"
-                    fill="currentColor"
+                    fill="white"
                   >
                     <path
                       fillRule="evenodd"
