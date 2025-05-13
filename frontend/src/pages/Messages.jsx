@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import api from "../utils/axios"; // Import the configured axios instance
 import Nav from "../components/Nav";
 import socket from "../utils/socket";
@@ -21,11 +21,26 @@ const MessagingPage = () => {
   const [fallbackMode, setFallbackMode] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const location = useLocation();
+  const messagesEndRef = useRef(null);
 
   // Helper function to get socket user by socket ID
   const getUserBySocketId = (socketId) => {
     return onlineUsers.find((user) => user.socketId === socketId);
   };
+
+  // Add this helper at the top of your component
+  const getSenderId = (sender) =>
+    typeof sender === "object" && sender !== null ? sender._id : sender;
+
+  // Scroll to bottom of messages
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  // Scroll when messages update
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
   // Set up socket connection status
   useEffect(() => {
@@ -101,7 +116,10 @@ const MessagingPage = () => {
           setMessages(
             response.data.data.messages.map((msg) => ({
               id: msg._id,
-              sender: msg.sender._id || msg.sender,
+              sender:
+                typeof msg.sender === "object" && msg.sender !== null
+                  ? msg.sender._id
+                  : msg.sender,
               content: msg.content,
               timestamp: msg.createdAt,
               isRead: msg.isRead,
@@ -125,15 +143,20 @@ const MessagingPage = () => {
     }
 
     // Fetch latest chats too
+    fetchChatsList();
+  }, [selectedChat]);
+
+  // Function to fetch chats list
+  const fetchChatsList = async () => {
     try {
       const chatsResponse = await api.get("/messages/conversations");
       if (chatsResponse.data && chatsResponse.data.success) {
         setChats(chatsResponse.data.data);
       }
     } catch (error) {
-      console.error("Error fetching chat list in fallback mode:", error);
+      console.error("Error fetching chat list:", error);
     }
-  }, [selectedChat]);
+  };
 
   // Connect to socket and join user room
   useEffect(() => {
@@ -226,13 +249,28 @@ const MessagingPage = () => {
       } else {
         setUnreadCount((prev) => prev + 1);
         // Update chat unread count
-        setChats((prevChats) =>
-          prevChats.map((chat) =>
-            chat.email === message.senderEmail
-              ? { ...chat, unreadCount: (chat.unreadCount || 0) + 1 }
-              : chat
-          )
-        );
+        setChats((prevChats) => {
+          // Check if chat exists
+          const chatIndex = prevChats.findIndex(
+            (chat) => chat.email === message.senderEmail
+          );
+          
+          if (chatIndex >= 0) {
+            // Update existing chat
+            const updatedChats = [...prevChats];
+            updatedChats[chatIndex] = {
+              ...updatedChats[chatIndex],
+              lastMessage: message.text,
+              timestamp: message.timestamp || new Date(),
+              unreadCount: (updatedChats[chatIndex].unreadCount || 0) + 1
+            };
+            return updatedChats;
+          } else {
+            // Fetch chats to get the new one
+            fetchChatsList();
+            return prevChats;
+          }
+        });
       }
     });
 
@@ -241,33 +279,46 @@ const MessagingPage = () => {
       console.log("Got message (MongoDB format):", message);
       if (!message) return;
 
+      const senderId = getSenderId(message.sender);
       const formattedMessage = {
         id: message._id || Date.now().toString(),
-        sender: message.sender?._id || message.sender,
+        sender: senderId,
         content: message.content,
         timestamp: message.createdAt || new Date(),
         isRead: message.isRead || false,
       };
 
-      // Add message to chat if selected, otherwise update unread count
-      if (
-        selectedChat &&
-        (selectedChat.id === message.sender._id ||
-          selectedChat.id === message.sender)
-      ) {
+      // If the chat is open, add the message to the UI
+      if (selectedChat && selectedChat.id === senderId) {
         setMessages((prev) => [...prev, formattedMessage]);
-      } else {
-        setUnreadCount((prev) => prev + 1);
-        // Update chat unread count using a more reliable check
-        setChats((prevChats) =>
-          prevChats.map((chat) => {
-            const senderId = message.sender?._id || message.sender;
-            return chat.id === senderId
-              ? { ...chat, unreadCount: (chat.unreadCount || 0) + 1 }
-              : chat;
-          })
-        );
       }
+
+      // Update the chat preview and unread count
+      setChats((prevChats) => {
+        // Check if chat exists
+        const chatIndex = prevChats.findIndex(
+          (chat) => getSenderId(chat) === senderId
+        );
+        
+        if (chatIndex >= 0) {
+          // Update existing chat
+          const updatedChats = [...prevChats];
+          updatedChats[chatIndex] = {
+            ...updatedChats[chatIndex],
+            lastMessage: message.content,
+            timestamp: message.createdAt || new Date(),
+            unreadCount:
+              selectedChat && selectedChat.id === senderId
+                ? 0
+                : (updatedChats[chatIndex].unreadCount || 0) + 1,
+          };
+          return updatedChats;
+        } else {
+          // Fetch chats to get the new one
+          fetchChatsList();
+          return prevChats;
+        }
+      });
     });
 
     socket.on("addUser", (socketId, email) => {
@@ -287,20 +338,7 @@ const MessagingPage = () => {
 
   // Fetch chats - try MongoDB endpoint first, fall back to mock data
   useEffect(() => {
-    const fetchChats = async () => {
-      try {
-        // Use your actual endpoint - check your backend routes
-        const response = await api.get("/messages/conversations");
-        if (response.data && response.data.success) {
-          setChats(response.data.data);
-        }
-      } catch (error) {
-        console.error("Error fetching chats:", error);
-        // Mock data will still work as fallback
-      }
-    };
-
-    fetchChats();
+    fetchChatsList();
   }, []);
 
   // Fetch unread message count
@@ -333,7 +371,10 @@ const MessagingPage = () => {
             setMessages(
               response.data.data.messages.map((msg) => ({
                 id: msg._id,
-                sender: msg.sender._id || msg.sender,
+                sender:
+                  typeof msg.sender === "object" && msg.sender !== null
+                    ? msg.sender._id
+                    : msg.sender,
                 content: msg.content,
                 timestamp: msg.createdAt,
                 isRead: msg.isRead,
@@ -372,6 +413,39 @@ const MessagingPage = () => {
   const handleSendMessage = async () => {
     if (!messageInput.trim() || !selectedChat) return;
 
+    const newMessage = {
+      id: Date.now().toString(),
+      sender: currentUser.id,
+      content: messageInput,
+      timestamp: new Date(),
+      isRead: false,
+    };
+
+    // Add message to UI immediately
+    setMessages((prev) => [...prev, newMessage]);
+
+    // Update chat preview
+    setChats((prevChats) => {
+      const updatedChats = prevChats.map((chat) =>
+        chat.id === selectedChat.id
+          ? {
+              ...chat,
+              lastMessage: messageInput,
+              timestamp: new Date(),
+            }
+          : chat
+      );
+
+      // Move the current chat to the top
+      const chatIndex = updatedChats.findIndex(chat => chat.id === selectedChat.id);
+      if (chatIndex > 0) {
+        const chatToMove = updatedChats.splice(chatIndex, 1)[0];
+        updatedChats.unshift(chatToMove);
+      }
+
+      return updatedChats;
+    });
+
     try {
       // First try MongoDB API
       const response = await api.post("/messages", {
@@ -394,18 +468,6 @@ const MessagingPage = () => {
         timestamp: new Date(),
       });
     }
-
-    // Add message to UI immediately
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: Date.now().toString(),
-        sender: currentUser.id,
-        content: messageInput,
-        timestamp: new Date(),
-        isRead: false,
-      },
-    ]);
 
     // Clear input
     setMessageInput("");
@@ -444,6 +506,11 @@ const MessagingPage = () => {
         chat.email.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
+  // Sort chats by timestamp (most recent first)
+  const sortedChats = [...filteredChats].sort((a, b) => 
+    new Date(b.timestamp) - new Date(a.timestamp)
+  );
+
   return (
     <div className="flex h-screen bg-gray-100">
       {/* Left Sidebar (Navbar) */}
@@ -457,17 +524,6 @@ const MessagingPage = () => {
           <span className="text-sm bg-red-500 text-white px-3 py-1 rounded-full">
             {unreadCount} Unread
           </span>
-          <div className="socket-status">
-            {isConnected ? (
-              <span className="bg-green-500 text-white px-2 py-1 rounded-md text-xs">
-                Real-time connected
-              </span>
-            ) : (
-              <span className="bg-red-500 text-white px-2 py-1 rounded-md text-xs">
-                Real-time disconnected
-              </span>
-            )}
-          </div>
         </header>
 
         {/* Main Content */}
@@ -485,7 +541,7 @@ const MessagingPage = () => {
               />
             </div>
             <ul>
-              {filteredChats.map((chat) => (
+              {sortedChats.map((chat) => (
                 <li
                   key={chat.id}
                   onClick={() => handleSelectChat(chat)}
@@ -564,29 +620,33 @@ const MessagingPage = () => {
 
                 {/* Messages */}
                 <div className="flex-1 p-4 overflow-y-auto">
-                  {messages.map((message) => (
-                    <div
-                      key={message.id}
-                      className={`mb-4 flex ${
-                        String(message.sender) === String(currentUser.id)
-                          ? "justify-end"
-                          : "justify-start"
-                      }`}
-                    >
+                  {messages.map((message) => {
+                    const isUserMessage = String(getSenderId(message.sender)) === String(currentUser.id);
+                    return (
                       <div
-                        className={`max-w-xs p-3 rounded-lg shadow-sm ${
-                          String(message.sender) === String(currentUser.id)
-                            ? "bg-blue-500 text-white"
-                            : "bg-white text-gray-800"
+                        key={message.id}
+                        className={`mb-4 flex ${
+                          isUserMessage
+                            ? "justify-end"
+                            : "justify-start"
                         }`}
                       >
-                        <p>{message.content}</p>
-                        <p className="text-xs mt-1 opacity-70">
-                          {new Date(message.timestamp).toLocaleTimeString()}
-                        </p>
+                        <div
+                          className={`max-w-xs p-3 rounded-lg shadow-sm ${
+                            isUserMessage
+                              ? "bg-blue-500 text-white"
+                              : "bg-white text-gray-800"
+                          }`}
+                        >
+                          <p>{message.content}</p>
+                          <p className="text-xs mt-1 opacity-70">
+                            {new Date(message.timestamp).toLocaleTimeString()}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
+                  <div ref={messagesEndRef} />
                 </div>
 
                 {/* Message Input */}
