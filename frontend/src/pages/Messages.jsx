@@ -2,7 +2,9 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import api from "../utils/axios"; // Import the configured axios instance
 import Nav from "../components/Nav";
 import socket from "../utils/socket";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+import { Box, Typography } from "@mui/material";
+import { format } from "date-fns";
 
 const MessagingPage = () => {
   // Use local storage for user auth or implement proper auth
@@ -21,6 +23,7 @@ const MessagingPage = () => {
   const [fallbackMode, setFallbackMode] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const location = useLocation();
+  const navigate = useNavigate();
   const messagesEndRef = useRef(null);
 
   // Helper function to get socket user by socket ID
@@ -615,7 +618,10 @@ const MessagingPage = () => {
         {selectedChat ? (
           <>
             {/* Chat Header */}
-            <div className="p-4 w-full bg-gray-50 text-gray-800 shadow-md sticky top-0 z-10">
+            <div
+              className="p-4 w-full bg-gray-50 text-gray-800 shadow-md sticky top-0 z-10 cursor-pointer"
+              onClick={() => navigate(`/profile/${selectedChat.id}`)}
+            >
               <div className="flex items-center">
                 <img
                   src={
@@ -627,15 +633,6 @@ const MessagingPage = () => {
                 />
                 <div>
                   <h2 className="text-lg font-bold">{selectedChat.name}</h2>
-                  <p className="text-xs text-gray-500">
-                    {onlineUsers.some(
-                      (u) =>
-                        u.userId === selectedChat.id ||
-                        u.email === selectedChat.email
-                    )
-                      ? "Online"
-                      : "Offline"}
-                  </p>
                 </div>
               </div>
             </div>
