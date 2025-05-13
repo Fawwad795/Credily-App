@@ -512,173 +512,171 @@ const MessagingPage = () => {
   );
 
   return (
-    <div className="flex h-screen bg-gray-100">
-      {/* Left Sidebar (Navbar) */}
-      <Nav />
+   <div className="flex h-screen bg-gray-100">
+  {/* Left Sidebar (Navbar) */}
+  <Nav />
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col ml-64">
-        {/* Header */}
-        <header className="grad text-white py-4 px-6 flex justify-between items-center shadow-md rounded-b-lg">
-          <h1 className="text-xl font-bold">Messages</h1>
-          <span className="text-sm bg-red-500 text-white px-3 py-1 rounded-full">
-            {unreadCount} Unread
-          </span>
-        </header>
+  {/* Main Content */}
+  <div className="flex-1 flex flex-col ml-64 overflow-hidden">
+    {/* Header */}
+    <header className="grad text-white py-4 px-6 flex justify-between items-center shadow-md rounded-b-lg w-full sticky top-0 z-10">
+      <h1 className="text-xl font-bold flex-1">Messages</h1>
+      <span className="text-sm bg-red-500 text-white px-3 py-1 rounded-full ml-4">
+        {unreadCount} Unread
+      </span>
+    </header>
 
-        {/* Main Content */}
-        <div className="flex flex-1">
-          {/* Sidebar */}
-          <div className="w-1/3 bg-gray-50 overflow-y-auto shadow-md rounded-l-lg">
-            <h2 className="text-xl font-bold p-4">Chats</h2>
-            <div className="px-4 pb-2">
-              <input
-                type="text"
-                placeholder="Search followers..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-300"
-              />
-            </div>
-            <ul>
-              {sortedChats.map((chat) => (
-                <li
-                  key={chat.id}
-                  onClick={() => handleSelectChat(chat)}
-                  className={`p-4 flex items-center gap-4 cursor-pointer hover:bg-gray-100 ${
-                    selectedChat?.id === chat.id ? "bg-gray-100" : ""
-                  }`}
-                >
-                  <div className="relative">
-                    <img
-                      src={chat.profilePicture || "/default-profile.png"}
-                      alt={chat.name}
-                      className="w-12 h-12 rounded-full"
-                      onError={(e) => handleImageError(e, chat.name)}
-                    />
+    <div className="flex flex-1 overflow-hidden">
+      {/* Sidebar */}
+      <div className="w-1/3 bg-gray-50 shadow-md rounded-l-lg overflow-y-auto">
+        <h2 className="text-xl font-bold p-4">Chats</h2>
+        <div className="px-4 pb-2">
+          <input
+            type="text"
+            placeholder="Search followers..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-300"
+          />
+        </div>
+        <ul>
+          {sortedChats.map((chat) => (
+            <li
+              key={chat.id}
+              onClick={() => handleSelectChat(chat)}
+              className={`p-4 flex items-center gap-4 cursor-pointer hover:bg-gray-100 ${
+                selectedChat?.id === chat.id ? "bg-gray-100" : ""
+              }`}
+            >
+              <div className="relative">
+                <img
+                  src={chat.profilePicture || "/default-profile.png"}
+                  alt={chat.name}
+                  className="w-12 h-12 rounded-full"
+                  onError={(e) => handleImageError(e, chat.name)}
+                />
+                {onlineUsers.some(
+                  (u) => u.userId === chat.id || u.email === chat.email
+                ) && (
+                  <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full"></span>
+                )}
+              </div>
+              <div className="flex-1">
+                <div className="flex justify-between">
+                  <span className="font-medium text-gray-700">
+                    {chat.name}
+                  </span>
+                  <span className="text-xs text-gray-500">
+                    {new Date(chat.timestamp).toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </span>
+                </div>
+                <p className="text-sm text-gray-500 truncate">
+                  {chat.lastMessage}
+                </p>
+                {chat.unreadCount > 0 && (
+                  <span className="text-sm bg-red-500 text-white px-2 py-1 rounded-full">
+                    {chat.unreadCount}
+                  </span>
+                )}
+              </div>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      {/* Chat Window */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {selectedChat ? (
+          <>
+            {/* Chat Header */}
+            <div className="p-4 w-full bg-gray-50 text-gray-800 shadow-md sticky top-0 z-10">
+              <div className="flex items-center">
+                <img
+                  src={
+                    selectedChat.profilePicture || "/default-profile.png"
+                  }
+                  alt={selectedChat.name}
+                  className="w-10 h-10 rounded-full mr-3"
+                  onError={(e) => handleImageError(e, selectedChat.name)}
+                />
+                <div>
+                  <h2 className="text-lg font-bold">{selectedChat.name}</h2>
+                  <p className="text-xs text-gray-500">
                     {onlineUsers.some(
-                      (u) => u.userId === chat.id || u.email === chat.email
-                    ) && (
-                      <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full"></span>
-                    )}
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex justify-between">
-                      <span className="font-medium text-gray-700">
-                        {chat.name}
-                      </span>
-                      <span className="text-xs text-gray-500">
-                        {new Date(chat.timestamp).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </span>
-                    </div>
-                    <p className="text-sm text-gray-500 truncate">
-                      {chat.lastMessage}
-                    </p>
-                    {chat.unreadCount > 0 && (
-                      <span className="text-sm bg-red-500 text-white px-2 py-1 rounded-full">
-                        {chat.unreadCount}
-                      </span>
-                    )}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </div>
+                      (u) =>
+                        u.userId === selectedChat.id ||
+                        u.email === selectedChat.email
+                    )
+                      ? "Online"
+                      : "Offline"}
+                  </p>
+                </div>
+              </div>
+            </div>
 
-          {/* Chat Window */}
-          <div className="flex-1 flex flex-col">
-            {selectedChat ? (
-              <>
-                {/* Chat Header */}
-                <div className="p-4 bg-gray-50 text-gray-800 shadow-md">
-                  <div className="flex items-center">
-                    <img
-                      src={
-                        selectedChat.profilePicture || "/default-profile.png"
-                      }
-                      alt={selectedChat.name}
-                      className="w-10 h-10 rounded-full mr-3"
-                      onError={(e) => handleImageError(e, selectedChat.name)}
-                    />
-                    <div>
-                      <h2 className="text-lg font-bold">{selectedChat.name}</h2>
-                      <p className="text-xs text-gray-500">
-                        {onlineUsers.some(
-                          (u) =>
-                            u.userId === selectedChat.id ||
-                            u.email === selectedChat.email
-                        )
-                          ? "Online"
-                          : "Offline"}
+            {/* Messages */}
+            <div className="flex-1 p-4 overflow-y-auto">
+              {messages.map((message) => {
+                const isUserMessage =
+                  String(getSenderId(message.sender)) ===
+                  String(currentUser.id);
+                return (
+                  <div
+                    key={message.id}
+                    className={`mb-4 flex ${
+                      isUserMessage ? "justify-end" : "justify-start"
+                    }`}
+                  >
+                    <div
+                      className={`max-w-xs p-3 rounded-lg shadow-sm ${
+                        isUserMessage
+                          ? "bg-blue-500 text-white"
+                          : "bg-white text-gray-800"
+                      }`}
+                    >
+                      <p>{message.content}</p>
+                      <p className="text-xs mt-1 opacity-70">
+                        {new Date(message.timestamp).toLocaleTimeString()}
                       </p>
                     </div>
                   </div>
-                </div>
+                );
+              })}
+              <div ref={messagesEndRef} />
+            </div>
 
-                {/* Messages */}
-                <div className="flex-1 p-4 overflow-y-auto">
-                  {messages.map((message) => {
-                    const isUserMessage = String(getSenderId(message.sender)) === String(currentUser.id);
-                    return (
-                      <div
-                        key={message.id}
-                        className={`mb-4 flex ${
-                          isUserMessage
-                            ? "justify-end"
-                            : "justify-start"
-                        }`}
-                      >
-                        <div
-                          className={`max-w-xs p-3 rounded-lg shadow-sm ${
-                            isUserMessage
-                              ? "bg-blue-500 text-white"
-                              : "bg-white text-gray-800"
-                          }`}
-                        >
-                          <p>{message.content}</p>
-                          <p className="text-xs mt-1 opacity-70">
-                            {new Date(message.timestamp).toLocaleTimeString()}
-                          </p>
-                        </div>
-                      </div>
-                    );
-                  })}
-                  <div ref={messagesEndRef} />
-                </div>
-
-                {/* Message Input */}
-                <div className="p-4 bg-white flex items-center shadow-md">
-                  <input
-                    type="text"
-                    value={messageInput}
-                    onChange={(e) => setMessageInput(e.target.value)}
-                    onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
-                    placeholder="Type a message..."
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-300"
-                  />
-                  <button
-                    onClick={handleSendMessage}
-                    className="ml-4 bg-blue-500 text-white px-4 py-2 rounded-full hover:bg-blue-600 transition duration-300"
-                  >
-                    Send
-                  </button>
-                </div>
-              </>
-            ) : (
-              <div className="flex-1 flex items-center justify-center">
-                <p className="text-gray-500">
-                  Select a chat to start messaging
-                </p>
-              </div>
-            )}
+            {/* Message Input */}
+            <div className="p-4 bg-white flex items-center shadow-md sticky bottom-0 z-10">
+              <input
+                type="text"
+                value={messageInput}
+                onChange={(e) => setMessageInput(e.target.value)}
+                onKeyPress={(e) =>
+                  e.key === "Enter" && handleSendMessage()
+                }
+                placeholder="Type a message..."
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-300"
+              />
+              <button
+                onClick={handleSendMessage}
+                className="ml-4 bg-blue-500 text-white px-4 py-2 rounded-full hover:bg-blue-600 transition duration-300"
+              >
+                Send
+              </button>
+            </div>
+          </>
+        ) : (
+          <div className="flex-1 flex items-center justify-center">
+            <p className="text-gray-500">Select a chat to start messaging</p>
           </div>
-        </div>
+        )}
       </div>
     </div>
+  </div>
+</div>
   );
-};
-
+}
 export default MessagingPage;
