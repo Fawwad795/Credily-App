@@ -3,6 +3,8 @@ import api from "../utils/axios"; // Import the configured axios instance
 import Nav from "../components/Nav";
 import socket from "../utils/socket";
 import { useLocation, useNavigate } from "react-router-dom";
+import { Box, Typography } from "@mui/material";
+import { format } from "date-fns";
 
 const MessagingPage = () => {
   // Use local storage for user auth or implement proper auth
@@ -615,29 +617,41 @@ const MessagingPage = () => {
             {/* Messages */}
             <div className="flex-1 p-4 overflow-y-auto">
               {messages.map((message) => {
-                const isUserMessage =
-                  String(getSenderId(message.sender)) ===
-                  String(currentUser.id);
+                const isSentByCurrentUser =
+                  String(getSenderId(message.sender)) === String(currentUser.id);
+
                 return (
-                  <div
+                  <Box
                     key={message.id}
-                    className={`mb-4 flex ${
-                      isUserMessage ? "justify-end" : "justify-start"
-                    }`}
+                    display="flex"
+                    justifyContent={isSentByCurrentUser ? "flex-end" : "flex-start"}
+                    mb={1}
+                    px={2} // horizontal padding
                   >
-                    <div
-                      className={`max-w-xs p-3 rounded-lg shadow-sm ${
-                        isUserMessage
-                          ? "bg-blue-500 text-white"
-                          : "bg-white text-gray-800"
-                      }`}
+                    <Box
+                      sx={{
+                        maxWidth: "70%",
+                        bgcolor: isSentByCurrentUser ? "#DCF8C6" : "#F1F0F0",
+                        color: "#000",
+                        p: 1.5,
+                        borderRadius: 2,
+                        borderTopRightRadius: isSentByCurrentUser ? 0 : 16,
+                        borderTopLeftRadius: isSentByCurrentUser ? 16 : 0,
+                      }}
                     >
-                      <p>{message.content}</p>
-                      <p className="text-xs mt-1 opacity-70">
-                        {new Date(message.timestamp).toLocaleTimeString()}
-                      </p>
-                    </div>
-                  </div>
+                      <Typography variant="body1">{message.content}</Typography>
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          display: "block",
+                          textAlign: isSentByCurrentUser ? "right" : "left",
+                          mt: 0.5,
+                        }}
+                      >
+                        {format(new Date(message.timestamp), "HH:mm")}
+                      </Typography>
+                    </Box>
+                  </Box>
                 );
               })}
               <div ref={messagesEndRef} />
