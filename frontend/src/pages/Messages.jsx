@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import Nav from "../components/Nav";
 import socket from "../utils/socket";
@@ -19,9 +19,13 @@ const MessagingPage = () => {
   const [isConnected, setIsConnected] = useState(false);
   const [fallbackMode, setFallbackMode] = useState(false);
 
-  // Add in your component, near the top after state declarations
+  // Helper function to get socket user by socket ID
+  const getUserBySocketId = (socketId) => {
+    return onlineUsers.find((user) => user.socketId === socketId);
+  };
+
+  // Set up socket connection status
   useEffect(() => {
-    // Set up socket connection status
     const handleConnect = () => {
       setIsConnected(true);
       console.log("Socket.IO connected successfully!");
@@ -32,22 +36,45 @@ const MessagingPage = () => {
       console.log("Socket.IO disconnected");
     };
 
+    const handleError = (error) => {
+      console.error("Socket connection error:", error);
+      setIsConnected(false);
+      setFallbackMode(true);
+    };
+
     // Register socket event listeners
     socket.on("connect", handleConnect);
     socket.on("disconnect", handleDisconnect);
+    socket.on("connect_error", handleError);
 
     // Check initial connection state
     setIsConnected(socket.connected);
+
+    // Check if user info exists in localStorage and update if needed
+    const userId = localStorage.getItem("userId");
+    const userEmail = localStorage.getItem("userEmail");
+
+    if (
+      userId &&
+      userEmail &&
+      (userId !== currentUser.id || userEmail !== currentUser.email)
+    ) {
+      setCurrentUser({
+        id: userId,
+        email: userEmail,
+      });
+    }
 
     // Clean up event listeners
     return () => {
       socket.off("connect", handleConnect);
       socket.off("disconnect", handleDisconnect);
+      socket.off("connect_error", handleError);
     };
-  }, []);
+  }, [currentUser.id, currentUser.email]);
 
-  // Define fetchMessagesFromApi within component scope before it's used
-  const fetchMessagesFromApi = async () => {
+  // Define fetchMessagesFromApi with useCallback to avoid dependency cycles
+  const fetchMessagesFromApi = useCallback(async () => {
     if (selectedChat) {
       try {
         console.log("Polling for new messages...");
@@ -58,7 +85,7 @@ const MessagingPage = () => {
           setMessages(
             response.data.data.messages.map((msg) => ({
               id: msg._id,
-              sender: msg.sender._id,
+              sender: msg.sender._id || msg.sender,
               content: msg.content,
               timestamp: msg.createdAt,
               isRead: msg.isRead,
@@ -111,7 +138,7 @@ const MessagingPage = () => {
         },
       ]);
     }
-  };
+  }, [selectedChat]);
 
   // Connect to socket and join user room
   useEffect(() => {
@@ -127,6 +154,10 @@ const MessagingPage = () => {
       setIsConnected(true);
       setFallbackMode(false);
       clearTimeout(connectionTimeout);
+
+      // Connect with both ID and email immediately after connecting
+      socket.emit("joinRoom", currentUser.id);
+      socket.emit("addUser", currentUser.email);
     }
 
     function onDisconnect() {
@@ -139,6 +170,9 @@ const MessagingPage = () => {
     // Check initial connection state
     if (socket.connected) {
       setIsConnected(true);
+      // If already connected, join room
+      socket.emit("joinRoom", currentUser.id);
+      socket.emit("addUser", currentUser.email);
     }
 
     return () => {
@@ -146,37 +180,45 @@ const MessagingPage = () => {
       socket.off("connect", onConnect);
       socket.off("disconnect", onDisconnect);
     };
-  }, []);
+  }, [currentUser.id, currentUser.email, isConnected]);
 
   // Use fallback mode if socket connection fails
   useEffect(() => {
+    let interval;
+
     if (fallbackMode) {
       // Set up polling for messages instead of relying on socket
-      const interval = setInterval(() => {
+      interval = setInterval(() => {
         // Fetch messages using REST API
         fetchMessagesFromApi();
       }, 3000);
-
-      return () => clearInterval(interval);
     }
-  }, [fallbackMode]);
 
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [fallbackMode, selectedChat, fetchMessagesFromApi]);
+
+  // Listen for messages and online users
   useEffect(() => {
-    // Connect with both ID and email
-    socket.emit("joinRoom", currentUser.id);
-    socket.emit("addUser", currentUser.email);
-
     // Listen for online users
     socket.on("getUsers", (users) => {
       console.log("Online users:", users);
-      setOnlineUsers(users);
+      if (Array.isArray(users)) {
+        setOnlineUsers(users);
+      } else {
+        console.error("Received invalid users data:", users);
+        setOnlineUsers([]);
+      }
     });
 
     // Listen for messages - support both formats
     socket.on("getMessage", (message) => {
       console.log("Got message (MySQL format):", message);
+      if (!message) return;
+
       const formattedMessage = {
-        id: message.messageId || Date.now(),
+        id: message.messageId || Date.now().toString(),
         sender: message.senderEmail,
         content: message.text,
         timestamp: message.timestamp || new Date(),
@@ -202,26 +244,33 @@ const MessagingPage = () => {
     // Listen for MongoDB format messages
     socket.on("newMessage", (message) => {
       console.log("Got message (MongoDB format):", message);
+      if (!message) return;
+
       const formattedMessage = {
-        id: message._id || Date.now(),
-        sender: message.sender._id || message.sender,
+        id: message._id || Date.now().toString(),
+        sender: message.sender?._id || message.sender,
         content: message.content,
         timestamp: message.createdAt || new Date(),
         isRead: message.isRead || false,
       };
 
       // Add message to chat if selected, otherwise update unread count
-      if (selectedChat && selectedChat.id === message.sender._id) {
+      if (
+        selectedChat &&
+        (selectedChat.id === message.sender._id ||
+          selectedChat.id === message.sender)
+      ) {
         setMessages((prev) => [...prev, formattedMessage]);
       } else {
         setUnreadCount((prev) => prev + 1);
-        // Update chat unread count
+        // Update chat unread count using a more reliable check
         setChats((prevChats) =>
-          prevChats.map((chat) =>
-            chat.id === message.sender._id
+          prevChats.map((chat) => {
+            const senderId = message.sender?._id || message.sender;
+            return chat.id === senderId
               ? { ...chat, unreadCount: (chat.unreadCount || 0) + 1 }
-              : chat
-          )
+              : chat;
+          })
         );
       }
     });
@@ -231,7 +280,7 @@ const MessagingPage = () => {
       socket.off("getMessage");
       socket.off("newMessage");
     };
-  }, [currentUser, selectedChat]);
+  }, [selectedChat]);
 
   // Fetch chats - try MongoDB endpoint first, fall back to mock data
   useEffect(() => {
@@ -381,6 +430,14 @@ const MessagingPage = () => {
     e.target.src = generateProfilePlaceholder(name);
   };
 
+  // Socket event handling for user connection
+  socket.on("addUser", (socketId, email) => {
+    if (email && socketId) {
+      const user = getUserBySocketId(socketId);
+      console.log("User added to socket:", user);
+    }
+  });
+
   return (
     <div className="flex h-screen bg-gray-100">
       {/* Left Sidebar (Navbar) */}
@@ -426,6 +483,7 @@ const MessagingPage = () => {
                       src={chat.profilePicture || "/default-profile.png"}
                       alt={chat.name}
                       className="w-12 h-12 rounded-full"
+                      onError={(e) => handleImageError(e, chat.name)}
                     />
                     {onlineUsers.some(
                       (u) => u.userId === chat.id || u.email === chat.email
@@ -472,6 +530,7 @@ const MessagingPage = () => {
                       }
                       alt={selectedChat.name}
                       className="w-10 h-10 rounded-full mr-3"
+                      onError={(e) => handleImageError(e, selectedChat.name)}
                     />
                     <div>
                       <h2 className="text-lg font-bold">{selectedChat.name}</h2>
