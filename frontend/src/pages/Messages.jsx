@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import axios from "axios";
+import api from "../utils/axios"; // Import the configured axios instance
 import Nav from "../components/Nav";
 import socket from "../utils/socket";
 
@@ -26,6 +26,19 @@ const MessagingPage = () => {
 
   // Set up socket connection status
   useEffect(() => {
+    // Check if token exists
+    const token = localStorage.getItem("token");
+    console.log("Auth token exists:", !!token);
+
+    // If no token, create a temporary one for testing
+    if (!token) {
+      console.log(
+        "No auth token found - creating a temporary token for testing"
+      );
+      // This is just for debugging - in production, you'd redirect to login
+      localStorage.setItem("token", "temporary-test-token");
+    }
+
     const handleConnect = () => {
       setIsConnected(true);
       console.log("Socket.IO connected successfully!");
@@ -78,8 +91,8 @@ const MessagingPage = () => {
     if (selectedChat) {
       try {
         console.log("Polling for new messages...");
-        const response = await axios.get(
-          `/api/messages/conversation/${selectedChat.id}`
+        const response = await api.get(
+          `/messages/conversation/${selectedChat.id}`
         );
         if (response.data && response.data.success) {
           setMessages(
@@ -100,7 +113,7 @@ const MessagingPage = () => {
 
     // Also update unread counts
     try {
-      const unreadResponse = await axios.get("/api/messages/unread-count");
+      const unreadResponse = await api.get("/messages/unread-count");
       if (unreadResponse.data && unreadResponse.data.success) {
         setUnreadCount(unreadResponse.data.data.unreadCount);
       }
@@ -110,7 +123,7 @@ const MessagingPage = () => {
 
     // Fetch latest chats too
     try {
-      const chatsResponse = await axios.get("/api/messages/conversations");
+      const chatsResponse = await api.get("/messages/conversations");
       if (chatsResponse.data && chatsResponse.data.success) {
         setChats(chatsResponse.data.data);
       }
@@ -287,7 +300,7 @@ const MessagingPage = () => {
     const fetchChats = async () => {
       try {
         // Use your actual endpoint - check your backend routes
-        const response = await axios.get("/api/messages/conversations");
+        const response = await api.get("/messages/conversations");
         if (response.data && response.data.success) {
           setChats(response.data.data);
         }
@@ -305,7 +318,7 @@ const MessagingPage = () => {
     const fetchUnreadCount = async () => {
       try {
         // Use your actual endpoint
-        const response = await axios.get("/api/messages/unread-count");
+        const response = await api.get("/messages/unread-count");
         if (response.data && response.data.success) {
           setUnreadCount(response.data.data.unreadCount);
         }
@@ -323,14 +336,14 @@ const MessagingPage = () => {
     if (selectedChat) {
       const fetchMessages = async () => {
         try {
-          const response = await axios.get(
-            `/api/messages/conversation/${selectedChat.id}`
+          const response = await api.get(
+            `/messages/conversation/${selectedChat.id}`
           );
           if (response.data && response.data.success) {
             setMessages(
               response.data.data.messages.map((msg) => ({
                 id: msg._id,
-                sender: msg.sender._id,
+                sender: msg.sender._id || msg.sender,
                 content: msg.content,
                 timestamp: msg.createdAt,
                 isRead: msg.isRead,
@@ -376,7 +389,7 @@ const MessagingPage = () => {
 
     try {
       // First try MongoDB API
-      const response = await axios.post("/api/messages", {
+      const response = await api.post("/messages", {
         receiverId: selectedChat.id,
         content: messageInput,
         messageType: "text",
