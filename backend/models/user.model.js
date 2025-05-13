@@ -11,6 +11,16 @@ const userSchema = new mongoose.Schema(
       minlength: 3,
       maxlength: 30,
     },
+    firstName: {
+      type: String,
+      trim: true,
+      maxlength: 50,
+    },
+    lastName: {
+      type: String,
+      trim: true,
+      maxlength: 50,
+    },
     email: {
       type: String,
       required: false, // Make email optional
@@ -54,9 +64,20 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: "default-profile.png",
     },
+    profilePictureId: {
+      type: String,
+      default: "", // Cloudinary public ID
+    },
     bio: {
       type: String,
       maxlength: 300,
+      default: "",
+    },
+    location: {
+      type: String,
+      trim: true,
+      maxlength: 100,
+      default: "",
     },
     reputationScore: {
       type: Number,
@@ -66,7 +87,6 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
-    location: String,
     createdAt: {
       type: Date,
       default: Date.now,

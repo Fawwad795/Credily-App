@@ -49,6 +49,85 @@ const Notifications = ({ isOpen, onClose }) => {
     }
   };
 
+  // Add this useEffect to mark all notifications as read when panel is opened and notifications are loaded
+  useEffect(() => {
+    const markAllAsRead = async () => {
+      if (isOpen && notifications.length > 0) {
+        console.log(
+          "Notifications panel opened with",
+          notifications.length,
+          "notifications"
+        );
+
+        // Find all unread notification IDs
+        const unreadIds = notifications
+          .filter((notification) => !notification.isRead)
+          .map((notification) => notification._id);
+
+        console.log(
+          "Found",
+          unreadIds.length,
+          "unread notifications:",
+          unreadIds
+        );
+
+        if (unreadIds.length === 0) {
+          console.log("No unread notifications to mark");
+          return;
+        }
+
+        // Get token
+        const token = localStorage.getItem("token");
+        if (!token) {
+          console.error("No token available");
+          return;
+        }
+
+        try {
+          console.log("Sending API request to mark notifications as read...");
+
+          // Make the API call
+          const response = await api.post(
+            `/notifications/mark-read`,
+            { notificationIds: unreadIds },
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            }
+          );
+
+          console.log("API Response:", response.data);
+
+          if (response.data.success) {
+            console.log("Successfully marked notifications as read");
+
+            // Update local state
+            setNotifications((prev) =>
+              prev.map((notification) =>
+                unreadIds.includes(notification._id)
+                  ? { ...notification, isRead: true }
+                  : notification
+              )
+            );
+          } else {
+            console.error("API returned success: false");
+          }
+        } catch (error) {
+          console.error(
+            "Error marking notifications as read:",
+            error.response?.data || error.message
+          );
+        }
+      }
+    };
+
+    // Call the function
+    if (isOpen && notifications.length > 0) {
+      markAllAsRead();
+    }
+  }, [isOpen, notifications]);
+
   const handleAcceptRequest = async (connectionId) => {
     try {
       const token = localStorage.getItem("token");
@@ -128,36 +207,7 @@ const Notifications = ({ isOpen, onClose }) => {
     }
   };
 
-  const markAsRead = async (notificationId) => {
-    try {
-      const token = localStorage.getItem("token");
-
-      if (!token) return;
-
-      await api.post(
-        `/notifications/mark-read`,
-        { notificationIds: [notificationId] },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      // Update the notification as read in the UI
-      setNotifications((prev) =>
-        prev.map((notification) =>
-          notification._id === notificationId
-            ? { ...notification, isRead: true }
-            : notification
-        )
-      );
-    } catch (error) {
-      console.error("Error marking notification as read:", error);
-    }
-  };
-
-  // Filter notifications by type
+  // Filter notifications by type - update to show all connection requests
   const connectionRequestNotifications = notifications.filter(
     (notification) => notification.type === "connection_request"
   );
@@ -176,6 +226,47 @@ const Notifications = ({ isOpen, onClose }) => {
       notification.type !== "connection_accepted" &&
       notification.type !== "connection_rejected"
   );
+
+  // Debug log to check notification state
+  console.log("Current notifications state:", notifications);
+  console.log(
+    "Connection request notifications:",
+    connectionRequestNotifications.map((n) => ({ id: n._id, isRead: n.isRead }))
+  );
+
+  // Add a function to manually mark a single notification as read
+  const markNotificationAsRead = async (notificationId) => {
+    try {
+      console.log("Marking single notification as read:", notificationId);
+      const token = localStorage.getItem("token");
+      if (!token) return;
+
+      const response = await api.post(
+        `/notifications/mark-read`,
+        { notificationIds: [notificationId] },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      console.log("Manual mark as read response:", response.data);
+
+      // Only update UI if the API call was successful
+      if (response.data.success) {
+        setNotifications((prev) =>
+          prev.map((notification) =>
+            notification._id === notificationId
+              ? { ...notification, isRead: true }
+              : notification
+          )
+        );
+      }
+    } catch (error) {
+      console.error("Error marking notification as read:", error);
+    }
+  };
 
   return (
     <div
@@ -209,7 +300,10 @@ const Notifications = ({ isOpen, onClose }) => {
                   {connectionRequestNotifications.map((notification) => (
                     <li
                       key={notification._id}
-                      className="p-3 border rounded-lg mb-2 bg-green-50"
+                      className={`p-3 border rounded-lg mb-2 ${
+                        notification.isRead ? "bg-gray-50" : "bg-green-50"
+                      }`}
+                      onClick={() => markNotificationAsRead(notification._id)}
                     >
                       <h4 className="font-semibold">{notification.title}</h4>
                       <p className="mb-2">{notification.content}</p>
@@ -252,7 +346,9 @@ const Notifications = ({ isOpen, onClose }) => {
                   {connectionAcceptedNotifications.map((notification) => (
                     <li
                       key={notification._id}
-                      className="p-3 border rounded-lg mb-2 bg-green-100"
+                      className={`p-3 border rounded-lg mb-2 ${
+                        notification.isRead ? "bg-gray-50" : "bg-green-100"
+                      }`}
                     >
                       <h4 className="font-semibold">{notification.title}</h4>
                       <p className="mb-2">{notification.content}</p>
@@ -277,7 +373,9 @@ const Notifications = ({ isOpen, onClose }) => {
                   {connectionRejectedNotifications.map((notification) => (
                     <li
                       key={notification._id}
-                      className="p-3 border rounded-lg mb-2 bg-red-50"
+                      className={`p-3 border rounded-lg mb-2 ${
+                        notification.isRead ? "bg-gray-50" : "bg-red-50"
+                      }`}
                     >
                       <h4 className="font-semibold">{notification.title}</h4>
                       <p className="mb-2">{notification.content}</p>
@@ -303,9 +401,8 @@ const Notifications = ({ isOpen, onClose }) => {
                     <li
                       key={notification._id}
                       className={`p-3 border rounded-lg mb-2 ${
-                        notification.isRead ? "bg-gray-50" : "bg-white"
+                        notification.isRead ? "bg-gray-50" : "bg-blue-50"
                       }`}
-                      onClick={() => markAsRead(notification._id)}
                     >
                       <h4 className="font-semibold">{notification.title}</h4>
                       <p>{notification.content}</p>

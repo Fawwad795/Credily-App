@@ -4,6 +4,8 @@ import Connection from "../models/connection.model.js";
 import fs from "fs";
 import path from "path";
 import { addNotification } from "./notification.controller.js"; // Import the notification function
+import cloudinary from "../config/cloudinary.js";
+import mongoose from "mongoose";
 
 // Generate JWT Token
 const generateToken = (id) => {
@@ -71,6 +73,69 @@ export const registerUser = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Registration failed",
+      error: error.message,
+    });
+  }
+};
+
+// Update user additional information after initial registration
+export const updateUserAdditionalInfo = async (req, res) => {
+  try {
+    const userId = req.params.id;
+    const { firstName, lastName, email, bio, location } = req.body;
+
+    // If email is provided, check if it already exists for a different user
+    if (email) {
+      const existingUser = await User.findOne({ email, _id: { $ne: userId } });
+      if (existingUser) {
+        return res.status(400).json({
+          success: false,
+          message: "Email is already in use by another account",
+          error: "duplicate_email",
+        });
+      }
+    }
+
+    // Update the user with additional information
+    const user = await User.findByIdAndUpdate(
+      userId,
+      {
+        firstName,
+        lastName,
+        email,
+        bio,
+        location,
+      },
+      { new: true, runValidators: true }
+    ).select("-password");
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Profile additional information updated successfully",
+      data: user,
+    });
+  } catch (error) {
+    console.error("Error updating user additional information:", error);
+
+    // Check specifically for MongoDB duplicate key error
+    if (error.code === 11000 && error.keyPattern && error.keyPattern.email) {
+      return res.status(400).json({
+        success: false,
+        message: "Email is already in use by another account",
+        error: "duplicate_email",
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to update profile additional information",
       error: error.message,
     });
   }
@@ -453,19 +518,23 @@ export const updateProfilePicture = async (req, res) => {
       });
     }
 
-    // Decode Base64 and save the image to the server
-    const base64Data = profilePicture.replace(/^data:image\/\w+;base64,/, "");
-    const fileExtension = profilePicture.split(";")[0].split("/")[1]; // Extract file extension
-    const fileName = `profile-${userId}-${Date.now()}.${fileExtension}`;
-    const filePath = path.join("uploads/profile-pictures", fileName);
-
-    // Save the image to the server
-    fs.writeFileSync(filePath, base64Data, { encoding: "base64" });
+    // Upload base64 image to Cloudinary
+    const uploadResult = await cloudinary.uploader.upload(profilePicture, {
+      folder: "profile-pictures",
+      resource_type: "auto",
+      transformation: [
+        { width: 500, height: 500, crop: "fill" },
+        { quality: "auto" },
+      ],
+    });
 
     // Update the user's profile picture in the database
     const user = await User.findByIdAndUpdate(
       userId,
-      { profilePicture: filePath.replace(/\\/g, "/") }, // Normalize path for cross-platform compatibility
+      {
+        profilePicture: uploadResult.secure_url,
+        profilePictureId: uploadResult.public_id,
+      },
       { new: true }
     );
 
@@ -479,7 +548,10 @@ export const updateProfilePicture = async (req, res) => {
     res.status(200).json({
       success: true,
       message: "Profile picture updated successfully",
-      data: { profilePicture: user.profilePicture },
+      data: {
+        profilePicture: user.profilePicture,
+        user: user,
+      },
     });
   } catch (error) {
     console.error("Error updating profile picture:", error);
@@ -535,6 +607,18 @@ export const acceptConnectionRequest = async (req, res) => {
     // Update connection status to accepted
     connection.status = "accepted";
     await connection.save();
+
+    // Find and mark the original connection request notification as read
+    const Notification = mongoose.model("Notification");
+    await Notification.updateMany(
+      {
+        recipient: userId,
+        referenceId: connectionId,
+        type: "connection_request",
+        isRead: false,
+      },
+      { isRead: true }
+    );
 
     // Try to add a notification for the requester, but don't fail if it doesn't work
     try {
@@ -824,6 +908,18 @@ export const rejectConnectionRequest = async (req, res) => {
     // Update connection status to rejected
     connection.status = "rejected";
     await connection.save();
+
+    // Find and mark the original connection request notification as read
+    const Notification = mongoose.model("Notification");
+    await Notification.updateMany(
+      {
+        recipient: userId,
+        referenceId: connectionId,
+        type: "connection_request",
+        isRead: false,
+      },
+      { isRead: true }
+    );
 
     // Try to add a notification for the requester, but don't fail if it doesn't work
     try {

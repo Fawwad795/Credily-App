@@ -1,25 +1,24 @@
 # Credily App
 
-This project has been restructured into separate frontend and backend directories.
+This project is structured into separate frontend and backend directories.
 
 ## Project Structure
 
 - `frontend/` - React frontend built with Vite
 - `backend/` - Node.js backend
 
-## Instructions After Pulling Changes
-
-After pulling the latest changes, follow these steps:
+## Setup Instructions
 
 ### Frontend Setup
 
-1. Navigate to the frontend directory:
+1. Navigate to the frontend directory and install dependencies:
    ```
    cd frontend
-   ```
-2. Install dependencies:
-   ```
    npm install
+   ```
+2. Create a `.env` file with your API port:
+   ```
+   VITE_API_PORT=5000  # or 4000 based on your preference
    ```
 3. Start the development server:
    ```
@@ -28,77 +27,58 @@ After pulling the latest changes, follow these steps:
 
 ### Backend Setup
 
-1. Navigate to the backend directory:
+1. Navigate to the backend directory and install dependencies:
    ```
    cd backend
-   ```
-2. Install dependencies:
-   ```
    npm install
    ```
-3. Create a `.env` file in the backend directory with the following content:
+2. Create a `.env` file with:
    ```
-   PORT=5000
-   MONGODB_URI=mongodb+srv://username:password@cluster-name.mongodb.net/Credily?retryWrites=true&w=majority
+   PORT=5000  # or 4000 based on your preference
+   MONGODB_URI=your_connection_string_from_table_below
    JWT_SECRET=your_jwt_secret
    NODE_ENV=development
    ```
-4. Start the backend server:
+3. Start the backend server:
    ```
    npm run dev
    ```
+4. To test your database connection:
+   ```
+   node test-db-connection.js
+   ```
 
-## MongoDB Atlas Connection Setup
+## Supporting Different Port Configurations
 
-To connect to the shared MongoDB Atlas cluster containing the Credily database, follow these steps:
+Some team members use port 4000, while others use port 5000. To avoid code conflicts:
 
-1. **Use Your Assigned Connection String**
+1. Use the environment variables in both frontend and backend as shown above
+2. Keep `.env` files in your `.gitignore` to avoid committing personal configurations
 
-   - Find your connection string from the list below based on your username
-   - All users have been created with the same access permissions (readWriteAnyDatabase)
+## MongoDB Atlas Connection
 
-   | Team Member            | Connection String                                                                                                         |
-   | ---------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-   | Jahanzeb Babar         | `mongodb+srv://mbabarbscs23seecs:4231@cluster0.2wkplzo.mongodb.net/Credily?retryWrites=true&w=majority&appName=Cluster0`  |
-   | Shaheer Saleh          | `mongodb+srv://msalehbscs23seecs:4231@cluster0.2wkplzo.mongodb.net/Credily?retryWrites=true&w=majority&appName=Cluster0`  |
-   | Roshan Jalil           | `mongodb+srv://rjalilbscs23seecs:4231@cluster0.2wkplzo.mongodb.net/Credily?retryWrites=true&w=majority&appName=Cluster0`  |
-   | Syed Fawwad Ahmed      | `mongodb+srv://sfahmedbscs23seecs:4231@cluster0.2wkplzo.mongodb.net/Credily?retryWrites=true&w=majority&appName=Cluster0` |
-   | Syed Ali Hassan Jaffri | `mongodb+srv://sjaffribscs23seecs:4231@cluster0.2wkplzo.mongodb.net/Credily?retryWrites=true&w=majority&appName=Cluster0` |
+Find your connection string from the list below:
 
-2. **Configure Your Local Environment**
+| Team Member            | Connection String                                                                                                         |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| Jahanzeb Babar         | `mongodb+srv://mbabarbscs23seecs:4231@cluster0.2wkplzo.mongodb.net/Credily?retryWrites=true&w=majority&appName=Cluster0`  |
+| Shaheer Saleh          | `mongodb+srv://msalehbscs23seecs:4231@cluster0.2wkplzo.mongodb.net/Credily?retryWrites=true&w=majority&appName=Cluster0`  |
+| Roshan Jalil           | `mongodb+srv://rjalilbscs23seecs:4231@cluster0.2wkplzo.mongodb.net/Credily?retryWrites=true&w=majority&appName=Cluster0`  |
+| Syed Fawwad Ahmed      | `mongodb+srv://sfahmedbscs23seecs:4231@cluster0.2wkplzo.mongodb.net/Credily?retryWrites=true&w=majority&appName=Cluster0` |
+| Syed Ali Hassan Jaffri | `mongodb+srv://sjaffribscs23seecs:4231@cluster0.2wkplzo.mongodb.net/Credily?retryWrites=true&w=majority&appName=Cluster0` |
 
-   - Create a `.env` file in the `backend` directory if you haven't already
-   - Add your connection string to your `.env` file:
-     ```
-     MONGODB_URI=your_connection_string_from_table_above
-     PORT=5000
-     JWT_SECRET=your_jwt_secret
-     NODE_ENV=development
-     ```
+### Troubleshooting Connection Issues
 
-3. **Testing Your Connection**
+- Verify you're using the correct connection string
+- Check your internet connection
+- Confirm MongoDB Atlas service is running
+- For persistent issues, contact Fawwad
 
-   - Run the database connection test:
-     ```
-     cd backend
-     node test-db-connection.js
-     ```
-   - If successful, you'll see the message: "MongoDB Connected: [host-name] (Database: Credily)"
+> Note: The MongoDB cluster allows connections from any IP address (0.0.0.0/0). For production, we should implement more restrictive access controls.
 
-4. **Troubleshooting Connection Issues**
-   - If you cannot connect, check that:
-     - You're using the correct connection string
-     - Your internet connection is stable
-     - MongoDB Atlas service is up and running
-   - For persistent issues, check the MongoDB Atlas status page or contact Fawwad :)
+## React + Vite
 
-> Note: The MongoDB cluster has been configured to allow connections from any IP address (0.0.0.0/0). While this is convenient for development, we should implement more restrictive access controls for production.
-
-## Original React + Vite Documentation
-
-# React + Vite
-
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This template provides a minimal setup to get React working in Vite with HMR and ESLint rules.
 
 Currently, two official plugins are available:
 

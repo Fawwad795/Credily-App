@@ -12,6 +12,7 @@ import Login from "./pages/Login";
 import Home from "./pages/Home";
 import Profile from "./pages/Profile";
 import Follow from "./pages/Follow";
+import AdditionalInfo from "./pages/AdditionalInfo";
 
 const App = () => {
   return (
@@ -23,9 +24,9 @@ const App = () => {
         <Route path="/login" element={<Login />} />
         <Route path="/message" element={<MessagingPage />} />
         <Route path="/search" element={<SearchPage />} />
+        <Route path="/additional-info" element={<AdditionalInfo />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/profile/:id" element={<Follow />} />
-        <Route path="/profile" element={<Profile />} />
       </Routes>
     </Router>
   );
