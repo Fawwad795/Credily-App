@@ -57,6 +57,23 @@ app.use((req, res, next) => {
   next();
 });
 
+// Create HTTP server and integrate Socket.IO
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: ["http://localhost:5173", "http://localhost:3000", "http://127.0.0.1:5173"], // Add your frontend URLs
+    methods: ["GET", "POST"],
+    credentials: true
+  },
+  pingTimeout: 60000
+});
+
+// Make io accessible to routes
+app.use((req, res, next) => {
+  req.io = io;
+  next();
+});
+
 // Routes
 app.use("/api/users", userRoutes);
 app.use("/api/messages", messageRoutes);
