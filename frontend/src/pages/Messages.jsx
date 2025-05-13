@@ -28,10 +28,6 @@ const MessagingPage = () => {
     return onlineUsers.find((user) => user.socketId === socketId);
   };
 
-  // Add this helper at the top of your component
-  const getSenderId = (sender) =>
-    typeof sender === "object" && sender !== null ? sender._id : sender;
-
   // Scroll to bottom of messages
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -237,7 +233,10 @@ const MessagingPage = () => {
 
       const formattedMessage = {
         id: message.messageId || Date.now().toString(),
-        sender: message.senderEmail,
+        sender: {
+          _id: message.senderEmail,
+          isCurrentUser: false
+        },
         content: message.text,
         timestamp: message.timestamp || new Date(),
         isRead: false,
@@ -276,45 +275,45 @@ const MessagingPage = () => {
 
     // Listen for MongoDB format messages
     socket.on("newMessage", (message) => {
-      console.log("Got message (MongoDB format):", message);
       if (!message) return;
 
-      const senderId = getSenderId(message.sender);
+      console.log("Received new message:", message);
+      
       const formattedMessage = {
-        id: message._id || Date.now().toString(),
-        sender: senderId,
+        id: message._id,
         content: message.content,
-        timestamp: message.createdAt || new Date(),
-        isRead: message.isRead || false,
+        timestamp: message.createdAt || new Date().toISOString(),
+        isRead: message.isRead,
+        sender: {
+          _id: message.sender._id || message.sender,
+          isCurrentUser: message.sender.isCurrentUser
+        }
       };
 
-      // If the chat is open, add the message to the UI
-      if (selectedChat && selectedChat.id === senderId) {
-        setMessages((prev) => [...prev, formattedMessage]);
+      console.log("Formatted new message:", formattedMessage);
+
+      if (selectedChat && selectedChat.id === formattedMessage.sender._id) {
+        setMessages(prev => [...prev, formattedMessage]);
       }
 
-      // Update the chat preview and unread count
-      setChats((prevChats) => {
-        // Check if chat exists
+      setChats(prevChats => {
         const chatIndex = prevChats.findIndex(
-          (chat) => getSenderId(chat) === senderId
+          chat => chat.id === formattedMessage.sender._id
         );
         
         if (chatIndex >= 0) {
-          // Update existing chat
           const updatedChats = [...prevChats];
           updatedChats[chatIndex] = {
             ...updatedChats[chatIndex],
             lastMessage: message.content,
-            timestamp: message.createdAt || new Date(),
+            timestamp: message.createdAt || new Date().toISOString(),
             unreadCount:
-              selectedChat && selectedChat.id === senderId
+              selectedChat && selectedChat.id === formattedMessage.sender._id
                 ? 0
                 : (updatedChats[chatIndex].unreadCount || 0) + 1,
           };
           return updatedChats;
         } else {
-          // Fetch chats to get the new one
           fetchChatsList();
           return prevChats;
         }
@@ -364,22 +363,17 @@ const MessagingPage = () => {
     if (selectedChat) {
       const fetchMessages = async () => {
         try {
-          const response = await api.get(
-            `/messages/conversation/${selectedChat.id}`
-          );
+          const response = await api.get(`/messages/conversation/${selectedChat.id}`);
           if (response.data && response.data.success) {
-            setMessages(
-              response.data.data.messages.map((msg) => ({
-                id: msg._id,
-                sender:
-                  typeof msg.sender === "object" && msg.sender !== null
-                    ? msg.sender._id
-                    : msg.sender,
-                content: msg.content,
-                timestamp: msg.createdAt,
-                isRead: msg.isRead,
-              }))
-            );
+            console.log("Fetched messages:", response.data.data.messages);
+            const formattedMessages = response.data.data.messages.map(message => ({
+              ...message,
+              sender: {
+                _id: message.sender._id,
+                isCurrentUser: message.sender.isCurrentUser
+              }
+            }));
+            setMessages(formattedMessages);
           }
         } catch (error) {
           console.error("Error fetching messages:", error);
@@ -415,62 +409,68 @@ const MessagingPage = () => {
 
     const newMessage = {
       id: Date.now().toString(),
-      sender: currentUser.id,
       content: messageInput,
-      timestamp: new Date(),
+      timestamp: new Date().toISOString(),
       isRead: false,
+      sender: {
+        _id: currentUser.id,
+        isCurrentUser: true
+      }
     };
 
-    // Add message to UI immediately
-    setMessages((prev) => [...prev, newMessage]);
-
-    // Update chat preview
-    setChats((prevChats) => {
-      const updatedChats = prevChats.map((chat) =>
-        chat.id === selectedChat.id
-          ? {
-              ...chat,
-              lastMessage: messageInput,
-              timestamp: new Date(),
-            }
-          : chat
-      );
-
-      // Move the current chat to the top
-      const chatIndex = updatedChats.findIndex(chat => chat.id === selectedChat.id);
-      if (chatIndex > 0) {
-        const chatToMove = updatedChats.splice(chatIndex, 1)[0];
-        updatedChats.unshift(chatToMove);
-      }
-
-      return updatedChats;
-    });
+    setMessages(prev => [...prev, newMessage]);
+    setMessageInput("");
 
     try {
-      // First try MongoDB API
       const response = await api.post("/messages", {
         receiverId: selectedChat.id,
         content: messageInput,
         messageType: "text",
       });
 
-      if (response.data && response.data.success) {
-        console.log("Message sent successfully via MongoDB API");
+      if (response.data?.success) {
+        const serverMessage = response.data.data;
+        console.log("Server response for sent message:", serverMessage);
+        
+        setMessages(prev =>
+          prev.map(msg =>
+            msg.id === newMessage.id
+              ? {
+                  ...msg,
+                  id: serverMessage._id,
+                  sender: {
+                    _id: serverMessage.sender._id || serverMessage.sender,
+                    isCurrentUser: true
+                  },
+                  timestamp: serverMessage.createdAt || new Date().toISOString(),
+                }
+              : msg
+          )
+        );
+
+        setChats(prevChats => {
+          const updatedChats = prevChats.map(chat =>
+            chat.id === selectedChat.id
+              ? {
+                  ...chat,
+                  lastMessage: messageInput,
+                  timestamp: new Date().toISOString(),
+                }
+              : chat
+          );
+
+          const chatIndex = updatedChats.findIndex(chat => chat.id === selectedChat.id);
+          if (chatIndex > 0) {
+            const chatToMove = updatedChats.splice(chatIndex, 1)[0];
+            updatedChats.unshift(chatToMove);
+          }
+
+          return updatedChats;
+        });
       }
     } catch (error) {
-      console.error("Error sending message via API:", error);
-
-      // Fall back to direct socket.io (MySQL style)
-      socket.emit("sendMessage", {
-        senderEmail: currentUser.email,
-        receiverEmail: selectedChat.email,
-        text: messageInput,
-        timestamp: new Date(),
-      });
+      console.error("Error sending message:", error);
     }
-
-    // Clear input
-    setMessageInput("");
   };
 
   // Handle selecting a chat
@@ -510,6 +510,29 @@ const MessagingPage = () => {
   const sortedChats = [...filteredChats].sort((a, b) => 
     new Date(b.timestamp) - new Date(a.timestamp)
   );
+
+  // Update the formatMessageTime function
+  const formatMessageTime = (timestamp) => {
+    try {
+      const date = new Date(timestamp);
+      if (isNaN(date.getTime())) {
+        return new Date().toLocaleTimeString([], {
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+      }
+      return date.toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return new Date().toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    }
+  };
 
   return (
    <div className="flex h-screen bg-gray-100">
@@ -618,54 +641,79 @@ const MessagingPage = () => {
             </div>
 
             {/* Messages */}
-            <div className="flex-1 p-4 overflow-y-auto">
-              {messages.map((message) => {
-                const isUserMessage =
-                  String(getSenderId(message.sender)) ===
-                  String(currentUser.id);
-                return (
-                  <div
-                    key={message.id}
-                    className={`mb-4 flex ${
-                      isUserMessage ? "justify-end" : "justify-start"
-                    }`}
-                  >
+            <div className="flex-1 p-4 overflow-y-auto bg-gray-50">
+              <div className="flex flex-col space-y-2">
+                {messages.map((message) => {
+                  console.log("Rendering message:", {
+                    messageId: message.id,
+                    sender: message.sender,
+                    isCurrentUser: message.sender.isCurrentUser,
+                    timestamp: message.timestamp
+                  });
+                  
+                  const isCurrentUser = message.sender.isCurrentUser;
+                  const formattedTime = formatMessageTime(message.timestamp);
+                  
+                  return (
                     <div
-                      className={`max-w-xs p-3 rounded-lg shadow-sm ${
-                        isUserMessage
-                          ? "bg-blue-500 text-white"
-                          : "bg-white text-gray-800"
+                      key={message.id}
+                      className={`flex w-full ${
+                        isCurrentUser ? "justify-end" : "justify-start"
                       }`}
                     >
-                      <p>{message.content}</p>
-                      <p className="text-xs mt-1 opacity-70">
-                        {new Date(message.timestamp).toLocaleTimeString()}
-                      </p>
+                      <div
+                        className={`max-w-[70%] px-4 py-2 rounded-2xl ${
+                          isCurrentUser
+                            ? "bg-amber-100 text-gray-800 rounded-tr-none"
+                            : "bg-blue-500 text-white rounded-tl-none shadow-sm"
+                        }`}
+                      >
+                        <p className="text-sm break-words">{message.content}</p>
+                        <p className={`text-xs mt-1 ${isCurrentUser ? "text-gray-500" : "text-blue-100"}`}>
+                          {formattedTime}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
-              <div ref={messagesEndRef} />
+                  );
+                })}
+                <div ref={messagesEndRef} />
+              </div>
             </div>
 
             {/* Message Input */}
-            <div className="p-4 bg-white flex items-center shadow-md sticky bottom-0 z-10">
-              <input
-                type="text"
-                value={messageInput}
-                onChange={(e) => setMessageInput(e.target.value)}
-                onKeyPress={(e) =>
-                  e.key === "Enter" && handleSendMessage()
-                }
-                placeholder="Type a message..."
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-300"
-              />
-              <button
-                onClick={handleSendMessage}
-                className="ml-4 bg-blue-500 text-white px-4 py-2 rounded-full hover:bg-blue-600 transition duration-300"
-              >
-                Send
-              </button>
+            <div className="p-4 bg-white border-t border-gray-200">
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={messageInput}
+                  onChange={(e) => setMessageInput(e.target.value)}
+                  onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
+                  placeholder="Message..."
+                  className="flex-1 px-4 py-2 bg-gray-50 border border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-300 text-sm"
+                />
+                <button
+                  onClick={handleSendMessage}
+                  disabled={!messageInput.trim()}
+                  className={`p-2 rounded-full ${
+                    messageInput.trim()
+                      ? "bg-blue-500 text-white hover:bg-blue-600"
+                      : "bg-gray-200 text-gray-400 cursor-not-allowed"
+                  } transition duration-200`}
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-5 w-5"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </button>
+              </div>
             </div>
           </>
         ) : (

@@ -29,6 +29,10 @@ const messageSchema = new mongoose.Schema(
       enum: ["text", "image", "file"],
       default: "text",
     },
+    isCurrentUser: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,

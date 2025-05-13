@@ -118,8 +118,23 @@ io.on("connection", (socket) => {
   // Handle sendMessage event - support both MongoDB and MySQL formats
   socket.on("sendMessage", async (messageData) => {
     try {
+      // Handle message format from MongoDB-style client
+      if (messageData.sender && messageData.receiver) {
+        const receiver = getUserById(messageData.receiver);
+        if (receiver) {
+          // Add isCurrentUser flag to the message
+          const messageWithFlags = {
+            ...messageData,
+            sender: {
+              ...messageData.sender,
+              isCurrentUser: true
+            }
+          };
+          io.to(receiver.socketId).emit("newMessage", messageWithFlags);
+        }
+      }
       // Handle message format from MySQL-style client
-      if (messageData.senderEmail && messageData.receiverEmail) {
+      else if (messageData.senderEmail && messageData.receiverEmail) {
         const { senderEmail, receiverEmail, text, timestamp } = messageData;
 
         // Find receiver socket
@@ -157,13 +172,6 @@ io.on("connection", (socket) => {
               timestamp: timestamp || new Date(),
             });
           }
-        }
-      }
-      // Handle message format from MongoDB-style client
-      else if (messageData.sender && messageData.receiver) {
-        const receiver = getUserById(messageData.receiver);
-        if (receiver) {
-          io.to(receiver.socketId).emit("newMessage", messageData);
         }
       } else {
         console.warn("Invalid message format:", messageData);

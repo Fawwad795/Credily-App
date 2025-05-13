@@ -22,6 +22,7 @@ export const sendMessage = async (req, res) => {
       content,
       messageType,
       attachments,
+      isCurrentUser: true,
     });
 
     // Get sender and receiver details
@@ -35,10 +36,12 @@ export const sendMessage = async (req, res) => {
       sender: {
         _id: sender._id,
         username: sender.username,
+        isCurrentUser: true,
       },
       receiver: {
         _id: receiverUser._id,
         username: receiverUser.username,
+        isCurrentUser: false,
       },
     };
 
@@ -67,6 +70,11 @@ export const getConversation = async (req, res) => {
     const currentUserId = req.user._id;
     const { page = 1, limit = 20 } = req.query;
 
+    console.log("Fetching conversation between:", {
+      currentUserId,
+      otherUserId: userId
+    });
+
     const messages = await Message.find({
       $or: [
         { sender: currentUserId, receiver: userId },
@@ -87,18 +95,30 @@ export const getConversation = async (req, res) => {
       return acc;
     }, {});
 
-    // Add usernames to messages
-    const messagesWithUsernames = messages.map(msg => ({
-      ...msg.toObject(),
-      sender: {
-        _id: msg.sender,
-        username: userMap[msg.sender.toString()]
-      },
-      receiver: {
-        _id: msg.receiver,
-        username: userMap[msg.receiver.toString()]
-      }
-    }));
+    // Add usernames to messages and ensure proper sender/receiver distinction
+    const messagesWithUsernames = messages.map(msg => {
+      const isCurrentUserSender = msg.sender.toString() === currentUserId.toString();
+      console.log("Processing message:", {
+        messageId: msg._id,
+        senderId: msg.sender.toString(),
+        currentUserId: currentUserId.toString(),
+        isCurrentUserSender
+      });
+
+      return {
+        ...msg.toObject(),
+        sender: {
+          _id: msg.sender,
+          username: userMap[msg.sender.toString()],
+          isCurrentUser: isCurrentUserSender
+        },
+        receiver: {
+          _id: msg.receiver,
+          username: userMap[msg.receiver.toString()],
+          isCurrentUser: !isCurrentUserSender
+        }
+      };
+    });
 
     // Mark unread messages as read
     await Message.updateMany(
