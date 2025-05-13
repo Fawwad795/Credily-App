@@ -1,4 +1,4 @@
-# Credily App
+# Credily App!
 
 This project is structured into separate frontend and backend directories.
 
@@ -33,12 +33,22 @@ This project is structured into separate frontend and backend directories.
    npm install
    ```
 2. Create a `.env` file with:
+
    ```
    PORT=5000  # or 4000 based on your preference
    MONGODB_URI=your_connection_string_from_table_below
    JWT_SECRET=your_jwt_secret
    NODE_ENV=development
+
+   # Cloudinary credentials (required for image uploads)
+   # Create an account at cloudinary.com and get these from your dashboard
+   CLOUDINARY_CLOUD_NAME=your_cloud_name
+   CLOUDINARY_API_KEY=your_api_key
+   CLOUDINARY_API_SECRET=your_api_secret
    ```
+
+   > **Note:** The Cloudinary variables are essential for profile picture uploads and other media storage features. Create a free account at [cloudinary.com](https://cloudinary.com) to get your credentials.
+
 3. Start the backend server:
    ```
    npm run dev
