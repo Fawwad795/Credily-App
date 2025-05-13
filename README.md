@@ -9,6 +9,14 @@ This project is structured into separate frontend and backend directories.
 
 ## Setup Instructions
 
+### Root Directory Setup
+
+1. First, install dependencies in the root directory:
+   ```
+   npm install
+   ```
+   This will set up the necessary packages for the project root.
+
 ### Frontend Setup
 
 1. Navigate to the frontend directory and install dependencies:
@@ -42,9 +50,9 @@ This project is structured into separate frontend and backend directories.
 
    # Cloudinary credentials (required for image uploads)
    # Create an account at cloudinary.com and get these from your dashboard
-   CLOUDINARY_CLOUD_NAME=your_cloud_name
-   CLOUDINARY_API_KEY=your_api_key
-   CLOUDINARY_API_SECRET=your_api_secret
+   CLOUDINARY_CLOUD_NAME=ds6xri71k
+   CLOUDINARY_API_KEY=632696559246236
+   CLOUDINARY_API_SECRET=PaT4mWgag51BgW_dpK835_W8Fhc
    ```
 
    > **Note:** The Cloudinary variables are essential for profile picture uploads and other media storage features. Create a free account at [cloudinary.com](https://cloudinary.com) to get your credentials.
