@@ -12,7 +12,13 @@ import uploadRoutes from "./routes/upload.routes.js";
 import path from "path";
 import { fileURLToPath } from "url";
 import { createRequire } from "module";
-import { addUser, removeUser, getUserById, getUserByEmail, getAllUsers } from "./utils/socketUsers.js";
+import {
+  addUser,
+  removeUser,
+  getUserById,
+  getUserByEmail,
+  getAllUsers,
+} from "./utils/socketUsers.js";
 import Message from "./models/message.model.js"; // Import your Message model
 
 // For ES modules to use process
@@ -44,28 +50,15 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: ["http://localhost:5173", "http://localhost:3000", "http://127.0.0.1:5173"], // Add your frontend URLs
+    origin: [
+      "http://localhost:5173",
+      "http://localhost:3000",
+      "http://127.0.0.1:5173",
+    ], // Add your frontend URLs
     methods: ["GET", "POST"],
-    credentials: true
+    credentials: true,
   },
-  pingTimeout: 60000
-});
-
-// Make io accessible to routes
-app.use((req, res, next) => {
-  req.io = io;
-  next();
-});
-
-// Create HTTP server and integrate Socket.IO
-const server = http.createServer(app);
-const io = new Server(server, {
-  cors: {
-    origin: ["http://localhost:5173", "http://localhost:3000", "http://127.0.0.1:5173"], // Add your frontend URLs
-    methods: ["GET", "POST"],
-    credentials: true
-  },
-  pingTimeout: 60000
+  pingTimeout: 60000,
 });
 
 // Make io accessible to routes
@@ -86,6 +79,12 @@ app.get("/", (req, res) => {
   res.send("API is running...");
 });
 
+// Helper function to get user by socket ID (missing function)
+const getUserBySocketId = (socketId) => {
+  const users = getAllUsers();
+  return users.find((user) => user.socketId === socketId);
+};
+
 // Socket.IO connection handling
 io.on("connection", (socket) => {
   console.log(`User connected: ${socket.id}`);
@@ -96,7 +95,7 @@ io.on("connection", (socket) => {
     addUser(userId, socket.id);
     console.log(`User ${userId} joined their room`);
   });
-  
+
   // Add user with email (for MySQL compatibility)
   socket.on("addUser", (email) => {
     if (email) {
@@ -109,7 +108,7 @@ io.on("connection", (socket) => {
         // Add new user with email as both userId and email
         addUser(email, socket.id, email);
       }
-      
+
       // Emit updated users list to all clients
       io.emit("getUsers", getAllUsers());
       console.log(`User ${email} added with socket ${socket.id}`);
@@ -122,10 +121,10 @@ io.on("connection", (socket) => {
       // Handle message format from MySQL-style client
       if (messageData.senderEmail && messageData.receiverEmail) {
         const { senderEmail, receiverEmail, text, timestamp } = messageData;
-        
+
         // Find receiver socket
         const receiver = getUserByEmail(receiverEmail);
-        
+
         // For MongoDB storage, attempt to save
         try {
           const message = await Message.create({
@@ -135,9 +134,9 @@ io.on("connection", (socket) => {
             messageType: "text",
             createdAt: timestamp || new Date(),
           });
-          
+
           console.log(`Message stored in MongoDB: ${message._id}`);
-          
+
           // Emit to receiver if online
           if (receiver) {
             io.to(receiver.socketId).emit("getMessage", {
@@ -149,25 +148,24 @@ io.on("connection", (socket) => {
           }
         } catch (err) {
           console.error("Error saving message to MongoDB:", err);
-          
+
           // Still emit message even if saving fails
           if (receiver) {
             io.to(receiver.socketId).emit("getMessage", {
               senderEmail,
               text,
-              timestamp: timestamp || new Date()
+              timestamp: timestamp || new Date(),
             });
           }
         }
-      } 
+      }
       // Handle message format from MongoDB-style client
       else if (messageData.sender && messageData.receiver) {
         const receiver = getUserById(messageData.receiver);
         if (receiver) {
           io.to(receiver.socketId).emit("newMessage", messageData);
         }
-      }
-      else {
+      } else {
         console.warn("Invalid message format:", messageData);
       }
     } catch (error) {
