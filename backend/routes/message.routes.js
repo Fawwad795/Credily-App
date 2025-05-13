@@ -4,6 +4,7 @@ import {
   getConversations,
   getMessages,
   getUnreadCount,
+  getConversation,
 } from "../controllers/message.controller.js";
 import { protect } from "../middleware/auth.middleware.js";
 
@@ -13,7 +14,7 @@ const router = express.Router();
 router.get("/conversations", protect, getConversations);
 
 // Get messages between current user and another user
-router.get("/conversation/:userId", protect, getMessages);
+router.get("/conversation/:userId", protect, getConversation);
 
 // Get unread message count
 router.get("/unread-count", protect, getUnreadCount);

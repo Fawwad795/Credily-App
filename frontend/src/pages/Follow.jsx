@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import Nav from "../components/Nav"; // Adjust the path to your Nav component
 
 const Follow = () => {
@@ -28,6 +28,8 @@ const Follow = () => {
     location: "",
     phoneNumber: "",
   });
+
+  const navigate = useNavigate();
 
   const fetchUserData = useCallback(async () => {
     try {
@@ -339,6 +341,17 @@ const Follow = () => {
     }
   };
 
+  const handleMessageClick = () => {
+    navigate("/messages", {
+      state: {
+        userId: id,
+        username: userData.username,
+        email: userData.email,
+        profilePicture: userData.profilePicture,
+      },
+    });
+  };
+
   // Get appropriate button text based on connection state
   const getFollowButtonText = () => {
     if (isFollowing) return "Unfollow";
@@ -484,7 +497,10 @@ const Follow = () => {
               >
                 {getFollowButtonText()}
               </button>
-              <button className="px-6 py-2 rounded-lg bg-green-500 text-white hover:bg-green-600 font-medium">
+              <button
+                className="px-6 py-2 rounded-lg bg-green-500 text-white hover:bg-green-600 font-medium"
+                onClick={handleMessageClick}
+              >
                 Message
               </button>
             </div>

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import api from "../utils/axios"; // Import the configured axios instance
 import Nav from "../components/Nav";
 import socket from "../utils/socket";
+import { useLocation } from "react-router-dom";
 
 const MessagingPage = () => {
   // Use local storage for user auth or implement proper auth
@@ -18,6 +19,8 @@ const MessagingPage = () => {
   const [onlineUsers, setOnlineUsers] = useState([]);
   const [isConnected, setIsConnected] = useState(false);
   const [fallbackMode, setFallbackMode] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const location = useLocation();
 
   // Helper function to get socket user by socket ID
   const getUserBySocketId = (socketId) => {
@@ -129,27 +132,6 @@ const MessagingPage = () => {
       }
     } catch (error) {
       console.error("Error fetching chat list in fallback mode:", error);
-      // Add mock data for testing
-      setChats([
-        {
-          id: "1",
-          name: "John Doe",
-          email: "john@example.com",
-          profilePicture: "https://randomuser.me/api/portraits/men/1.jpg",
-          lastMessage: "Hey there! How's it going?",
-          timestamp: new Date(Date.now() - 1000 * 60 * 5), // 5 mins ago
-          unreadCount: 2,
-        },
-        {
-          id: "2",
-          name: "Jane Smith",
-          email: "jane@example.com",
-          profilePicture: "https://randomuser.me/api/portraits/women/1.jpg",
-          lastMessage: "Are we still meeting tomorrow?",
-          timestamp: new Date(Date.now() - 1000 * 60 * 30), // 30 mins ago
-          unreadCount: 0,
-        },
-      ]);
     }
   }, [selectedChat]);
 
@@ -288,10 +270,18 @@ const MessagingPage = () => {
       }
     });
 
+    socket.on("addUser", (socketId, email) => {
+      if (email && socketId) {
+        const user = getUserBySocketId(socketId);
+        console.log("User added to socket:", user);
+      }
+    });
+
     return () => {
       socket.off("getUsers");
       socket.off("getMessage");
       socket.off("newMessage");
+      socket.off("addUser");
     };
   }, [selectedChat]);
 
@@ -352,23 +342,6 @@ const MessagingPage = () => {
           }
         } catch (error) {
           console.error("Error fetching messages:", error);
-          // Set mock messages for testing
-          setMessages([
-            {
-              id: "msg1",
-              sender: selectedChat.id,
-              content: "Hello there!",
-              timestamp: new Date(Date.now() - 3600000),
-              isRead: true,
-            },
-            {
-              id: "msg2",
-              sender: currentUser.id,
-              content: "Hi! How are you?",
-              timestamp: new Date(Date.now() - 1800000),
-              isRead: true,
-            },
-          ]);
         }
       };
 
@@ -382,6 +355,18 @@ const MessagingPage = () => {
       );
     }
   }, [selectedChat, currentUser.id]);
+
+  useEffect(() => {
+    if (location.state && location.state.userId) {
+      // Try to select the chat with this user
+      setSelectedChat({
+        id: location.state.userId,
+        name: location.state.username,
+        email: location.state.email,
+        profilePicture: location.state.profilePicture,
+      });
+    }
+  }, [location.state]);
 
   // Handle sending a message
   const handleSendMessage = async () => {
@@ -443,13 +428,21 @@ const MessagingPage = () => {
     e.target.src = generateProfilePlaceholder(name);
   };
 
-  // Socket event handling for user connection
-  socket.on("addUser", (socketId, email) => {
-    if (email && socketId) {
-      const user = getUserBySocketId(socketId);
-      console.log("User added to socket:", user);
-    }
-  });
+  const filteredChats = chats
+    .map((chat) => ({
+      id: chat.user?._id || chat._id || chat.id,
+      name: chat.user?.username || chat.user?.name || chat.name || "",
+      email: chat.user?.email || chat.email || "",
+      profilePicture: chat.user?.profilePicture || chat.profilePicture || "",
+      lastMessage: chat.lastMessage?.content || chat.lastMessage || "",
+      timestamp: chat.lastMessage?.createdAt || chat.timestamp || new Date(),
+      unreadCount: chat.unreadCount || 0,
+    }))
+    .filter(
+      (chat) =>
+        chat.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        chat.email.toLowerCase().includes(searchTerm.toLowerCase())
+    );
 
   return (
     <div className="flex h-screen bg-gray-100">
@@ -482,8 +475,17 @@ const MessagingPage = () => {
           {/* Sidebar */}
           <div className="w-1/3 bg-gray-50 overflow-y-auto shadow-md rounded-l-lg">
             <h2 className="text-xl font-bold p-4">Chats</h2>
+            <div className="px-4 pb-2">
+              <input
+                type="text"
+                placeholder="Search followers..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-300"
+              />
+            </div>
             <ul>
-              {chats.map((chat) => (
+              {filteredChats.map((chat) => (
                 <li
                   key={chat.id}
                   onClick={() => handleSelectChat(chat)}
@@ -566,14 +568,14 @@ const MessagingPage = () => {
                     <div
                       key={message.id}
                       className={`mb-4 flex ${
-                        message.sender === currentUser.id
+                        String(message.sender) === String(currentUser.id)
                           ? "justify-end"
                           : "justify-start"
                       }`}
                     >
                       <div
                         className={`max-w-xs p-3 rounded-lg shadow-sm ${
-                          message.sender === currentUser.id
+                          String(message.sender) === String(currentUser.id)
                             ? "bg-blue-500 text-white"
                             : "bg-white text-gray-800"
                         }`}
