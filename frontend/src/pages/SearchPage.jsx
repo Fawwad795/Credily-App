@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import api from "../utils/axios"; // Import the configured axios instance
 
 const SearchSlider = ({ isOpen, onClose }) => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -8,28 +9,18 @@ const SearchSlider = ({ isOpen, onClose }) => {
   const navigate = useNavigate();
 
   // Search API call
-  const handleSearch = useCallback(() => {
+  const handleSearch = useCallback(async () => {
     if (!searchQuery.trim()) return;
 
     setLoading(true);
-    const token =
-      localStorage.getItem("authToken") || localStorage.getItem("token");
-
-    fetch(`/api/users/search?query=${searchQuery}`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-    })
-      .then((response) => response.json())
-      .then((data) => {
-        setResults(data.data || []);
-        setLoading(false);
-      })
-      .catch((error) => {
-        console.error("Error fetching search results:", error);
-        setLoading(false);
-      });
+    try {
+      const response = await api.get(`/users/search?query=${searchQuery}`);
+      setResults(response.data.data || []);
+    } catch (error) {
+      console.error("Error fetching search results:", error);
+    } finally {
+      setLoading(false);
+    }
   }, [searchQuery]);
 
   // Handle real-time search as user types
