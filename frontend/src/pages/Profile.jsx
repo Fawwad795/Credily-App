@@ -96,13 +96,13 @@ const Profile = () => {
 
           // Fetch current user profile using the ID from token
           const [profileRes, connRes] = await Promise.all([
-            fetch(`http://localhost:5000/api/users/profile/${userId}`, {
+            fetch(`/api/users/profile/${userId}`, {
               headers: {
                 Authorization: `Bearer ${token}`,
                 "Content-Type": "application/json",
               },
             }),
-            fetch(`http://localhost:5000/api/users/${userId}/connections`, {
+            fetch(`/api/users/${userId}/connections`, {
               headers: {
                 Authorization: `Bearer ${token}`,
                 "Content-Type": "application/json",
@@ -136,8 +136,8 @@ const Profile = () => {
       const fetchProfileAndConnections = async () => {
         try {
           const [profileRes, connRes] = await Promise.all([
-            fetch(`http://localhost:5000/api/users/profile/${user._id}`),
-            fetch(`http://localhost:5000/api/users/${user._id}/connections`),
+            fetch(`/api/users/profile/${user._id}`),
+            fetch(`/api/users/${user._id}/connections`),
           ]);
 
           const profileData = await profileRes.json();
@@ -184,7 +184,7 @@ const Profile = () => {
       const token =
         localStorage.getItem("token") || localStorage.getItem("authToken");
 
-      const postRes = await fetch(`http://localhost:5000/api/posts/userposts`, {
+      const postRes = await fetch(`/api/posts/userposts`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -259,17 +259,14 @@ const Profile = () => {
         const formData = new FormData();
         formData.append("image", newPost.imageFile);
 
-        const uploadResponse = await fetch(
-          "http://localhost:5000/api/uploads/image",
-          {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              // Don't set Content-Type for FormData
-            },
-            body: formData,
-          }
-        );
+        const uploadResponse = await fetch("/api/uploads/image", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            // Don't set Content-Type for FormData
+          },
+          body: formData,
+        });
 
         const uploadData = await uploadResponse.json();
 
@@ -299,7 +296,7 @@ const Profile = () => {
       };
 
       // Send post data to backend
-      const response = await fetch("http://localhost:5000/api/posts", {
+      const response = await fetch("/api/posts", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,

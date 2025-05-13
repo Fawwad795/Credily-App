@@ -48,7 +48,7 @@ const Signup = () => {
     try {
       setLoading(true);
 
-      const response = await fetch("http://localhost:4000/api/users/register", {
+      const response = await fetch("/api/users/register", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -57,7 +57,6 @@ const Signup = () => {
           username,
           phoneNumber: fullPhoneNumber,
           password,
-    
         }),
       });
 
@@ -67,12 +66,8 @@ const Signup = () => {
         throw new Error(data.message || "Registration failed");
       }
 
-      // Registration successful - redirect to login
-      alert("Registration successful! Please login.");
-   
-       navigate("/profile", { state: { user: data.data } });
-
-
+      // Navigate to the additional info page after successful registration
+      navigate("/additional-info", { state: { user: data.data } });
     } catch (error) {
       setError(error.message);
     } finally {
@@ -175,7 +170,6 @@ const Signup = () => {
               />
             </div>
           </div>
-          
 
           <div className="mb-4">
             <label className="block text-black font-medium mb-2">

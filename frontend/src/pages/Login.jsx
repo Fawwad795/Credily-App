@@ -43,7 +43,7 @@ const Login = () => {
 
       // Store user data and token
       localStorage.setItem("user", JSON.stringify(data.data));
-      localStorage.setItem('token', data.token);
+      localStorage.setItem("token", data.token);
 
       // Redirect to home page after successful login
       navigate("/home");
