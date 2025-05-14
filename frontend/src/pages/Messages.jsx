@@ -215,7 +215,7 @@ const MessagingPage = () => {
 
     // Listen for new messages (MongoDB format)
     const handleNewMessage = (message) => {
-      console.log("New message received:", message);
+      console.log("New message received via socket:", message);
       if (!message) return;
 
       // Ignore messages with invalid format
@@ -228,14 +228,15 @@ const MessagingPage = () => {
       const formattedMessage = {
         _id: message._id || Date.now().toString(),
         content: message.content,
-        timestamp: message.createdAt || new Date().toISOString(),
+        createdAt: message.createdAt || new Date().toISOString(),
         isRead: message.isRead || false,
         sender: {
           _id: typeof message.sender === 'object' ? message.sender._id : message.sender,
           isCurrentUser: typeof message.sender === 'object' 
             ? message.sender._id === currentUser.id
             : message.sender === currentUser.id
-        }
+        },
+        receiver: message.receiver
       };
 
       // Determine if it's a sent or received message
@@ -255,10 +256,26 @@ const MessagingPage = () => {
         otherUserDetails = message.sender;
       }
 
+      console.log("Message belongs to:", {
+        otherUserId,
+        selectedChatId: selectedChat?.id,
+        isSentByMe,
+        shouldAddToMessages: selectedChat && selectedChat.id === otherUserId
+      });
+
       // Only add to current messages if it belongs to the selected chat
       if (selectedChat && selectedChat.id === otherUserId) {
         console.log("Adding message to current chat:", selectedChat.id);
-        setMessages(prev => [...prev, formattedMessage]);
+        // Check if this message already exists to avoid duplicates
+        setMessages(prev => {
+          // Check if message already exists by ID
+          const exists = prev.some(m => m._id === formattedMessage._id);
+          if (exists) {
+            console.log("Message already exists in chat, skipping:", formattedMessage._id);
+            return prev;
+          }
+          return [...prev, formattedMessage];
+        });
         
         // Mark as read if we're the receiver
         if (!isSentByMe) {
@@ -323,11 +340,15 @@ const MessagingPage = () => {
     
     // Listen for messages
     socket.on("newMessage", handleNewMessage);
+    socket.on("messageReceived", (data) => {
+      console.log("Message delivered confirmation:", data);
+    });
     
     // Cleanup
     return () => {
       socket.off("getUsers");
       socket.off("newMessage", handleNewMessage);
+      socket.off("messageReceived");
     };
   }, [currentUser.id, selectedChat]);
 
@@ -454,18 +475,22 @@ const MessagingPage = () => {
   const handleSendMessage = async () => {
     if (!messageInput.trim() || !selectedChat) return;
 
+    // Format message with proper structure to match backend format
     const newMessage = {
-      id: Date.now().toString(),
+      _id: Date.now().toString(), // Will be replaced with server ID later
       content: messageInput,
-      timestamp: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
       isRead: false,
       sender: {
         _id: currentUser.id,
-        isCurrentUser: true,
+        isCurrentUser: true
       },
+      receiver: selectedChat.id,
     };
 
-    // Optimistically update UI immediately
+    console.log("Adding optimistic message to UI:", newMessage);
+
+    // Optimistically update UI immediately - add to messages array
     setMessages(prev => [...prev, newMessage]);
     setMessageInput("");
 
@@ -510,11 +535,11 @@ const MessagingPage = () => {
         // Update message with server data
         setMessages(prev =>
           prev.map(msg =>
-            msg.id === newMessage.id
+            msg._id === newMessage._id
               ? {
                   ...msg,
-                  id: serverMessage._id,
-                  timestamp: serverMessage.createdAt || new Date().toISOString(),
+                  _id: serverMessage._id,
+                  createdAt: serverMessage.createdAt || new Date().toISOString(),
                 }
               : msg
           )
@@ -523,7 +548,7 @@ const MessagingPage = () => {
     } catch (error) {
       console.error("Error sending message:", error);
       // Revert optimistic update on error
-      setMessages(prev => prev.filter(msg => msg.id !== newMessage.id));
+      setMessages(prev => prev.filter(msg => msg._id !== newMessage._id));
     }
   };
 
@@ -555,11 +580,12 @@ const MessagingPage = () => {
     if (chat.id) {
       (async () => {
         try {
+          console.log("Fetching messages for newly selected chat:", chat.id);
           const response = await api.get(`/messages/conversation/${chat.id}`);
           if (response.data && response.data.success) {
             console.log("Fetched messages for chat:", chat.id, response.data.data.messages);
             // Set messages from API response
-            setMessages(response.data.data.messages);
+            setMessages(response.data.data.messages || []);
           } else {
             console.error("Failed to fetch messages:", response.data);
             setMessages([]);
@@ -605,8 +631,10 @@ const MessagingPage = () => {
   // Format message time - for individual messages
   const formatMessageTime = (timestamp) => {
     try {
+      // Check if timestamp is valid, handle both createdAt and timestamp formats
       const date = new Date(timestamp);
       if (isNaN(date.getTime())) {
+        console.error("Invalid timestamp:", timestamp);
         return '';
       }
       
@@ -723,6 +751,38 @@ const MessagingPage = () => {
       return "";
     }
   };
+
+  // Listen for message delivery confirmations and update sent messages
+  useEffect(() => {
+    const handleMessageDelivery = (data) => {
+      console.log("Message delivery confirmation received:", data);
+      if (!data || !data.success) return;
+      
+      // Find any temporary message in our list and update it with the confirmed ID
+      setMessages(prev => {
+        const updatedMessages = prev.map(msg => {
+          // If this is a temporary message (string ID that's a number), update it
+          if (typeof msg._id === 'string' && !isNaN(Number(msg._id)) && data.messageId) {
+            console.log("Updating sent message with server confirmation:", data.messageId);
+            return {
+              ...msg,
+              _id: data.messageId,
+              // Any other server-provided fields
+            };
+          }
+          return msg;
+        });
+        
+        return updatedMessages;
+      });
+    };
+    
+    socket.on("messageReceived", handleMessageDelivery);
+    
+    return () => {
+      socket.off("messageReceived", handleMessageDelivery);
+    };
+  }, []);
 
   return (
     <div className="flex h-screen bg-gray-100">
@@ -846,9 +906,12 @@ const MessagingPage = () => {
                           return null;
                         }
 
+                        // Get timestamp from wherever it exists in the message object
+                        const messageTimestamp = message.createdAt || message.timestamp;
+
                         return (
                           <div
-                            key={message._id || message.id || index}
+                            key={message._id || index}
                             className={`flex w-full ${
                               isCurrentUser ? "justify-end" : "justify-start"
                             }`}
@@ -864,7 +927,7 @@ const MessagingPage = () => {
                                 {message.content}
                               </p>
                               <div className="text-xs text-gray-500 mt-1 text-right">
-                                {formatMessageTime(message.timestamp || message.createdAt)}
+                                {formatMessageTime(messageTimestamp)}
                               </div>
                             </div>
                           </div>
