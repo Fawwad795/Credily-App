@@ -14,6 +14,7 @@ import Nav from "../components/Nav";
 import ReviewList from "../components/ReviewList";
 import PostSection from "../components/PostSection";
 import Analytics from "../components/Analytics";
+import { useSlider } from "../contexts/SliderContext";
 
 // Function to generate placeholder image URL for new posts
 const getDefaultPostImage = () => {
@@ -86,6 +87,7 @@ const Profile = () => {
 
   const location = useLocation();
   const user = location.state?.user;
+  const { openConnectionsSlider } = useSlider();
 
   useEffect(() => {
     // If no user data is passed via location state, get current user's profile
@@ -634,6 +636,14 @@ const Profile = () => {
     }
   };
 
+  // Connections click handler
+  const handleConnectionsClick = () => {
+    const userId = profile?._id;
+    if (userId) {
+      openConnectionsSlider(userId);
+    }
+  };
+
   if (loading || !profile) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -811,7 +821,10 @@ const Profile = () => {
                     : "No location specified"}
                 </span>
                 <div className="flex items-center ml-2">
-                  <span className="text-blue-600 font-medium cursor-pointer">
+                  <span 
+                    className="text-blue-600 font-medium cursor-pointer hover:underline"
+                    onClick={handleConnectionsClick}
+                  >
                     · Connections {connections}
                   </span>
 

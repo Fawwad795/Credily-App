@@ -537,10 +537,7 @@ const MessagingPage = () => {
     // Initial fetch
     fetchChatsList();
     
-    // Set up polling for chat list at a shorter interval for better sync
-    const chatListInterval = setInterval(() => {
-      fetchChatsList();
-    }, 3000); // Original polling interval
+        // Set up polling for chat list at a shorter interval for better sync    const chatListInterval = setInterval(() => {      fetchChatsList();    }, 500); // Reduced from 800ms to 500ms for even faster updates
     
     return () => {
       if (chatListInterval) clearInterval(chatListInterval);
@@ -558,9 +555,7 @@ const MessagingPage = () => {
     fetchMessages(selectedChat.id);
     
     // Set up an interval to periodically check for new messages - more frequently for better sync
-    const messageRefreshInterval = setInterval(() => {
-      fetchMessages(selectedChat.id);
-    }, 2000); // Original polling interval
+    const messageRefreshInterval = setInterval(() => {      fetchMessages(selectedChat.id);    }, 400); // Reduced from 700ms to 400ms for better real-time experience
     
     // Clean up
     return () => {
@@ -1154,27 +1149,7 @@ const MessagingPage = () => {
     };
   }, [currentUser.id]);
 
-  // Use fallback mode if socket connection fails - with fixed interval declaration
-  useEffect(() => {
-    let fallbackInterval = null; // Declare variable in this scope
-    
-    if (fallbackMode) {
-      // Set up polling for messages and chats instead of relying on socket
-      fallbackInterval = setInterval(() => {
-        // Fetch messages using REST API if a chat is selected
-        if (selectedChat) {
-          fetchMessagesFromApi();
-        }
-        
-        // Always fetch latest chats to keep the list updated
-        fetchChatsList();
-      }, 3000); // Original polling interval
-    }
-    
-    return () => {
-      if (fallbackInterval) clearInterval(fallbackInterval);
-    };
-  }, [fallbackMode, selectedChat, fetchMessagesFromApi, fetchChatsList]);
+    // Use fallback mode if socket connection fails - with fixed interval declaration  useEffect(() => {    let fallbackInterval = null; // Declare variable in this scope        if (fallbackMode) {      // Set up polling for messages and chats instead of relying on socket      fallbackInterval = setInterval(() => {        // Fetch messages using REST API if a chat is selected        if (selectedChat) {          fetchMessagesFromApi();        }                // Always fetch latest chats to keep the list updated        fetchChatsList();      }, 500); // Reduced from 1000ms to 500ms for faster sync    }        return () => {      if (fallbackInterval) clearInterval(fallbackInterval);    };  }, [fallbackMode, selectedChat, fetchMessagesFromApi, fetchChatsList]);
 
   // Directly update localStorage whenever a message is sent or read
   useEffect(() => {

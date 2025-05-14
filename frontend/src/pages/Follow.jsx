@@ -2,9 +2,11 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Nav from "../components/Nav"; // Adjust the path to your Nav component
 import PostCard from "../components/PostCard"; // Import PostCard component
+import { useSlider } from "../contexts/SliderContext";
 
 const Follow = () => {
   const { id } = useParams(); // Get the user ID from URL params
+  const { openConnectionsSlider } = useSlider();
   const [isFollowing, setIsFollowing] = useState(false); // State to track follow status
   const [isPendingRequest, setIsPendingRequest] = useState(false); // State to track pending follow requests
   const [pendingRequestId, setPendingRequestId] = useState(null); // Store pending request ID for cancellation
@@ -490,6 +492,11 @@ const Follow = () => {
     return isFollowing || connectionStatus.hasMutualConnections;
   };
 
+  // Handle clicking on followers count
+  const handleConnectionsClick = () => {
+    openConnectionsSlider(id);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Navigation on the side */}
@@ -577,9 +584,12 @@ const Follow = () => {
 
             {/* Stats */}
             <div className="flex justify-around mt-8 p-4 bg-white rounded-lg shadow-sm">
-              <div className="text-center">
+              <div 
+                className="text-center cursor-pointer hover:text-blue-600 transition-colors" 
+                onClick={handleConnectionsClick}
+              >
                 <h3 className="text-2xl font-bold">{followersCount}</h3>
-                <p className="text-gray-600">Followers</p>
+                <p className="text-gray-600 hover:underline">Followers</p>
               </div>
               <div className="text-center">
                 <h3 className="text-2xl font-bold">{followingCount}</h3>

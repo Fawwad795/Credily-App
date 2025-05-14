@@ -2,8 +2,10 @@ import { useState, useEffect } from "react";
 import api from "../utils/axios";
 import { Link } from "react-router-dom";
 import { FaUserPlus } from "react-icons/fa";
+import { useSlider } from "../contexts/SliderContext";
 
 const SuggestedUsers = () => {
+  const { openSearchSlider } = useSlider();
   const [suggestedUsers, setSuggestedUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -126,12 +128,12 @@ const SuggestedUsers = () => {
           </ul>
 
           <div className="mt-4 text-center">
-            <Link
-              to="/search"
+            <button
+              onClick={openSearchSlider}
               className="text-sm text-purple-600 hover:text-purple-800 font-medium"
             >
               Find More People
-            </Link>
+            </button>
           </div>
         </div>
       ) : (
@@ -139,12 +141,12 @@ const SuggestedUsers = () => {
           <p className="text-sm text-gray-500 mb-4">
             No suggested users at the moment
           </p>
-          <Link
-            to="/search"
+          <button
+            onClick={openSearchSlider}
             className="grad text-white text-sm py-1.5 px-4 rounded-full inline-block shadow-sm hover:shadow-md transition-all"
           >
             Discover People
-          </Link>
+          </button>
         </div>
       )}
     </div>

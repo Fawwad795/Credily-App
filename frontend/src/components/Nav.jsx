@@ -5,6 +5,8 @@ import "../index.css"; // Updated path to reference index.css in the src directo
 import api from "../utils/axios";
 import NotificationBadge from "./NotificationBadge";
 import NavNotificationButton from "./NavNotificationButton";
+import { useSlider } from "../contexts/SliderContext";
+import ConnectionsSlider from "./ConnectionsSlider";
 
 // Loading Screen Component
 const LoadingScreen = ({ message }) => {
@@ -840,7 +842,7 @@ const Notifications = ({ isOpen, onClose }) => {
 };
 
 const Nav = () => {
-  const [activeSlider, setActiveSlider] = useState(null); // 'search' or 'notifications'
+  const { activeSlider, sliderParams, openSearchSlider, openNotificationsSlider, closeSlider } = useSlider();
   const [isLoading, setIsLoading] = useState(false);
   const [activeItem, setActiveItem] = useState(() => {
     // Determine active item based on current path
@@ -959,7 +961,7 @@ const Nav = () => {
             <li>
               <button
                 onClick={() => {
-                  setActiveSlider("search");
+                  openSearchSlider();
                   setActiveItem("search");
                 }}
                 className={`w-full flex items-center p-3 rounded-lg transition-all duration-200 cursor-pointer ${
@@ -1023,7 +1025,7 @@ const Nav = () => {
             <li>
               <button
                 onClick={() => {
-                  setActiveSlider("notifications");
+                  openNotificationsSlider();
                   setActiveItem("notifications");
                 }}
                 className={`w-full flex items-center p-3 rounded-lg transition-all duration-200 cursor-pointer ${
@@ -1035,7 +1037,7 @@ const Nav = () => {
                 <NavNotificationButton
                   isActive={activeItem === "notifications"}
                   onClick={() => {
-                    setActiveSlider("notifications");
+                    openNotificationsSlider();
                     setActiveItem("notifications");
                   }}
                 />
@@ -1073,13 +1075,20 @@ const Nav = () => {
       {/* Search Slider */}
       <SearchSlider
         isOpen={activeSlider === "search"}
-        onClose={() => setActiveSlider(null)}
+        onClose={closeSlider}
       />
 
       {/* Notifications Slider */}
       <Notifications
         isOpen={activeSlider === "notifications"}
-        onClose={() => setActiveSlider(null)}
+        onClose={closeSlider}
+      />
+
+      {/* Connections Slider */}
+      <ConnectionsSlider
+        isOpen={activeSlider === "connections"}
+        onClose={closeSlider}
+        userId={sliderParams.userId}
       />
     </>
   );

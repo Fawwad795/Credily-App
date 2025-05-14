@@ -13,22 +13,25 @@ import Home from "./pages/Home";
 import Profile from "./pages/Profile";
 import Follow from "./pages/Follow";
 import AdditionalInfo from "./pages/AdditionalInfo";
+import { SliderProvider } from "./contexts/SliderContext";
 
 const App = () => {
   return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<Navigate to="/home" />} />
-        <Route path="/signup" element={<Signup />} />
-        <Route path="/home" element={<Home />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/messages" element={<MessagingPage />} />
-        <Route path="/search" element={<SearchPage />} />
-        <Route path="/additional-info" element={<AdditionalInfo />} />
-        <Route path="/profile" element={<Profile />} />
-        <Route path="/profile/:id" element={<Follow />} />
-      </Routes>
-    </Router>
+    <SliderProvider>
+      <Router>
+        <Routes>
+          <Route path="/" element={<Navigate to="/home" />} />
+          <Route path="/signup" element={<Signup />} />
+          <Route path="/home" element={<Home />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/messages" element={<MessagingPage />} />
+          <Route path="/search" element={<SearchPage />} />
+          <Route path="/additional-info" element={<AdditionalInfo />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/profile/:id" element={<Follow />} />
+        </Routes>
+      </Router>
+    </SliderProvider>
   );
 };
 
