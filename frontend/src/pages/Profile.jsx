@@ -82,6 +82,7 @@ const Profile = () => {
     imageFile: null,
   });
   const [editBio, setEditBio] = useState("");
+  const [loading, setLoading] = useState(true);
 
   const location = useLocation();
   const user = location.state?.user;
@@ -91,12 +92,14 @@ const Profile = () => {
     if (!user) {
       const fetchCurrentUser = async () => {
         try {
+          setLoading(true); // Start loading
           // Get token from localStorage
           const token =
             localStorage.getItem("token") || localStorage.getItem("authToken");
 
           if (!token) {
             console.error("No authentication token found");
+            setLoading(false);
             return;
           }
 
@@ -113,6 +116,7 @@ const Profile = () => {
 
           if (!decodedToken || !decodedToken.id) {
             console.error("Could not extract user ID from token");
+            setLoading(false);
             return;
           }
 
@@ -150,8 +154,11 @@ const Profile = () => {
             setConnections(connData.data.totalConnections);
             setConnectionUsers(connData.data.connectionUsers || []);
           }
+
+          setLoading(false); // End loading
         } catch (error) {
           console.error("Error fetching current user:", error);
+          setLoading(false);
         }
       };
 
@@ -160,6 +167,7 @@ const Profile = () => {
       // If we have user data from location state, fetch that profile
       const fetchProfileAndConnections = async () => {
         try {
+          setLoading(true); // Start loading
           const [profileRes, connRes] = await Promise.all([
             fetch(`/api/users/profile/${user._id}`),
             fetch(`/api/users/${user._id}/connections`),
@@ -189,8 +197,11 @@ const Profile = () => {
               connData.message
             );
           }
+
+          setLoading(false); // End loading
         } catch (error) {
           console.error("Failed to fetch user data:", error);
+          setLoading(false);
         }
       };
 
@@ -210,6 +221,7 @@ const Profile = () => {
   // Function to fetch user posts
   const fetchUserPosts = async (userId) => {
     try {
+      setLoading(true);
       const token =
         localStorage.getItem("token") || localStorage.getItem("authToken");
 
@@ -230,8 +242,11 @@ const Profile = () => {
       } else {
         console.error("Failed to fetch user posts:", postsData.message);
       }
+
+      setLoading(false);
     } catch (error) {
       console.error("Error fetching user posts:", error);
+      setLoading(false);
     }
   };
 
@@ -619,10 +634,34 @@ const Profile = () => {
     }
   };
 
-  if (!profile) {
+  if (loading || !profile) {
     return (
-      <div className="flex justify-center items-center h-screen">
-        Loading...
+      <div className="min-h-screen bg-gray-50">
+        {/* Keep the Nav bar visible */}
+        <Nav />
+
+        {/* Main Content - with the same layout as the loaded page */}
+        <div className="sm:ml-64 min-h-screen overflow-y-auto bg-gray-100 flex justify-center items-center">
+          <div className="flex flex-col items-center">
+            <div className="flex space-x-3 mb-5">
+              <div
+                className="w-4 h-4 rounded-full grad animate-bounce shadow-md"
+                style={{ animationDelay: "0ms" }}
+              ></div>
+              <div
+                className="w-4 h-4 rounded-full grad animate-bounce shadow-md"
+                style={{ animationDelay: "200ms" }}
+              ></div>
+              <div
+                className="w-4 h-4 rounded-full grad animate-bounce shadow-md"
+                style={{ animationDelay: "400ms" }}
+              ></div>
+            </div>
+            <p className="text-gray-700 font-medium text-lg">
+              Loading profile...
+            </p>
+          </div>
+        </div>
       </div>
     );
   }
@@ -832,8 +871,8 @@ const Profile = () => {
 
       {/* Create New Post Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-white bg-opacity-10 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6 relative">
+        <div className="fixed inset-0 bg-gradient-to-b from-white/60 to-gray-400/40 backdrop-filter backdrop-blur-[4px] flex items-center justify-center z-50">
+          <div className="bg-white/95 rounded-lg shadow-xl w-full max-w-md p-6 relative">
             {/* Close button */}
             <button
               onClick={() => {
@@ -936,8 +975,8 @@ const Profile = () => {
 
       {/* Wallpaper Update Modal */}
       {isWallpaperModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6 relative">
+        <div className="fixed inset-0 bg-gradient-to-b from-white/60 to-gray-400/40 backdrop-filter backdrop-blur-[4px] flex items-center justify-center z-50">
+          <div className="bg-white/95 rounded-lg shadow-xl w-full max-w-md p-6 relative">
             {/* Close button */}
             <button
               onClick={() => {
@@ -1030,8 +1069,8 @@ const Profile = () => {
 
       {/* Profile Picture Update Modal */}
       {isProfilePictureModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6 relative">
+        <div className="fixed inset-0 bg-gradient-to-b from-white/60 to-gray-400/40 backdrop-filter backdrop-blur-[4px] flex items-center justify-center z-50">
+          <div className="bg-white/95 rounded-lg shadow-xl w-full max-w-md p-6 relative">
             {/* Close button */}
             <button
               onClick={() => {
@@ -1124,8 +1163,8 @@ const Profile = () => {
 
       {/* Bio Edit Modal */}
       {isBioEditModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6 relative">
+        <div className="fixed inset-0 bg-gradient-to-b from-white/60 to-gray-400/40 backdrop-filter backdrop-blur-[4px] flex items-center justify-center z-50">
+          <div className="bg-white/95 rounded-lg shadow-xl w-full max-w-md p-6 relative">
             {/* Close button */}
             <button
               onClick={() => setIsBioEditModalOpen(false)}
