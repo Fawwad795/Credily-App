@@ -224,6 +224,25 @@ const MessagingPage = () => {
         return;
       }
 
+      // Extract sender and receiver IDs
+      const senderId = typeof message.sender === 'object' ? message.sender._id : message.sender;
+      const receiverId = typeof message.receiver === 'object' ? message.receiver._id : message.receiver;
+      
+      // Determine if current user is the sender
+      const isSentByMe = senderId === currentUser.id;
+      
+      // Determine the other user's ID (the one we're chatting with)
+      const otherUserId = isSentByMe ? receiverId : senderId;
+      
+      console.log("Message belongs to chat with:", {
+        senderId,
+        receiverId,
+        otherUserId,
+        currentUserId: currentUser.id,
+        selectedChatId: selectedChat?.id,
+        isSentByMe
+      });
+
       // Format the message to match our expected structure
       const formattedMessage = {
         _id: message._id || Date.now().toString(),
@@ -231,53 +250,29 @@ const MessagingPage = () => {
         createdAt: message.createdAt || new Date().toISOString(),
         isRead: message.isRead || false,
         sender: {
-          _id: typeof message.sender === 'object' ? message.sender._id : message.sender,
-          isCurrentUser: typeof message.sender === 'object' 
-            ? message.sender._id === currentUser.id
-            : message.sender === currentUser.id
+          _id: senderId,
+          isCurrentUser: isSentByMe
         },
-        receiver: message.receiver
+        receiver: receiverId
       };
 
-      // Determine if it's a sent or received message
-      const isSentByMe = formattedMessage.sender.isCurrentUser;
-      
-      // Determine other user ID (for chat identification)
-      let otherUserId;
-      let otherUserDetails = null;
-      
-      if (isSentByMe) {
-        // If we sent it, the other user is the receiver
-        otherUserId = typeof message.receiver === 'object' ? message.receiver._id : message.receiver;
-        otherUserDetails = message.receiver;
-      } else {
-        // If we received it, the other user is the sender
-        otherUserId = formattedMessage.sender._id;
-        otherUserDetails = message.sender;
-      }
-
-      console.log("Message belongs to:", {
-        otherUserId,
-        selectedChatId: selectedChat?.id,
-        isSentByMe,
-        shouldAddToMessages: selectedChat && selectedChat.id === otherUserId
-      });
-
-      // Only add to current messages if it belongs to the selected chat
+      // Add message to current chat if it belongs there
       if (selectedChat && selectedChat.id === otherUserId) {
         console.log("Adding message to current chat:", selectedChat.id);
+        
         // Check if this message already exists to avoid duplicates
         setMessages(prev => {
           // Check if message already exists by ID
-          const exists = prev.some(m => m._id === formattedMessage._id);
-          if (exists) {
+          if (formattedMessage._id && prev.some(m => m._id === formattedMessage._id)) {
             console.log("Message already exists in chat, skipping:", formattedMessage._id);
             return prev;
           }
+          
+          // Add new message to the list
           return [...prev, formattedMessage];
         });
         
-        // Mark as read if we're the receiver
+        // Mark message as read if we're the receiver
         if (!isSentByMe) {
           socket.emit("markAsRead", {
             messageId: formattedMessage._id,
@@ -319,12 +314,16 @@ const MessagingPage = () => {
           // Add to the beginning (most recent)
           updatedChats.unshift(updatedChat);
         } else {
-          // Chat doesn't exist, create new one
+          // Chat doesn't exist, create new one (using sender info)
+          const senderInfo = typeof message.sender === 'object' ? message.sender : {};
+          const receiverInfo = typeof message.receiver === 'object' ? message.receiver : {};
+          const chatInfo = !isSentByMe ? senderInfo : receiverInfo;
+          
           const newChat = {
             id: otherUserId,
-            name: otherUserDetails?.username || "User",
-            email: otherUserDetails?.email || "",
-            profilePicture: otherUserDetails?.profilePicture || "",
+            name: chatInfo.username || "User",
+            email: chatInfo.email || "",
+            profilePicture: chatInfo.profilePicture || "",
             lastMessage: formattedMessage.content,
             timestamp: new Date().toISOString(),
             unreadCount: !isSentByMe ? 1 : 0
@@ -340,15 +339,11 @@ const MessagingPage = () => {
     
     // Listen for messages
     socket.on("newMessage", handleNewMessage);
-    socket.on("messageReceived", (data) => {
-      console.log("Message delivered confirmation:", data);
-    });
     
     // Cleanup
     return () => {
       socket.off("getUsers");
       socket.off("newMessage", handleNewMessage);
-      socket.off("messageReceived");
     };
   }, [currentUser.id, selectedChat]);
 
@@ -471,13 +466,53 @@ const MessagingPage = () => {
     }
   }, [location.state]);
 
+  // Fetch messages for selected chat
+  const fetchMessages = async (chatId) => {
+    if (!chatId) return;
+    
+    try {
+      console.log("Fetching messages for chat:", chatId);
+      const response = await api.get(`/messages/conversation/${chatId}`);
+      
+      if (response.data && response.data.success) {
+        console.log("Successfully fetched messages:", response.data.data.messages.length);
+        // Set messages from API response
+        setMessages(response.data.data.messages || []);
+        
+        // Mark messages as read
+        const unreadMessages = response.data.data.messages.filter(
+          msg => !msg.isRead && msg.sender._id !== currentUser.id
+        );
+        
+        if (unreadMessages.length > 0) {
+          console.log(`Marking ${unreadMessages.length} messages as read`);
+          unreadMessages.forEach(msg => {
+            socket.emit("markAsRead", {
+              messageId: msg._id,
+              chatId: chatId
+            });
+          });
+        }
+      } else {
+        console.error("Failed to fetch messages:", response.data);
+        setMessages([]);
+      }
+    } catch (error) {
+      console.error("Error fetching messages:", error);
+      setMessages([]);
+    }
+  };
+
   // Handle sending a message
   const handleSendMessage = async () => {
     if (!messageInput.trim() || !selectedChat) return;
 
+    // Create unique message ID for optimistic update
+    const tempMessageId = Date.now().toString();
+
     // Format message with proper structure to match backend format
     const newMessage = {
-      _id: Date.now().toString(), // Will be replaced with server ID later
+      _id: tempMessageId,
       content: messageInput,
       createdAt: new Date().toISOString(),
       isRead: false,
@@ -485,7 +520,7 @@ const MessagingPage = () => {
         _id: currentUser.id,
         isCurrentUser: true
       },
-      receiver: selectedChat.id,
+      receiver: selectedChat.id
     };
 
     console.log("Adding optimistic message to UI:", newMessage);
@@ -535,7 +570,7 @@ const MessagingPage = () => {
         // Update message with server data
         setMessages(prev =>
           prev.map(msg =>
-            msg._id === newMessage._id
+            msg._id === tempMessageId
               ? {
                   ...msg,
                   _id: serverMessage._id,
@@ -548,7 +583,7 @@ const MessagingPage = () => {
     } catch (error) {
       console.error("Error sending message:", error);
       // Revert optimistic update on error
-      setMessages(prev => prev.filter(msg => msg._id !== newMessage._id));
+      setMessages(prev => prev.filter(msg => msg._id !== tempMessageId));
     }
   };
 
@@ -578,23 +613,7 @@ const MessagingPage = () => {
     
     // Fetch messages for this chat immediately
     if (chat.id) {
-      (async () => {
-        try {
-          console.log("Fetching messages for newly selected chat:", chat.id);
-          const response = await api.get(`/messages/conversation/${chat.id}`);
-          if (response.data && response.data.success) {
-            console.log("Fetched messages for chat:", chat.id, response.data.data.messages);
-            // Set messages from API response
-            setMessages(response.data.data.messages || []);
-          } else {
-            console.error("Failed to fetch messages:", response.data);
-            setMessages([]);
-          }
-        } catch (error) {
-          console.error("Error fetching messages:", error);
-          setMessages([]);
-        }
-      })();
+      fetchMessages(chat.id);
     }
   };
 
@@ -758,23 +777,26 @@ const MessagingPage = () => {
       console.log("Message delivery confirmation received:", data);
       if (!data || !data.success) return;
       
-      // Find any temporary message in our list and update it with the confirmed ID
-      setMessages(prev => {
-        const updatedMessages = prev.map(msg => {
-          // If this is a temporary message (string ID that's a number), update it
-          if (typeof msg._id === 'string' && !isNaN(Number(msg._id)) && data.messageId) {
-            console.log("Updating sent message with server confirmation:", data.messageId);
-            return {
-              ...msg,
-              _id: data.messageId,
-              // Any other server-provided fields
-            };
-          }
-          return msg;
+      // If there's a specific messageId in the response, use that to update messages
+      if (data.messageId) {
+        setMessages(prev => {
+          const updatedMessages = prev.map(msg => {
+            // Find temporary messages by checking if ID is a timestamp (numeric string)
+            const isTemporaryMessage = typeof msg._id === 'string' && !isNaN(Number(msg._id));
+            if (isTemporaryMessage) {
+              console.log("Updating temporary message with server ID:", data.messageId);
+              return {
+                ...msg,
+                _id: data.messageId,
+                // Any other server-provided fields
+              };
+            }
+            return msg;
+          });
+          
+          return updatedMessages;
         });
-        
-        return updatedMessages;
-      });
+      }
     };
     
     socket.on("messageReceived", handleMessageDelivery);
@@ -783,6 +805,28 @@ const MessagingPage = () => {
       socket.off("messageReceived", handleMessageDelivery);
     };
   }, []);
+
+  // Keep messages refreshed when in a chat
+  useEffect(() => {
+    // Only set up refresh if a chat is selected
+    if (!selectedChat) return;
+    
+    console.log("Setting up message refresh for chat:", selectedChat.id);
+    
+    // Initial fetch
+    fetchMessages(selectedChat.id);
+    
+    // Set up an interval to periodically check for new messages
+    const refreshInterval = setInterval(() => {
+      console.log("Refreshing messages for chat:", selectedChat.id);
+      fetchMessages(selectedChat.id);
+    }, 5000); // Check every 5 seconds
+    
+    // Clean up
+    return () => {
+      clearInterval(refreshInterval);
+    };
+  }, [selectedChat?.id]);
 
   return (
     <div className="flex h-screen bg-gray-100">
@@ -898,13 +942,6 @@ const MessagingPage = () => {
                         // Determine if current user is the sender
                         const isCurrentUser = message.sender.isCurrentUser || 
                                               (message.sender._id === currentUser.id);
-
-                        // Skip messages not part of the selected chat
-                        if (selectedChat && 
-                            (isCurrentUser && (message.receiver !== selectedChat.id && message.receiver?._id !== selectedChat.id)) || 
-                            (!isCurrentUser && (message.sender._id !== selectedChat.id && message.sender !== selectedChat.id))) {
-                          return null;
-                        }
 
                         // Get timestamp from wherever it exists in the message object
                         const messageTimestamp = message.createdAt || message.timestamp;
