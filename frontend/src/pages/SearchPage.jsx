@@ -56,9 +56,9 @@ const SearchSlider = ({ isOpen, onClose }) => {
 
   return (
     <div
-      className={`fixed top-0 right-0 h-full w-80 bg-white shadow-lg transform ${
+      className={`fixed top-0 right-0 h-full bg-white shadow-lg transform ${
         isOpen ? "translate-x-0" : "translate-x-full"
-      } transition-all duration-300 ease-in-out z-50 rounded-l-2xl`}
+      } transition-transform duration-300 z-50 w-full sm:w-96 md:w-1/3 lg:w-1/4`}
     >
       {/* Header */}
       <div className="p-4 border-b flex justify-between items-center bg-gradient-to-r from-[#dc2430] to-[#7b4397] text-white rounded-tl-2xl">
