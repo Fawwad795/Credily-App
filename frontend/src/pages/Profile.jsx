@@ -20,24 +20,6 @@ const getDefaultPostImage = () => {
   return "https://placehold.co/600x350/red/white?text=New+Post";
 };
 
-const reviewsData = [
-  {
-    name: "Alice",
-    image: "https://placehold.co/50/blue/white?text=A",
-    content: "Really insightful content!",
-  },
-  {
-    name: "Bob",
-    image: "https://placehold.co/50/teal/white?text=B",
-    content: "Great attention to detail and presentation.",
-  },
-  {
-    name: "Charlie",
-    image: "https://placehold.co/50/green/white?text=C",
-    content: "I loved the way the topic was covered!",
-  },
-];
-
 const samplePosts = [
   {
     title: "Project Update 1",
@@ -83,6 +65,9 @@ const Profile = () => {
   });
   const [editBio, setEditBio] = useState("");
   const [loading, setLoading] = useState(true);
+  const [reviews, setReviews] = useState([]);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
+  const [averageRating, setAverageRating] = useState(0);
 
   const location = useLocation();
   const user = location.state?.user;
@@ -634,6 +619,44 @@ const Profile = () => {
     }
   };
 
+  // Add function to fetch reviews
+  const fetchReviews = async () => {
+    try {
+      setReviewsLoading(true);
+      // Extract user ID from current profile
+      const profileId = profile?._id;
+
+      if (!profileId) {
+        return;
+      }
+
+      const response = await fetch(`/api/reviews/user/${profileId}`);
+
+      if (!response.ok) {
+        setReviewsLoading(false);
+        return;
+      }
+
+      const data = await response.json();
+
+      if (data.success) {
+        setReviews(data.data.reviews);
+        setAverageRating(data.data.averageRating);
+      }
+    } catch (error) {
+      console.error("Error fetching reviews:", error);
+    } finally {
+      setReviewsLoading(false);
+    }
+  };
+
+  // Call fetchReviews in useEffect when profile is available
+  useEffect(() => {
+    if (profile && profile._id) {
+      fetchReviews();
+    }
+  }, [profile]);
+
   if (loading || !profile) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -858,7 +881,11 @@ const Profile = () => {
 
         {/* Reviews Section with responsive padding */}
         <div className="px-2 sm:px-6 py-4">
-          <ReviewList reviews={reviewsData} />
+          <ReviewList
+            reviews={reviews}
+            isLoading={reviewsLoading}
+            averageRating={averageRating}
+          />
         </div>
 
         {/* Posts Section - Horizontal Scrolling */}

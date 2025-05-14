@@ -3,10 +3,10 @@ import User from "../models/user.model.js";
 
 export const leaveReview = async (req, res) => {
   try {
-    const { revieweeId, content, rating, categories, isAnonymous, isPublic } = req.body;
+    const { revieweeId, content, rating, categories, isAnonymous, isPublic } =
+      req.body;
     const reviewerId = req.user.id; // Assuming `req.user` contains the authenticated user's ID
 
-   
     const reviewee = await User.findById(revieweeId);
     if (!reviewee) {
       return res.status(404).json({
@@ -16,13 +16,7 @@ export const leaveReview = async (req, res) => {
     }
 
     const reviewer = await User.findById(reviewerId);
-    const accountAge = (Date.now() - new Date(reviewer.createdAt)) / (1000 * 60 * 60 * 24); // Age in days
-    if (accountAge < 30) {
-      return res.status(403).json({
-        success: false,
-        message: "Your account must be at least 1 month old to leave a review.",
-      });
-    }
+
     const oneMonthAgo = new Date();
     oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
 
@@ -60,6 +54,61 @@ export const leaveReview = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to leave review.",
+      error: error.message,
+    });
+  }
+};
+
+// Get all reviews for a specific user
+export const getUserReviews = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    // Check if userId is a valid MongoDB ObjectId
+    if (!userId || userId.length !== 24) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid user ID format",
+      });
+    }
+
+    // Validate if the user exists
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    // Fetch reviews where the user is the reviewee
+    const reviews = await Review.find({
+      reviewee: userId,
+      isPublic: true,
+      isActive: true,
+    })
+      .populate({
+        path: "reviewer",
+        select: "username firstName lastName profilePicture",
+      })
+      .sort({ createdAt: -1 }); // Sort by newest first
+
+    // Calculate average rating
+    const avgRating = await Review.calculateAverageRating(userId);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        reviews,
+        averageRating: avgRating,
+        count: reviews.length,
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching reviews:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch reviews",
       error: error.message,
     });
   }

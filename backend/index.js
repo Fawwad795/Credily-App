@@ -9,6 +9,7 @@ import messageRoutes from "./routes/message.routes.js";
 import postRoutes from "./routes/post.routes.js";
 import notificationRoutes from "./routes/notification.routes.js";
 import uploadRoutes from "./routes/upload.routes.js";
+import reviewRoutes from "./routes/review.routes.js";
 import path from "path";
 import { fileURLToPath } from "url";
 import { createRequire } from "module";
@@ -104,6 +105,7 @@ app.use("/api/messages", messageRoutes);
 app.use("/api/posts", postRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/uploads", uploadRoutes);
+app.use("/api/reviews", reviewRoutes);
 
 // Root route for testing
 app.get("/", (req, res) => {

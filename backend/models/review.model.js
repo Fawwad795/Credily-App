@@ -81,17 +81,26 @@ reviewSchema.pre("save", async function (next) {
       // Only check on new review creation
       const Connection = mongoose.model("Connection");
 
+      // Ensure the IDs are proper ObjectId instances
+      let reviewerId, revieweeId;
+      try {
+        reviewerId = new mongoose.Types.ObjectId(this.reviewer);
+        revieweeId = new mongoose.Types.ObjectId(this.reviewee);
+      } catch (err) {
+        return next(new Error("Invalid reviewer or reviewee ID format"));
+      }
+
       // First check if there's a direct connection between the users
       const directConnection = await Connection.findOne({
         $or: [
           {
-            requester: this.reviewer,
-            recipient: this.reviewee,
+            requester: reviewerId,
+            recipient: revieweeId,
             status: "accepted",
           },
           {
-            requester: this.reviewee,
-            recipient: this.reviewer,
+            requester: revieweeId,
+            recipient: reviewerId,
             status: "accepted",
           },
         ],
@@ -105,8 +114,8 @@ reviewSchema.pre("save", async function (next) {
 
       // If no direct connection, check for mutual connections
       const mutualConnections = await Connection.findMutualConnections(
-        this.reviewer,
-        this.reviewee
+        reviewerId,
+        revieweeId
       );
 
       if (mutualConnections.length > 0) {
@@ -127,12 +136,24 @@ reviewSchema.pre("save", async function (next) {
 
 // Static method to calculate average rating for a user
 reviewSchema.statics.calculateAverageRating = async function (userId) {
-  const result = await this.aggregate([
-    { $match: { reviewee: mongoose.Types.ObjectId(userId), isActive: true } },
-    { $group: { _id: "$reviewee", averageRating: { $avg: "$rating" } } },
-  ]);
+  try {
+    // Ensure userId is a valid ObjectId
+    let userObjectId;
+    try {
+      userObjectId = new mongoose.Types.ObjectId(userId);
+    } catch (err) {
+      return 0;
+    }
 
-  return result.length > 0 ? result[0].averageRating : 0;
+    const result = await this.aggregate([
+      { $match: { reviewee: userObjectId, isActive: true } },
+      { $group: { _id: "$reviewee", averageRating: { $avg: "$rating" } } },
+    ]);
+
+    return result.length > 0 ? result[0].averageRating : 0;
+  } catch (error) {
+    return 0;
+  }
 };
 
 const Review = mongoose.model("Review", reviewSchema);

@@ -30,6 +30,7 @@ const Follow = () => {
     location: "",
     phoneNumber: "",
   });
+  const [selectedCategories, setSelectedCategories] = useState([]);
 
   const navigate = useNavigate();
 
@@ -425,6 +426,24 @@ const Follow = () => {
     return "bg-blue-500 text-white hover:bg-blue-600";
   };
 
+  const categoryOptions = [
+    "trustworthiness",
+    "communication",
+    "reliability",
+    "helpfulness",
+    "other",
+  ];
+
+  const toggleCategory = (category) => {
+    if (selectedCategories.includes(category)) {
+      setSelectedCategories(
+        selectedCategories.filter((cat) => cat !== category)
+      );
+    } else {
+      setSelectedCategories([...selectedCategories, category]);
+    }
+  };
+
   const handleReviewSubmit = async () => {
     // Reset states
     setReviewError("");
@@ -438,6 +457,12 @@ const Follow = () => {
 
     if (reviewContent.length < 5) {
       setReviewError("Review content must be at least 5 characters!");
+      return;
+    }
+
+    // Validate at least one category is selected
+    if (selectedCategories.length === 0) {
+      setReviewError("Please select at least one category!");
       return;
     }
 
@@ -462,7 +487,7 @@ const Follow = () => {
           revieweeId: id,
           content: reviewContent,
           rating: rating,
-          categories: ["trustworthiness", "communication"],
+          categories: selectedCategories,
           isAnonymous: false,
           isPublic: true,
         }),
@@ -476,6 +501,7 @@ const Follow = () => {
 
       // Clear the form and show success message
       setReviewContent("");
+      setSelectedCategories([]);
       setReviewSuccess("Review submitted successfully!");
     } catch (error) {
       setReviewError(error.message || "Failed to submit review.");
@@ -669,6 +695,29 @@ const Follow = () => {
                       </p>
                     </div>
                   )}
+
+                  {/* Category Selection */}
+                  <div className="mb-4">
+                    <label className="block text-gray-700 mb-2">
+                      Categories:
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {categoryOptions.map((category) => (
+                        <button
+                          key={category}
+                          type="button"
+                          onClick={() => toggleCategory(category)}
+                          className={`px-3 py-1 rounded-full text-sm ${
+                            selectedCategories.includes(category)
+                              ? "bg-purple-600 text-white"
+                              : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                          }`}
+                        >
+                          {category.charAt(0).toUpperCase() + category.slice(1)}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
 
                   {/* Rating Selection */}
                   <div className="mb-4">
