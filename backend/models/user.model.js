@@ -9,7 +9,8 @@ const userSchema = new mongoose.Schema(
       unique: true,
       trim: true,
       minlength: 3,
-      maxlength: 30,
+      maxlength: 15,
+      lowercase: true,
     },
     firstName: {
       type: String,
@@ -70,14 +71,23 @@ const userSchema = new mongoose.Schema(
     },
     bio: {
       type: String,
-      maxlength: 300,
+      maxlength: 100,
       default: "",
     },
     location: {
-      type: String,
-      trim: true,
-      maxlength: 100,
-      default: "",
+      city: {
+        type: String,
+        trim: true,
+        maxlength: 50,
+        default: "",
+      },
+      country: {
+        type: String,
+        trim: true,
+        maxlength: 50,
+        default: "",
+      },
+      _id: false,
     },
     reputationScore: {
       type: Number,
@@ -104,8 +114,23 @@ const userSchema = new mongoose.Schema(
 // Define the email index with sparse option - this is the only place we define the email index
 userSchema.index({ email: 1 }, { sparse: true, unique: true });
 
-// Pre-save middleware to hash password
+// Helper function to capitalize first letter of a string
+const capitalizeFirstLetter = (string) => {
+  if (!string) return string;
+  return string.charAt(0).toUpperCase() + string.slice(1).toLowerCase();
+};
+
+// Pre-save middleware to capitalize first/last name and handle password
 userSchema.pre("save", async function (next) {
+  // Capitalize first and last names if they exist
+  if (this.firstName) {
+    this.firstName = capitalizeFirstLetter(this.firstName);
+  }
+
+  if (this.lastName) {
+    this.lastName = capitalizeFirstLetter(this.lastName);
+  }
+
   // Only hash password if it's modified
   if (!this.isModified("password")) {
     return next();

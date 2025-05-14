@@ -63,7 +63,7 @@ const Follow = () => {
           email: profile.email || "email@example.com",
           profilePicture: profile.profilePicture || "",
           bio: profile.bio || "No bio available",
-          location: profile.location || "Location not specified",
+          location: profile.location || "",
           phoneNumber: profile.phoneNumber || "",
         });
 
@@ -487,7 +487,18 @@ const Follow = () => {
                 {userData.bio || "No bio available"}
               </p>
               <p className="text-gray-500">
-                📍 {userData.location || "Location not specified"}
+                <span role="img" aria-label="Location">
+                  📍
+                </span>{" "}
+                {userData.location && typeof userData.location === "object"
+                  ? `${userData.location.city ? userData.location.city : ""}${
+                      userData.location.city && userData.location.country
+                        ? ", "
+                        : ""
+                    }${
+                      userData.location.country ? userData.location.country : ""
+                    }`
+                  : userData.location || "Location not specified"}
               </p>
             </div>
             <div className="flex space-x-4">

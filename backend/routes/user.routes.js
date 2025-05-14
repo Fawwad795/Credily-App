@@ -19,6 +19,9 @@ import {
   cancelConnectionRequest,
   rejectConnectionRequest,
   updateUserAdditionalInfo,
+  checkUsernameAvailability,
+  checkPhoneAvailability,
+  checkEmailAvailability,
 } from "../controllers/user.controller.js";
 import { authenticateUser, protect } from "../middleware/auth.middleware.js";
 
@@ -31,6 +34,9 @@ router.get("/profile/:id", getUserProfile);
 router.put("/profile/:id", updateUserProfile);
 router.put("/profile/:id", updateProfilePicture);
 router.put("/profile/:id/additional-info", updateUserAdditionalInfo);
+router.get("/check-username/:username", checkUsernameAvailability);
+router.get("/check-phone/:phoneNumber", checkPhoneAvailability);
+router.get("/check-email/:email", checkEmailAvailability);
 
 router.post("/connections", protect, sendConnectionRequest);
 router.put(

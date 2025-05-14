@@ -416,7 +416,18 @@ const Profile = () => {
 
               <div className="flex items-center text-gray-600 mt-2">
                 <MapPin size={16} className="mr-1" />
-                <span>{profile.location || "No location specified"}</span>
+                <span>
+                  {profile.location &&
+                  (profile.location.city || profile.location.country)
+                    ? `${profile.location.city ? profile.location.city : ""}${
+                        profile.location.city && profile.location.country
+                          ? ", "
+                          : ""
+                      }${
+                        profile.location.country ? profile.location.country : ""
+                      }`
+                    : "No location specified"}
+                </span>
                 <span className="mx-2 text-blue-600 font-medium cursor-pointer">
                   · Connections {connections}
                 </span>

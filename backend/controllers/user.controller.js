@@ -14,6 +14,12 @@ const generateToken = (id) => {
   });
 };
 
+// Helper function to capitalize first letter of a string
+const capitalizeFirstLetter = (string) => {
+  if (!string) return string;
+  return string.charAt(0).toUpperCase() + string.slice(1).toLowerCase();
+};
+
 // Register a new user
 export const registerUser = async (req, res) => {
   try {
@@ -26,8 +32,11 @@ export const registerUser = async (req, res) => {
       });
     }
 
-    // Check if username already exists
-    const usernameExists = await User.findOne({ username });
+    // Convert username to lowercase for checking
+    const lowercaseUsername = username.toLowerCase();
+
+    // Check if username already exists (case insensitive)
+    const usernameExists = await User.findOne({ username: lowercaseUsername });
     if (usernameExists) {
       return res.status(400).json({
         success: false,
@@ -44,7 +53,7 @@ export const registerUser = async (req, res) => {
       });
     }
 
-    // Create new user
+    // Create new user (username will be automatically converted to lowercase by the schema)
     const user = await User.create({
       username,
       password,
@@ -82,7 +91,16 @@ export const registerUser = async (req, res) => {
 export const updateUserAdditionalInfo = async (req, res) => {
   try {
     const userId = req.params.id;
-    const { firstName, lastName, email, bio, location } = req.body;
+    let { firstName, lastName, email, bio, location } = req.body;
+
+    // Capitalize first and last names
+    if (firstName) {
+      firstName = capitalizeFirstLetter(firstName);
+    }
+
+    if (lastName) {
+      lastName = capitalizeFirstLetter(lastName);
+    }
 
     // If email is provided, check if it already exists for a different user
     if (email) {
@@ -146,8 +164,13 @@ export const loginUser = async (req, res) => {
   try {
     const { username, password } = req.body;
 
-    // Check if user exists
-    const user = await User.findOne({ username }).select("+password");
+    // Convert username to lowercase for checking
+    const lowercaseUsername = username.toLowerCase();
+
+    // Check if user exists (case insensitive)
+    const user = await User.findOne({ username: lowercaseUsername }).select(
+      "+password"
+    );
     if (!user) {
       return res.status(401).json({
         success: false,
@@ -316,9 +339,13 @@ export const searchUsersByUsername = async (req, res) => {
     // Escape any special regex characters in the query to avoid regex injection
     const sanitizedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
+    // Convert to lowercase for case-insensitive search
+    const lowercaseQuery = sanitizedQuery.toLowerCase();
+
     // Create a regex pattern that matches usernames starting with the query
     // The ^ anchor ensures matching from the start of the string
-    const regex = new RegExp(`^${sanitizedQuery}`, "i");
+    // The 'i' flag makes it case-insensitive, but we're additionally using toLowerCase for consistency
+    const regex = new RegExp(`^${lowercaseQuery}`);
 
     // Perform a prefix search for usernames
     const users = await User.find({
@@ -946,6 +973,135 @@ export const rejectConnectionRequest = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to reject connection request",
+      error: error.message,
+    });
+  }
+};
+
+// Check if a username is available
+export const checkUsernameAvailability = async (req, res) => {
+  try {
+    const { username } = req.params;
+
+    if (!username) {
+      return res.status(400).json({
+        success: false,
+        message: "Username parameter is required",
+      });
+    }
+
+    // Validate username length
+    if (username.length < 3) {
+      return res.status(400).json({
+        success: false,
+        message: "Username must be at least 3 characters long",
+        available: false,
+      });
+    }
+
+    // Convert username to lowercase for checking
+    const lowercaseUsername = username.toLowerCase();
+
+    // Check if username exists in database (case insensitive)
+    const existingUser = await User.findOne({ username: lowercaseUsername });
+
+    res.status(200).json({
+      success: true,
+      available: !existingUser,
+      message: existingUser
+        ? "Username is already taken"
+        : "Username is available",
+    });
+  } catch (error) {
+    console.error("Error checking username availability:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to check username availability",
+      error: error.message,
+    });
+  }
+};
+
+// Check if a phone number is available
+export const checkPhoneAvailability = async (req, res) => {
+  try {
+    const { phoneNumber } = req.params;
+
+    if (!phoneNumber) {
+      return res.status(400).json({
+        success: false,
+        message: "Phone number parameter is required",
+      });
+    }
+
+    // Format the phone number for checking
+    // Add the "+" if not already present
+    const formattedPhoneNumber = phoneNumber.startsWith("+")
+      ? phoneNumber
+      : `+${phoneNumber}`;
+
+    // Check if phone number exists in database
+    const existingUser = await User.findOne({
+      phoneNumber: formattedPhoneNumber,
+    });
+
+    res.status(200).json({
+      success: true,
+      available: !existingUser,
+      message: existingUser
+        ? "An account is already registered with this phone number"
+        : "Phone number is available",
+    });
+  } catch (error) {
+    console.error("Error checking phone number availability:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to check phone number availability",
+      error: error.message,
+    });
+  }
+};
+
+// Check if an email is available
+export const checkEmailAvailability = async (req, res) => {
+  try {
+    const { email } = req.params;
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: "Email parameter is required",
+      });
+    }
+
+    // Convert email to lowercase for checking
+    const lowercaseEmail = email.toLowerCase();
+
+    // Validate email format
+    const emailRegex = /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/;
+    if (!emailRegex.test(lowercaseEmail)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid email format",
+        available: false,
+      });
+    }
+
+    // Check if email exists in database
+    const existingUser = await User.findOne({ email: lowercaseEmail });
+
+    res.status(200).json({
+      success: true,
+      available: !existingUser,
+      message: existingUser
+        ? "Email is already in use by another account"
+        : "Email is available",
+    });
+  } catch (error) {
+    console.error("Error checking email availability:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to check email availability",
       error: error.message,
     });
   }
