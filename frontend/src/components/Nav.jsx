@@ -426,6 +426,7 @@ const Notifications = ({ isOpen, onClose }) => {
 
 const Nav = () => {
   const [activeSlider, setActiveSlider] = useState(null); // 'search' or 'notifications'
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false); // State for mobile menu
   const [activeItem, setActiveItem] = useState(() => {
     // Determine active item based on current path
     const path = window.location.pathname;
@@ -441,7 +442,7 @@ const Nav = () => {
         method: "POST",
         credentials: "include", // Include cookies if used
       });
-      localStorage.removeItem("user"); // Clear user data from local storage
+      localStorage.removeItem("token"); // Changed "user" to "token"
       alert("Signed out successfully!");
       window.location.href = "/login"; // Redirect to login page
     } catch (error) {
@@ -450,15 +451,56 @@ const Nav = () => {
     }
   };
 
+  const handleMenuItemClick = (item) => {
+    setActiveItem(item);
+    setIsMobileMenuOpen(false); // Close mobile menu on item click
+  };
+
+  const handleSliderToggle = (sliderName) => {
+    setActiveSlider(sliderName);
+    setActiveItem(sliderName); // Set active item to match slider
+    setIsMobileMenuOpen(false); // Close mobile menu when a slider opens
+  };
+  
+  const closeMobileMenu = () => setIsMobileMenuOpen(false);
+
   return (
     <>
+      {/* Hamburger Button - visible only on small screens */}
+      <button
+        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+        className="sm:hidden fixed top-4 left-4 z-50 p-2 rounded-md text-gray-700 bg-white shadow-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-purple-500"
+        aria-label="Open sidebar"
+      >
+        {isMobileMenuOpen ? (
+          <svg className="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        ) : (
+          <svg className="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        )}
+      </button>
+
+      {/* Overlay for mobile menu */}
+      {isMobileMenuOpen && (
+        <div
+          className="sm:hidden fixed inset-0 bg-black bg-opacity-50 z-30"
+          onClick={closeMobileMenu}
+          aria-hidden="true"
+        ></div>
+      )}
+
       {/* Sidebar */}
       <aside
         id="default-sidebar"
-        className="fixed top-0 left-0 z-40 w-64 h-screen transition-transform -translate-x-full sm:translate-x-0 shadow-lg"
+        className={`fixed top-0 left-0 z-40 w-64 h-screen bg-white shadow-lg transition-transform duration-300 ease-in-out 
+                   ${isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"} 
+                   sm:translate-x-0 sm:shadow-lg`}
         aria-label="Sidebar"
       >
-        <div className="h-full flex flex-col overflow-y-auto bg-white">
+        <div className="h-full flex flex-col overflow-y-auto">
           {/* Gradient header */}
           <div className="grad p-5 pb-6 text-white rounded-b-xl mb-2 shadow-md">
             <h2 className="text-2xl font-bold font-handsome tracking-wide">
@@ -476,7 +518,7 @@ const Nav = () => {
                     ? "grad text-white shadow-md"
                     : "text-gray-700 hover:bg-gradient-to-r hover:from-purple-50 hover:to-red-50"
                 }`}
-                onClick={() => setActiveItem("profile")}
+                onClick={() => handleMenuItemClick("profile")}
               >
                 <svg
                   className={`w-5 h-5 ${
@@ -506,7 +548,7 @@ const Nav = () => {
                     ? "grad text-white shadow-md"
                     : "text-gray-700 hover:bg-gradient-to-r hover:from-purple-50 hover:to-red-50"
                 }`}
-                onClick={() => setActiveItem("home")}
+                onClick={() => handleMenuItemClick("home")}
               >
                 <svg
                   className={`w-5 h-5 ${
@@ -530,10 +572,7 @@ const Nav = () => {
             </li>
             <li>
               <button
-                onClick={() => {
-                  setActiveSlider("search");
-                  setActiveItem("search");
-                }}
+                onClick={() => handleSliderToggle("search")}
                 className={`w-full flex items-center p-3 rounded-lg transition-all duration-200 cursor-pointer ${
                   activeItem === "search"
                     ? "grad text-white shadow-md"
@@ -560,7 +599,7 @@ const Nav = () => {
                 <span className="ms-3 font-medium">Search</span>
               </button>
             </li>
-            <li>
+            <li className="hidden md:block">
               <Link
                 to="/messages"
                 className={`flex items-center p-3 rounded-lg transition-all duration-200 cursor-pointer ${
@@ -568,7 +607,7 @@ const Nav = () => {
                     ? "grad text-white shadow-md"
                     : "text-gray-700 hover:bg-gradient-to-r hover:from-purple-50 hover:to-red-50"
                 }`}
-                onClick={() => setActiveItem("messages")}
+                onClick={() => handleMenuItemClick("messages")}
               >
                 <svg
                   className={`w-5 h-5 ${
@@ -594,10 +633,7 @@ const Nav = () => {
             {/* Notifications Button */}
             <li>
               <button
-                onClick={() => {
-                  setActiveSlider("notifications");
-                  setActiveItem("notifications");
-                }}
+                onClick={() => handleSliderToggle("notifications")}
                 className={`w-full flex items-center p-3 rounded-lg transition-all duration-200 cursor-pointer ${
                   activeItem === "notifications"
                     ? "grad text-white shadow-md"
@@ -630,7 +666,10 @@ const Nav = () => {
 
           <div className="mt-auto p-3">
             <button
-              onClick={handleSignout}
+              onClick={() => {
+                handleSignout();
+                closeMobileMenu(); // Close menu on signout
+              }}
               className="w-full flex items-center p-3 rounded-lg text-gray-700 hover:bg-gradient-to-r hover:from-purple-50 hover:to-red-50 transition-all duration-200 cursor-pointer"
             >
               <svg

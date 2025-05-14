@@ -56,9 +56,9 @@ const SearchSlider = ({ isOpen, onClose }) => {
 
   return (
     <div
-      className={`fixed top-0 right-0 h-full w-1/4 bg-white shadow-lg transform ${
+      className={`fixed top-0 right-0 h-full bg-white shadow-lg transform ${
         isOpen ? "translate-x-0" : "translate-x-full"
-      } transition-transform duration-300 z-50`}
+      } transition-transform duration-300 z-50 w-full sm:w-96 md:w-1/3 lg:w-1/4`}
     >
       {/* Header */}
       <div className="p-4 border-b flex justify-between items-center">
@@ -71,27 +71,29 @@ const SearchSlider = ({ isOpen, onClose }) => {
         </button>
       </div>
 
-      {/* Search Input */}
+      {/* Search Input Wrapper with Gradient */}
       <div className="p-4">
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search for accounts..."
-          className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:grad"
-        />
+        <div className="grad p-0.5 rounded-lg shadow-sm">
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search for accounts..."
+            className="w-full px-4 py-2 border-transparent rounded-md focus:outline-none focus:ring-0 text-white placeholder-white bg-transparent"
+          />
+        </div>
       </div>
 
       {/* Search Results */}
-      <div className="p-4">
+      <div className="p-4 overflow-y-auto" style={{maxHeight: 'calc(100vh - 160px)'}}> {/* Adjust 160px based on header/input height */}
         {loading ? (
           <p className="text-center py-4">Loading...</p>
         ) : results.length > 0 ? (
-          <ul className="bg-white shadow-md rounded-lg">
+          <ul className="bg-white divide-y divide-gray-200 rounded-lg border border-gray-200">
             {results.map((account) => (
               <li
                 key={account._id}
-                className="p-4 border-b last:border-b-0 hover:bg-gray-100 cursor-pointer"
+                className="p-3 hover:bg-gray-50 cursor-pointer transition-colors duration-150"
                 onClick={() => handleProfileClick(account._id)}
               >
                 <div className="flex items-center gap-3">
@@ -100,21 +102,21 @@ const SearchSlider = ({ isOpen, onClose }) => {
                       account.profilePicture ||
                       generatePlaceholderAvatar(account.username)
                     }
-                    alt="Profile"
-                    className="w-10 h-10 rounded-full object-cover"
+                    alt={account.username || "Profile"}
+                    className="w-10 h-10 rounded-full object-cover bg-gray-200"
                     onError={(e) => handleImageError(e, account.username)}
                   />
                   <div>
-                    <p className="font-bold">{account.username}</p>
-                    <p className="text-sm text-gray-600">{account.email}</p>
+                    <p className="font-semibold text-gray-800">{account.username}</p>
+                    <p className="text-sm text-gray-500">{account.email}</p>
                   </div>
                 </div>
               </li>
             ))}
           </ul>
         ) : (
-          <p className="text-gray-500 text-center">
-            {searchQuery
+          <p className="text-gray-500 text-center py-4">
+            {searchQuery.trim()
               ? "No results found."
               : "Start typing to search for accounts."}
           </p>
