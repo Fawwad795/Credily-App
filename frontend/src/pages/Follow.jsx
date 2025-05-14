@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Nav from "../components/Nav"; // Adjust the path to your Nav component
+import PostCard from "../components/PostCard"; // Import PostCard component
 
 const Follow = () => {
   const { id } = useParams(); // Get the user ID from URL params
@@ -10,6 +11,7 @@ const Follow = () => {
   const [followersCount, setFollowersCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
   const [postsCount, setPostsCount] = useState(0);
+  const [userPosts, setUserPosts] = useState([]); // Add state for user posts
   const [reviewContent, setReviewContent] = useState("");
   const [rating, setRating] = useState(5);
   const [reviewError, setReviewError] = useState("");
@@ -161,26 +163,77 @@ const Follow = () => {
   // Fetch connection counts
   const fetchConnectionsCount = useCallback(async () => {
     try {
-      // Get total connections count using the available endpoint
-      const response = await fetch(`/api/users/${id}/connections`);
+      const token = localStorage.getItem("token");
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
-      if (response.ok) {
-        const data = await response.json();
-        // Use the totalConnections as our followers count for now
-        if (data.success && data.data) {
-          setFollowersCount(data.data.totalConnections || 0);
+      // Fetch followers count
+      const followersResponse = await fetch(`/api/users/${id}/connections`, {
+        headers,
+      });
+
+      if (followersResponse.ok) {
+        const followersData = await followersResponse.json();
+        if (followersData.success && followersData.data) {
+          setFollowersCount(followersData.data.totalConnections || 0);
         }
       }
 
-      // For now, set some dummy values for following and posts
-      // In a real app, you'd have endpoints for these counts
-      setFollowingCount(120);
-      setPostsCount(50);
+      // Fetch following count using the new endpoint
+      const followingResponse = await fetch(`/api/users/${id}/following`, {
+        headers,
+      });
+
+      if (followingResponse.ok) {
+        const followingData = await followingResponse.json();
+        if (followingData.success && followingData.data) {
+          setFollowingCount(followingData.data.totalFollowing || 0);
+        } else {
+          // If data structure is unexpected
+          console.error("Invalid following data structure", followingData);
+          setFollowingCount(0);
+        }
+      } else {
+        // If endpoint returns an error
+        console.error("Failed to fetch following count");
+        setFollowingCount(0);
+      }
     } catch (error) {
       console.error("Error fetching connection counts:", error);
       // Fallback values
       setFollowersCount(0);
       setFollowingCount(0);
+    }
+  }, [id]);
+
+  // Function to fetch user posts
+  const fetchUserPosts = useCallback(async () => {
+    try {
+      const token = localStorage.getItem("token");
+
+      // Use the same endpoint as Profile page
+      const response = await fetch(`/api/posts/userposts`, {
+        method: "POST",
+        headers: {
+          Authorization: token ? `Bearer ${token}` : "",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ userId: id }),
+      });
+
+      const postsData = await response.json();
+
+      if (postsData.success) {
+        console.log("User posts:", postsData.data);
+        setUserPosts(postsData.data || []);
+        setPostsCount(postsData.data ? postsData.data.length : 0);
+      } else {
+        console.error("Failed to fetch user posts:", postsData.message);
+        setUserPosts([]);
+        setPostsCount(0);
+      }
+    } catch (error) {
+      console.error("Error fetching user posts:", error);
+      setUserPosts([]);
       setPostsCount(0);
     }
   }, [id]);
@@ -192,6 +245,7 @@ const Follow = () => {
       checkConnectionStatus();
       fetchConnectionsCount();
       checkPendingRequest();
+      fetchUserPosts(); // Add this to directly fetch posts
     }
   }, [
     id,
@@ -199,6 +253,7 @@ const Follow = () => {
     checkConnectionStatus,
     fetchConnectionsCount,
     checkPendingRequest,
+    fetchUserPosts,
   ]);
 
   const handleFollow = async () => {
@@ -436,15 +491,15 @@ const Follow = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex">
-      {/* Navbar */}
+    <div className="min-h-screen bg-gray-50">
+      {/* Navigation on the side */}
       <Nav />
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col items-center">
+      {/* Main Content - adjusted to not overlap with Nav */}
+      <div className="sm:ml-64 min-h-screen">
         {/* Profile Header */}
         <div className="w-full bg-black text-white py-8 flex flex-col items-center">
-          <div className="w-24 h-24 rounded-full bg-gray-300 mb-4">
+          <div className="w-24 h-24 rounded-full bg-gray-300 mb-4 overflow-hidden ring-4 ring-purple-500 ring-gradient">
             {userData.profilePicture ? (
               <img
                 src={userData.profilePicture}
@@ -476,155 +531,200 @@ const Follow = () => {
           </p>
         </div>
 
-        {/* Profile Info */}
-        <div className="bg-white shadow-lg rounded-lg mt-4 p-6 w-11/12 max-w-4xl">
-          <div className="flex justify-between items-center">
-            <div>
-              <h2 className="text-xl font-bold">
-                {userData.username || "User"}
-              </h2>
-              <p className="text-gray-600">
-                {userData.bio || "No bio available"}
-              </p>
-              <p className="text-gray-500">
-                <span role="img" aria-label="Location">
-                  📍
-                </span>{" "}
-                {userData.location && typeof userData.location === "object"
-                  ? `${userData.location.city ? userData.location.city : ""}${
-                      userData.location.city && userData.location.country
-                        ? ", "
-                        : ""
-                    }${
-                      userData.location.country ? userData.location.country : ""
-                    }`
-                  : userData.location || "Location not specified"}
-              </p>
-            </div>
-            <div className="flex space-x-4">
-              <button
-                onClick={handleFollow}
-                className={`px-6 py-2 rounded-lg font-medium ${getFollowButtonClass()}`}
-              >
-                {getFollowButtonText()}
-              </button>
-              <button
-                className="px-6 py-2 rounded-lg bg-green-500 text-white hover:bg-green-600 font-medium"
-                onClick={handleMessageClick}
-              >
-                Message
-              </button>
-            </div>
-          </div>
-
-          {/* Stats */}
-          <div className="flex justify-around mt-6">
-            <div className="text-center">
-              <h3 className="text-xl font-bold">{followersCount}</h3>
-              <p className="text-gray-600">Followers</p>
-            </div>
-            <div className="text-center">
-              <h3 className="text-xl font-bold">{followingCount}</h3>
-              <p className="text-gray-600">Following</p>
-            </div>
-            <div className="text-center">
-              <h3 className="text-xl font-bold">{postsCount}</h3>
-              <p className="text-gray-600">Posts</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Conditional Sections based on Follow Status */}
-        {isFollowing ? (
-          <>
-            {/* Posts Section - Only show when following */}
-            <div className="bg-white shadow-lg rounded-lg mt-4 p-6 w-11/12 max-w-4xl">
-              <h3 className="text-lg font-bold mb-4">Posts</h3>
-              <p className="text-gray-600">
-                Here are the posts by this user...
-              </p>
-              {/* Replace with actual posts */}
-              <div className="grid grid-cols-3 gap-4 mt-4">
-                <div className="w-full h-32 bg-gray-300 rounded-lg"></div>
-                <div className="w-full h-32 bg-gray-300 rounded-lg"></div>
-                <div className="w-full h-32 bg-gray-300 rounded-lg"></div>
+        <div className="max-w-6xl mx-auto px-4 py-6">
+          {/* Profile Info */}
+          <div className="glass shadow-lg rounded-lg p-6 w-full">
+            <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+              <div>
+                <h2 className="text-xl font-bold">
+                  {userData.username || "User"}
+                </h2>
+                <p className="text-gray-600">
+                  {userData.bio || "No bio available"}
+                </p>
+                <p className="text-gray-500 mt-2">
+                  <span role="img" aria-label="Location" className="mr-1">
+                    📍
+                  </span>
+                  {userData.location && typeof userData.location === "object"
+                    ? `${userData.location.city ? userData.location.city : ""}${
+                        userData.location.city && userData.location.country
+                          ? ", "
+                          : ""
+                      }${
+                        userData.location.country
+                          ? userData.location.country
+                          : ""
+                      }`
+                    : userData.location || "Location not specified"}
+                </p>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <button
+                  onClick={handleFollow}
+                  className={`px-6 py-2 rounded-full font-medium ${getFollowButtonClass()}`}
+                >
+                  {getFollowButtonText()}
+                </button>
+                <button
+                  className="grad text-white px-6 py-2 rounded-full hover:shadow-lg font-medium transition-shadow"
+                  onClick={handleMessageClick}
+                >
+                  Message
+                </button>
               </div>
             </div>
 
-            {/* Leave a Review Section - Only show when following or have mutual connections */}
-            {canWriteReview() && (
-              <div className="bg-white shadow-lg rounded-lg mt-4 p-6 w-11/12 max-w-4xl">
-                <h3 className="text-lg font-bold mb-4">Leave a Review</h3>
+            {/* Stats */}
+            <div className="flex justify-around mt-8 p-4 bg-white rounded-lg shadow-sm">
+              <div className="text-center">
+                <h3 className="text-2xl font-bold">{followersCount}</h3>
+                <p className="text-gray-600">Followers</p>
+              </div>
+              <div className="text-center">
+                <h3 className="text-2xl font-bold">{followingCount}</h3>
+                <p className="text-gray-600">Following</p>
+              </div>
+              <div className="text-center">
+                <h3 className="text-2xl font-bold">{postsCount}</h3>
+                <p className="text-gray-600">Posts</p>
+              </div>
+            </div>
+          </div>
 
-                {connectionStatus.hasDirectConnection && (
-                  <div className="p-3 mb-4 bg-blue-100 rounded">
-                    <p>You are directly connected with this user.</p>
+          {/* Conditional Sections based on Follow Status */}
+          {isFollowing ? (
+            <>
+              {/* Posts Section - Only show when following */}
+              <div className="glass shadow-lg rounded-lg mt-6 p-6 w-full">
+                <h3 className="text-xl font-bold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-red-600">
+                  Posts
+                </h3>
+                {userPosts.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 mt-4">
+                    {userPosts.map((post, index) => (
+                      <div
+                        key={post._id || index}
+                        className="transform transition duration-300 hover:scale-[1.01]"
+                      >
+                        <PostCard
+                          authorId={post.author?._id || id}
+                          authorName={
+                            post.author?.username ||
+                            userData.username ||
+                            "Anonymous"
+                          }
+                          authorImage={
+                            post.author?.profilePicture ||
+                            userData.profilePicture ||
+                            `https://placehold.co/50/gray/white?text=${
+                              userData.username?.charAt(0) || "A"
+                            }`
+                          }
+                          postImage={
+                            post.media && post.media.length > 0
+                              ? post.media[0].url
+                              : "https://placehold.co/600x350/gray/white?text=No+Image"
+                          }
+                          postCaption={post.caption}
+                          comments={
+                            post.comments
+                              ? post.comments.map((comment) => comment.content)
+                              : []
+                          }
+                          postDate={post.createdAt}
+                          postId={post._id}
+                          likesCount={post.totalLikes || 0}
+                        />
+                      </div>
+                    ))}
                   </div>
-                )}
-
-                {connectionStatus.hasMutualConnections && (
-                  <div className="p-3 mb-4 bg-green-100 rounded">
-                    <p>
-                      You have {connectionStatus.mutualConnectionsCount} mutual
-                      connection(s) with this user.
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-gray-500">
+                      This user hasn't posted anything yet.
                     </p>
                   </div>
                 )}
-
-                {/* Rating Selection */}
-                <div className="mb-4">
-                  <label className="block text-gray-700 mb-2">Rating:</label>
-                  <div className="flex space-x-2">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <button
-                        key={star}
-                        onClick={() => setRating(star)}
-                        className={`text-2xl ${
-                          rating >= star ? "text-yellow-500" : "text-gray-300"
-                        }`}
-                      >
-                        ★
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Review Text Area */}
-                <textarea
-                  rows="4"
-                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-400"
-                  placeholder="Write your review here..."
-                  value={reviewContent}
-                  onChange={(e) => setReviewContent(e.target.value)}
-                ></textarea>
-
-                {/* Error Message */}
-                {reviewError && (
-                  <p className="text-red-500 mt-2">{reviewError}</p>
-                )}
-
-                {/* Success Message */}
-                {reviewSuccess && (
-                  <p className="text-green-500 mt-2">{reviewSuccess}</p>
-                )}
-
-                <button
-                  className="mt-4 bg-teal-500 text-white py-2 px-4 rounded-lg hover:bg-teal-600 transition duration-300 disabled:bg-gray-400"
-                  onClick={handleReviewSubmit}
-                  disabled={loading}
-                >
-                  {loading ? "Submitting..." : "Submit Review"}
-                </button>
               </div>
-            )}
-          </>
-        ) : (
-          <div className="bg-white shadow-lg rounded-lg mt-4 p-6 w-11/12 max-w-4xl">
-            <p className="text-gray-600 text-center">
-              Follow this user to see their posts and leave a review.
-            </p>
-          </div>
-        )}
+
+              {/* Leave a Review Section - Only show when following or have mutual connections */}
+              {canWriteReview() && (
+                <div className="glass shadow-lg rounded-lg mt-6 p-6 w-full">
+                  <h3 className="text-xl font-bold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-red-600">
+                    Leave a Review
+                  </h3>
+
+                  {connectionStatus.hasDirectConnection && (
+                    <div className="p-3 mb-4 bg-blue-50 rounded-lg border border-blue-200">
+                      <p>You are directly connected with this user.</p>
+                    </div>
+                  )}
+
+                  {connectionStatus.hasMutualConnections && (
+                    <div className="p-3 mb-4 bg-green-50 rounded-lg border border-green-200">
+                      <p>
+                        You have {connectionStatus.mutualConnectionsCount}{" "}
+                        mutual connection(s) with this user.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Rating Selection */}
+                  <div className="mb-4">
+                    <label className="block text-gray-700 mb-2">Rating:</label>
+                    <div className="flex space-x-2">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <button
+                          key={star}
+                          onClick={() => setRating(star)}
+                          className={`text-2xl ${
+                            rating >= star ? "text-yellow-500" : "text-gray-300"
+                          }`}
+                        >
+                          ★
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Review Text Area */}
+                  <textarea
+                    rows="4"
+                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400"
+                    placeholder="Write your review here..."
+                    value={reviewContent}
+                    onChange={(e) => setReviewContent(e.target.value)}
+                  ></textarea>
+
+                  {/* Error Message */}
+                  {reviewError && (
+                    <p className="text-red-500 mt-2">{reviewError}</p>
+                  )}
+
+                  {/* Success Message */}
+                  {reviewSuccess && (
+                    <p className="text-green-500 mt-2">{reviewSuccess}</p>
+                  )}
+
+                  <button
+                    className="mt-4 grad text-white py-2 px-6 rounded-full hover:shadow-lg transition-shadow disabled:opacity-70"
+                    onClick={handleReviewSubmit}
+                    disabled={loading}
+                  >
+                    {loading ? "Submitting..." : "Submit Review"}
+                  </button>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="glass shadow-lg rounded-lg mt-6 p-6 w-full text-center">
+              <p className="text-gray-600">
+                Follow this user to see their posts and leave a review.
+              </p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

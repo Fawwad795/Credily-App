@@ -520,9 +520,6 @@ const Nav = () => {
                 <span className="flex-1 ms-3 whitespace-nowrap text-gray-900">
                   Inbox
                 </span>
-                <span className="inline-flex items-center justify-center w-6 h-6 text-sm font-medium text-green-800 bg-green-200 rounded-full">
-                  3
-                </span>
               </Link>
             </li>
 
@@ -543,9 +540,6 @@ const Nav = () => {
                 </svg>
                 <span className="ms-3 whitespace-nowrap text-gray-900">
                   Notifications
-                </span>
-                <span className="inline-flex items-center justify-center w-6 h-6 text-sm font-medium text-green-800 bg-green-200 rounded-full">
-                  3
                 </span>
               </button>
             </li>

@@ -8,6 +8,7 @@ import {
   getTopUsers,
   updateLastActive,
   getTotalConnections,
+  getTotalFollowing,
   updateProfilePicture,
   updateWallpaperPicture,
   searchUsersByUsername,
@@ -23,6 +24,7 @@ import {
   checkUsernameAvailability,
   checkPhoneAvailability,
   checkEmailAvailability,
+  getSuggestedUsers,
 } from "../controllers/user.controller.js";
 import { authenticateUser, protect } from "../middleware/auth.middleware.js";
 
@@ -61,9 +63,11 @@ router.get("/connections/pending", protect, getPendingConnectionRequests);
 router.get("/connections/:userId/status", protect, checkConnectionStatus);
 router.get("/connections/:userId/pending", protect, checkPendingRequest);
 router.get("/:id/connections", getTotalConnections);
+router.get("/:id/following", getTotalFollowing);
 
 router.get("/search", protect, searchUsersByUsername);
 router.get("/top", getTopUsers);
+router.get("/suggested", protect, getSuggestedUsers);
 
 router.put("/last-active/:id", updateLastActive);
 

@@ -1188,3 +1188,84 @@ export const checkEmailAvailability = async (req, res) => {
     });
   }
 };
+
+// Get users not connected to the current user (for suggestions)
+export const getSuggestedUsers = async (req, res) => {
+  try {
+    const currentUserId = req.user._id;
+
+    // Find all connections for the current user (both outgoing and incoming)
+    const connections = await Connection.find({
+      $or: [{ requester: currentUserId }, { recipient: currentUserId }],
+    });
+
+    // Extract all user IDs that the current user is already connected with (or has pending requests)
+    const connectedUserIds = connections.map((conn) =>
+      String(conn.requester) === String(currentUserId)
+        ? conn.recipient
+        : conn.requester
+    );
+
+    // Add current user to the exclusion list
+    connectedUserIds.push(currentUserId);
+
+    // Find users that are not in the connected list, limit to 5
+    const suggestedUsers = await User.find(
+      { _id: { $nin: connectedUserIds } },
+      "username profilePicture" // Only return necessary fields
+    ).limit(5);
+
+    res.status(200).json({
+      success: true,
+      message: "Suggested users fetched successfully",
+      data: suggestedUsers,
+    });
+  } catch (error) {
+    console.error("Error fetching suggested users:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch suggested users",
+      error: error.message,
+    });
+  }
+};
+
+// Get total following (users that the specified user is following)
+export const getTotalFollowing = async (req, res) => {
+  try {
+    const userId = req.params.id;
+
+    // Find outgoing accepted connections (users that this user follows)
+    const connections = await Connection.find({
+      requester: userId,
+      status: "accepted",
+    });
+
+    // Count the total following
+    const totalFollowing = connections.length;
+
+    // Get the user IDs this user is following
+    const followingUserIds = connections.map((conn) => conn.recipient);
+
+    // Get the profile data for a few followed users (for UI display if needed)
+    const followingUsers = await User.find(
+      { _id: { $in: followingUserIds } },
+      { username: 1, firstName: 1, lastName: 1, profilePicture: 1 }
+    ).limit(5); // Limit to 5 for the avatar display
+
+    res.status(200).json({
+      success: true,
+      data: {
+        totalFollowing,
+        followingUsers,
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching total following:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch total following",
+      error: error.message,
+    });
+  }
+};
