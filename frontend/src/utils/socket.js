@@ -7,7 +7,7 @@ const BACKEND_URLS = [
   "http://localhost:8900"
 ];
 
-// Initialize with the first URL
+// Initialize with null - will be created in the function
 let socket = null;
 
 // Use more robust connection logic
@@ -20,19 +20,45 @@ const connectToSocketIO = () => {
   socket = io(primaryUrl, {
     transports: ['websocket', 'polling'],
     reconnection: true,
-    reconnectionAttempts: 5,
+    reconnectionAttempts: Infinity,
     reconnectionDelay: 1000,
-    timeout: 10000
+    reconnectionDelayMax: 5000,
+    timeout: 20000,
+    autoConnect: true,
+    forceNew: true,
+    extraHeaders: {
+      "Authorization": `Bearer ${localStorage.getItem('token')}`
+    }
   });
 
   // Set up event listeners
   socket.on('connect', () => {
     console.log(`Socket.IO connected successfully to ${primaryUrl} with ID:`, socket.id);
+    
+    // Automatically join rooms when connected
+    const userId = localStorage.getItem('userId');
+    const userEmail = localStorage.getItem('userEmail');
+    
+    if (userId) {
+      socket.emit('joinRoom', userId);
+      console.log(`Joined room for user ${userId}`);
+      
+      if (userEmail) {
+        socket.emit('addUser', {
+          userId,
+          userEmail
+        });
+        console.log(`Registered user data: ${userEmail} (${userId})`);
+      }
+      
+      // Register for messages
+      socket.emit('registerForNewMessages', userId);
+      console.log(`Registered for new messages for user ${userId}`);
+    }
   });
 
   socket.on('connect_error', (error) => {
     console.error(`Socket.IO connection error to ${primaryUrl}:`, error);
-    
     // Try alternative URLs if primary fails
     tryAlternativeUrls();
   });
@@ -42,8 +68,29 @@ const connectToSocketIO = () => {
     
     if (reason === 'io server disconnect' || reason === 'transport close') {
       // Server initiated disconnect or connection closed - try to reconnect
-      socket.connect();
+      setTimeout(() => {
+        console.log('Attempting to reconnect...');
+        socket.connect();
+      }, 1000);
     }
+  });
+
+  // Add error handling
+  socket.on('error', (error) => {
+    console.error('Socket.IO error:', error);
+  });
+
+  // Add debug events
+  socket.on('newMessage', (data) => {
+    console.log('DEBUG: Socket received newMessage event:', data);
+  });
+
+  socket.on('messageRead', (data) => {
+    console.log('DEBUG: Socket received messageRead event:', data);
+  });
+
+  socket.onAny((event, ...args) => {
+    console.log(`DEBUG: Socket event ${event} received:`, args);
   });
 
   return socket;
@@ -66,18 +113,48 @@ const tryAlternativeUrls = () => {
     socket = io(alternativeUrl, {
       transports: ['websocket', 'polling'],
       reconnection: true,
-      reconnectionAttempts: 3,
-      reconnectionDelay: 1000
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      timeout: 20000,
+      autoConnect: true,
+      forceNew: true,
+      extraHeaders: {
+        "Authorization": `Bearer ${localStorage.getItem('token')}`
+      }
     });
     
     socket.on('connect', () => {
       console.log(`Socket.IO connected successfully to alternative URL ${alternativeUrl} with ID:`, socket.id);
+      
+      // Automatically join rooms when connected
+      const userId = localStorage.getItem('userId');
+      const userEmail = localStorage.getItem('userEmail');
+      
+      if (userId) {
+        socket.emit('joinRoom', userId);
+        
+        if (userEmail) {
+          socket.emit('addUser', {
+            userId,
+            userEmail
+          });
+        }
+        
+        // Register for messages
+        socket.emit('registerForNewMessages', userId);
+      }
+      
       return; // Successfully connected
     });
     
     socket.on('connect_error', (error) => {
       console.error(`Socket.IO connection error to alternative URL ${alternativeUrl}:`, error);
       // Continue to next URL in the loop
+    });
+
+    socket.on('error', (error) => {
+      console.error('Socket.IO error:', error);
     });
   }
   
