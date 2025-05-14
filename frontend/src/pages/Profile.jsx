@@ -60,8 +60,12 @@ const samplePosts = [
 const Profile = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isWallpaperModalOpen, setIsWallpaperModalOpen] = useState(false);
+  const [isProfilePictureModalOpen, setIsProfilePictureModalOpen] =
+    useState(false);
+  const [isBioEditModalOpen, setIsBioEditModalOpen] = useState(false);
   const [profile, setProfile] = useState();
   const [connections, setConnections] = useState(0);
+  const [connectionUsers, setConnectionUsers] = useState([]);
   const [userPosts, setUserPosts] = useState([]);
   const [newPost, setNewPost] = useState({
     image: null,
@@ -73,6 +77,11 @@ const Profile = () => {
     imageFile: null,
   });
   const [profileWallpaper, setProfileWallpaper] = useState("");
+  const [profilePictureEdit, setProfilePictureEdit] = useState({
+    image: null,
+    imageFile: null,
+  });
+  const [editBio, setEditBio] = useState("");
 
   const location = useLocation();
   const user = location.state?.user;
@@ -139,6 +148,7 @@ const Profile = () => {
 
           if (connData.success) {
             setConnections(connData.data.totalConnections);
+            setConnectionUsers(connData.data.connectionUsers || []);
           }
         } catch (error) {
           console.error("Error fetching current user:", error);
@@ -172,6 +182,7 @@ const Profile = () => {
 
           if (connData.success) {
             setConnections(connData.data.totalConnections);
+            setConnectionUsers(connData.data.connectionUsers || []);
           } else {
             console.error(
               "Failed to fetch connections data:",
@@ -438,6 +449,176 @@ const Profile = () => {
     }
   };
 
+  // Function to handle profile picture change
+  const handleProfilePictureChange = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setProfilePictureEdit({
+        imageFile: file,
+        image: URL.createObjectURL(file),
+      });
+    }
+  };
+
+  // Function to submit profile picture change
+  const handleProfilePictureSubmit = async (event) => {
+    event.preventDefault();
+
+    let token =
+      localStorage.getItem("token") || localStorage.getItem("authToken");
+
+    if (!token) {
+      console.error("No authentication token found");
+      alert("Authentication required. Please log in again.");
+      return;
+    }
+
+    if (!token.startsWith("Bearer ")) {
+      token = `Bearer ${token}`;
+    }
+
+    try {
+      if (profilePictureEdit.imageFile) {
+        const formData = new FormData();
+        formData.append("profilePicture", profilePictureEdit.imageFile);
+
+        // Get user ID from token
+        const parseJwt = (token) => {
+          try {
+            const tokenContent = token.startsWith("Bearer ")
+              ? token.split(" ")[1]
+              : token;
+            return JSON.parse(atob(tokenContent.split(".")[1]));
+          } catch (error) {
+            console.error("Error parsing JWT token:", error);
+            return null;
+          }
+        };
+
+        const decodedToken = parseJwt(token);
+
+        if (!decodedToken || !decodedToken.id) {
+          console.error("Could not extract user ID from token");
+          alert("Authentication issue. Please log in again.");
+          return;
+        }
+
+        const userId = decodedToken.id;
+        console.log("Using userId for profile picture upload:", userId);
+
+        // Upload to cloudinary via the backend
+        const uploadResponse = await fetch(
+          `/api/uploads/profile-picture/${userId}`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: token,
+            },
+            body: formData,
+          }
+        );
+
+        const uploadData = await uploadResponse.json();
+
+        if (!uploadData.success) {
+          console.error(
+            "Failed to upload profile picture:",
+            uploadData.message
+          );
+          alert("Failed to upload profile picture. Please try again.");
+          return;
+        }
+
+        // Update the local profile state
+        setProfile({
+          ...profile,
+          profilePicture: uploadData.data.profilePicture,
+        });
+
+        // Close modal and reset form
+        setIsProfilePictureModalOpen(false);
+        setProfilePictureEdit({ image: null, imageFile: null });
+      }
+    } catch (error) {
+      console.error("Error updating profile picture:", error);
+      alert(
+        "Error updating profile picture. Please check your connection and try again."
+      );
+    }
+  };
+
+  // Function to handle bio update
+  const handleBioSubmit = async (event) => {
+    event.preventDefault();
+
+    let token =
+      localStorage.getItem("token") || localStorage.getItem("authToken");
+
+    if (!token) {
+      console.error("No authentication token found");
+      alert("Authentication required. Please log in again.");
+      return;
+    }
+
+    if (!token.startsWith("Bearer ")) {
+      token = `Bearer ${token}`;
+    }
+
+    try {
+      // Get user ID from token
+      const parseJwt = (token) => {
+        try {
+          const tokenContent = token.startsWith("Bearer ")
+            ? token.split(" ")[1]
+            : token;
+          return JSON.parse(atob(tokenContent.split(".")[1]));
+        } catch (error) {
+          console.error("Error parsing JWT token:", error);
+          return null;
+        }
+      };
+
+      const decodedToken = parseJwt(token);
+
+      if (!decodedToken || !decodedToken.id) {
+        console.error("Could not extract user ID from token");
+        alert("Authentication issue. Please log in again.");
+        return;
+      }
+
+      const userId = decodedToken.id;
+
+      const response = await fetch(`/api/users/profile/${userId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: token,
+        },
+        body: JSON.stringify({
+          bio: editBio,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to update bio");
+      }
+
+      // Update the local profile state
+      setProfile({
+        ...profile,
+        bio: editBio,
+      });
+
+      // Close modal and reset form
+      setIsBioEditModalOpen(false);
+    } catch (error) {
+      console.error("Error updating bio:", error);
+      alert("Failed to update bio. Please try again.");
+    }
+  };
+
   if (!profile) {
     return (
       <div className="flex justify-center items-center h-screen">
@@ -510,9 +691,9 @@ const Profile = () => {
             </button>
           </div>
 
-          <div className="relative px-6 py-4">
-            {/* Profile Picture */}
-            <div className="absolute -top-16 left-6 rounded-full border-4 border-white overflow-hidden">
+          <div className="relative px-6 py-3">
+            {/* Profile Picture with Edit Icon on Hover */}
+            <div className="absolute -top-16 left-6 rounded-full border-4 border-white overflow-hidden group">
               <img
                 src={
                   profile.profilePicture ||
@@ -529,34 +710,55 @@ const Profile = () => {
                   }`;
                 }}
               />
+              <div
+                className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                onClick={() => setIsProfilePictureModalOpen(true)}
+              >
+                <Camera size={24} className="text-white" />
+              </div>
             </div>
 
             {/* Profile Info - Below the avatar */}
-            <div className="mt-12">
-              <div className="flex items-center">
-                <h2 className="text-2xl font-bold text-gray-800">
+            <div className="mt-8">
+              <div className="flex items-center mb-0.5">
+                <h2 className="text-xl font-bold text-gray-800">
                   {profile.username}
                 </h2>
                 {profile.isVerified && (
                   <CheckCircle
-                    size={20}
+                    size={18}
                     className="ml-2 text-blue-600 fill-blue-600"
                   />
                 )}
               </div>
 
-              <p className="text-gray-700 mt-1 max-w-lg">
-                {profile.bio || "No bio provided"}
-              </p>
+              {/* Bio with Edit Icon on Hover */}
+              <div className="relative group">
+                <p className="text-gray-700 text-sm mt-0.5 mb-1 max-w-lg inline-block">
+                  {profile.bio || "No bio provided"}
+                </p>
+                <div
+                  className="inline-block ml-2 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer align-middle"
+                  onClick={() => {
+                    setEditBio(profile.bio || "");
+                    setIsBioEditModalOpen(true);
+                  }}
+                >
+                  <Pencil
+                    size={14}
+                    className="text-gray-500 hover:text-gray-700"
+                  />
+                </div>
+              </div>
 
-              <div className="flex items-center text-gray-600 mt-2">
+              <div className="flex items-center text-gray-600 mt-1">
                 <AtSign size={16} className="mr-1" />
                 <span className="mr-3">
                   {profile.email || "No email provided"}
                 </span>
               </div>
 
-              <div className="flex items-center text-gray-600 mt-2">
+              <div className="flex items-center text-gray-600 mt-1">
                 <MapPin size={16} className="mr-1" />
                 <span>
                   {profile.location &&
@@ -570,9 +772,42 @@ const Profile = () => {
                       }`
                     : "No location specified"}
                 </span>
-                <span className="mx-2 text-blue-600 font-medium cursor-pointer">
-                  · Connections {connections}
-                </span>
+                <div className="flex items-center ml-2">
+                  <span className="text-blue-600 font-medium cursor-pointer">
+                    · Connections {connections}
+                  </span>
+
+                  {/* Connection Avatars */}
+                  {connectionUsers.length > 0 && (
+                    <div className="flex -space-x-2 ml-2">
+                      {connectionUsers.map((user) => (
+                        <div
+                          key={user._id}
+                          className="w-6 h-6 rounded-full border border-white overflow-hidden"
+                          title={
+                            user.firstName && user.lastName
+                              ? `${user.firstName} ${user.lastName}`
+                              : user.username
+                          }
+                        >
+                          <img
+                            src={
+                              user.profilePicture ||
+                              "https://via.placeholder.com/100"
+                            }
+                            alt={user.username}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      ))}
+                      {connections > connectionUsers.length && (
+                        <div className="w-6 h-6 rounded-full border border-white bg-gray-200 flex items-center justify-center text-xs text-gray-600">
+                          +{connections - connectionUsers.length}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -787,6 +1022,158 @@ const Profile = () => {
                   }`}
                 >
                   Save Wallpaper
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Profile Picture Update Modal */}
+      {isProfilePictureModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6 relative">
+            {/* Close button */}
+            <button
+              onClick={() => {
+                setIsProfilePictureModalOpen(false);
+                setProfilePictureEdit({ image: null, imageFile: null });
+              }}
+              className="absolute top-3 right-3 text-gray-500 hover:text-gray-700"
+            >
+              <X size={20} />
+            </button>
+
+            <h3 className="text-xl font-bold text-gray-900 mb-4">
+              Update Profile Picture
+            </h3>
+
+            <form onSubmit={handleProfilePictureSubmit} className="space-y-4">
+              {/* Image Upload Area */}
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 flex flex-col items-center justify-center bg-gray-50">
+                {profilePictureEdit.image ? (
+                  <div className="relative w-full">
+                    <img
+                      src={profilePictureEdit.image}
+                      alt="Selected Profile"
+                      className="w-32 h-32 object-cover rounded-full mx-auto"
+                    />
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setProfilePictureEdit({
+                          ...profilePictureEdit,
+                          image: null,
+                          imageFile: null,
+                        })
+                      }
+                      className="absolute top-0 right-0 bg-white bg-opacity-70 rounded-full p-1 text-gray-700 hover:text-red-500"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <Camera size={40} className="text-gray-400 mb-2" />
+                    <p className="text-sm text-gray-500 mb-2">
+                      Upload profile photo
+                    </p>
+                    <p className="text-xs text-gray-400 mb-4">
+                      PNG, JPG or GIF (max. 5MB)
+                    </p>
+                    <label className="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium">
+                      Select Image
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleProfilePictureChange}
+                        className="hidden"
+                      />
+                    </label>
+                  </>
+                )}
+              </div>
+
+              {/* Submit Button */}
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsProfilePictureModalOpen(false);
+                    setProfilePictureEdit({ image: null, imageFile: null });
+                  }}
+                  className="mr-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={!profilePictureEdit.image}
+                  className={`px-4 py-2 text-sm font-medium text-white rounded-md ${
+                    profilePictureEdit.image
+                      ? "bg-blue-600 hover:bg-blue-700"
+                      : "bg-blue-400 cursor-not-allowed"
+                  }`}
+                >
+                  Save Profile Picture
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Bio Edit Modal */}
+      {isBioEditModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6 relative">
+            {/* Close button */}
+            <button
+              onClick={() => setIsBioEditModalOpen(false)}
+              className="absolute top-3 right-3 text-gray-500 hover:text-gray-700"
+            >
+              <X size={20} />
+            </button>
+
+            <h3 className="text-xl font-bold text-gray-900 mb-4">Edit Bio</h3>
+
+            <form onSubmit={handleBioSubmit} className="space-y-4">
+              {/* Bio Input */}
+              <div>
+                <label
+                  htmlFor="bio"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Bio
+                </label>
+                <textarea
+                  id="bio"
+                  rows="4"
+                  value={editBio}
+                  onChange={(e) => setEditBio(e.target.value)}
+                  placeholder="Tell us about yourself..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  maxLength="100"
+                ></textarea>
+                <p className="text-xs text-gray-500 text-right mt-1">
+                  {editBio.length}/100 characters
+                </p>
+              </div>
+
+              {/* Submit Button */}
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setIsBioEditModalOpen(false)}
+                  className="mr-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md"
+                >
+                  Save Bio
                 </button>
               </div>
             </form>

@@ -429,18 +429,33 @@ export const getTotalConnections = async (req, res) => {
   try {
     const userId = req.params.id;
 
-    // Count both incoming and outgoing accepted connections
-    const totalConnections = await Connection.countDocuments({
+    // Find both incoming and outgoing accepted connections
+    const connections = await Connection.find({
       $or: [
         { requester: userId, status: "accepted" },
         { recipient: userId, status: "accepted" },
       ],
     });
 
+    // Count the total connections
+    const totalConnections = connections.length;
+
+    // Get the user IDs of the connections (the other user in each connection)
+    const connectionUserIds = connections.map((conn) =>
+      conn.requester.toString() === userId ? conn.recipient : conn.requester
+    );
+
+    // Get the profile data for each connected user
+    const connectionUsers = await User.find(
+      { _id: { $in: connectionUserIds } },
+      { username: 1, firstName: 1, lastName: 1, profilePicture: 1 }
+    ).limit(5); // Limit to 5 for the avatar display
+
     res.status(200).json({
       success: true,
       data: {
         totalConnections,
+        connectionUsers,
       },
     });
   } catch (error) {
