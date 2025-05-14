@@ -1,13 +1,40 @@
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import SearchSlider from "../pages/SearchPage";
 import "../index.css"; // Updated path to reference index.css in the src directory
-import { useState, useEffect } from "react";
 import api from "../utils/axios";
+import NotificationBadge from "./NotificationBadge";
+import NavNotificationButton from "./NavNotificationButton";
+
+// Loading Screen Component
+const LoadingScreen = ({ message }) => {
+  return (
+    <div className="fixed inset-0 bg-white bg-opacity-95 flex flex-col items-center justify-center z-50">
+      <div className="flex space-x-3 mb-5">
+        <div
+          className="w-4 h-4 rounded-full grad animate-bounce shadow-md"
+          style={{ animationDelay: "0ms" }}
+        ></div>
+        <div
+          className="w-4 h-4 rounded-full grad animate-bounce shadow-md"
+          style={{ animationDelay: "200ms" }}
+        ></div>
+        <div
+          className="w-4 h-4 rounded-full grad animate-bounce shadow-md"
+          style={{ animationDelay: "400ms" }}
+        ></div>
+      </div>
+      <p className="text-gray-700 font-medium text-lg">{message}</p>
+    </div>
+  );
+};
 
 const Notifications = ({ isOpen, onClose }) => {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [connectionStatuses, setConnectionStatuses] = useState({});
+  const [activeTab, setActiveTab] = useState("all");
 
   useEffect(() => {
     if (isOpen) {
@@ -37,6 +64,15 @@ const Notifications = ({ isOpen, onClose }) => {
         const notificationsData =
           response.data.data.notifications || response.data.data;
         setNotifications(notificationsData);
+
+        // Fetch connection statuses for all connection request notifications
+        const connectionRequestNotifs = notificationsData.filter(
+          (notification) => notification.type === "connection_request"
+        );
+
+        if (connectionRequestNotifs.length > 0) {
+          await fetchConnectionStatuses(connectionRequestNotifs);
+        }
       } else {
         setNotifications([]);
       }
@@ -46,6 +82,45 @@ const Notifications = ({ isOpen, onClose }) => {
       setError("Failed to load notifications");
     } finally {
       setLoading(false);
+    }
+  };
+
+  // New function to fetch connection statuses for connection requests
+  const fetchConnectionStatuses = async (connectionNotifs) => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+
+      const statuses = {};
+
+      // For each connection request notification, fetch the current status
+      for (const notification of connectionNotifs) {
+        if (notification.referenceId) {
+          try {
+            const response = await api.get(
+              `/users/connections/${notification.referenceId}`,
+              {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                },
+              }
+            );
+
+            if (response.data && response.data.success) {
+              statuses[notification.referenceId] = response.data.data.status;
+            }
+          } catch (error) {
+            console.error(
+              `Error fetching connection status for ${notification.referenceId}:`,
+              error
+            );
+          }
+        }
+      }
+
+      setConnectionStatuses(statuses);
+    } catch (error) {
+      console.error("Error fetching connection statuses:", error);
     }
   };
 
@@ -134,6 +209,20 @@ const Notifications = ({ isOpen, onClose }) => {
 
       if (!token) return;
 
+      // Find the original notification to get the username
+      const originalNotification = notifications.find(
+        (n) => n.referenceId === connectionId && n.type === "connection_request"
+      );
+
+      // Extract username from content (typically in format "username has sent you a connection request")
+      let usernameToInclude = "";
+      if (originalNotification && originalNotification.content) {
+        const contentParts = originalNotification.content.split(" has sent");
+        if (contentParts.length > 0) {
+          usernameToInclude = contentParts[0];
+        }
+      }
+
       const response = await api.put(
         `/users/connections/${connectionId}/accept`,
         {},
@@ -145,7 +234,13 @@ const Notifications = ({ isOpen, onClose }) => {
       );
 
       if (response.data && response.data.success) {
-        // Instead of removing the notification, update its type and content
+        // Update the connection status in state
+        setConnectionStatuses((prev) => ({
+          ...prev,
+          [connectionId]: "accepted",
+        }));
+
+        // Update the notification type
         setNotifications((prev) =>
           prev.map((notification) => {
             if (notification.referenceId === connectionId) {
@@ -153,13 +248,20 @@ const Notifications = ({ isOpen, onClose }) => {
                 ...notification,
                 type: "connection_accepted",
                 title: "Connection Accepted",
-                content: `You accepted the connection request.`,
+                content: usernameToInclude
+                  ? `You accepted ${usernameToInclude}'s connection request.`
+                  : `You accepted the connection request.`,
                 timestamp: new Date().toISOString(),
               };
             }
             return notification;
           })
         );
+
+        // Reload the notifications to get the latest status
+        setTimeout(() => {
+          fetchNotifications();
+        }, 500);
       }
     } catch (error) {
       console.error("Error accepting connection request:", error);
@@ -173,6 +275,20 @@ const Notifications = ({ isOpen, onClose }) => {
 
       if (!token) return;
 
+      // Find the original notification to get the username
+      const originalNotification = notifications.find(
+        (n) => n.referenceId === connectionId && n.type === "connection_request"
+      );
+
+      // Extract username from content (typically in format "username has sent you a connection request")
+      let usernameToInclude = "";
+      if (originalNotification && originalNotification.content) {
+        const contentParts = originalNotification.content.split(" has sent");
+        if (contentParts.length > 0) {
+          usernameToInclude = contentParts[0];
+        }
+      }
+
       // Use the dedicated reject endpoint
       const response = await api.put(
         `/users/connections/${connectionId}/reject`,
@@ -185,7 +301,13 @@ const Notifications = ({ isOpen, onClose }) => {
       );
 
       if (response.data && response.data.success) {
-        // Instead of removing the notification, update its type and content
+        // Update the connection status in state
+        setConnectionStatuses((prev) => ({
+          ...prev,
+          [connectionId]: "rejected",
+        }));
+
+        // Update the notification type
         setNotifications((prev) =>
           prev.map((notification) => {
             if (notification.referenceId === connectionId) {
@@ -193,13 +315,20 @@ const Notifications = ({ isOpen, onClose }) => {
                 ...notification,
                 type: "connection_rejected",
                 title: "Connection Rejected",
-                content: `You rejected the connection request.`,
+                content: usernameToInclude
+                  ? `You declined ${usernameToInclude}'s connection request.`
+                  : `You declined the connection request.`,
                 timestamp: new Date().toISOString(),
               };
             }
             return notification;
           })
         );
+
+        // Reload the notifications to get the latest status
+        setTimeout(() => {
+          fetchNotifications();
+        }, 500);
       }
     } catch (error) {
       console.error("Error rejecting connection request:", error);
@@ -209,15 +338,28 @@ const Notifications = ({ isOpen, onClose }) => {
 
   // Filter notifications by type - update to show all connection requests
   const connectionRequestNotifications = notifications.filter(
-    (notification) => notification.type === "connection_request"
+    (notification) =>
+      notification.type === "connection_request" &&
+      // Only include notifications where connection is still pending or status is unknown
+      (!notification.referenceId ||
+        !connectionStatuses[notification.referenceId] ||
+        connectionStatuses[notification.referenceId] === "pending")
   );
 
   const connectionAcceptedNotifications = notifications.filter(
-    (notification) => notification.type === "connection_accepted"
+    (notification) =>
+      notification.type === "connection_accepted" ||
+      (notification.type === "connection_request" &&
+        notification.referenceId &&
+        connectionStatuses[notification.referenceId] === "accepted")
   );
 
   const connectionRejectedNotifications = notifications.filter(
-    (notification) => notification.type === "connection_rejected"
+    (notification) =>
+      notification.type === "connection_rejected" ||
+      (notification.type === "connection_request" &&
+        notification.referenceId &&
+        connectionStatuses[notification.referenceId] === "rejected")
   );
 
   const otherNotifications = notifications.filter(
@@ -227,12 +369,24 @@ const Notifications = ({ isOpen, onClose }) => {
       notification.type !== "connection_rejected"
   );
 
+  // All notifications to display based on active tab
+  const displayedNotifications =
+    activeTab === "all"
+      ? notifications
+      : activeTab === "requests"
+      ? connectionRequestNotifications
+      : activeTab === "accepted"
+      ? connectionAcceptedNotifications
+      : activeTab === "other"
+      ? [...otherNotifications, ...connectionRejectedNotifications]
+      : [];
+
+  // Count unread notifications
+  const unreadCount = notifications.filter((n) => !n.isRead).length;
+
   // Debug log to check notification state
   console.log("Current notifications state:", notifications);
-  console.log(
-    "Connection request notifications:",
-    connectionRequestNotifications.map((n) => ({ id: n._id, isRead: n.isRead }))
-  );
+  console.log("Connection statuses:", connectionStatuses);
 
   // Add a function to manually mark a single notification as read
   const markNotificationAsRead = async (notificationId) => {
@@ -268,155 +422,416 @@ const Notifications = ({ isOpen, onClose }) => {
     }
   };
 
+  const refreshNotifications = () => {
+    fetchNotifications();
+  };
+
+  // Get the icon based on notification type
+  const getNotificationIcon = (notificationType) => {
+    switch (notificationType) {
+      case "connection_request":
+        return (
+          <div className="w-8 h-8 rounded-full flex items-center justify-center bg-blue-100 text-blue-600">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+              <circle cx="9" cy="7" r="4"></circle>
+              <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+            </svg>
+          </div>
+        );
+      case "connection_accepted":
+        return (
+          <div className="w-8 h-8 rounded-full flex items-center justify-center bg-green-100 text-green-600">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+              <polyline points="22 4 12 14.01 9 11.01"></polyline>
+            </svg>
+          </div>
+        );
+      case "connection_rejected":
+        return (
+          <div className="w-8 h-8 rounded-full flex items-center justify-center bg-red-100 text-red-600">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="15" y1="9" x2="9" y2="15"></line>
+              <line x1="9" y1="9" x2="15" y2="15"></line>
+            </svg>
+          </div>
+        );
+      case "message":
+        return (
+          <div className="w-8 h-8 rounded-full flex items-center justify-center bg-purple-100 text-purple-600">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            </svg>
+          </div>
+        );
+      default:
+        return (
+          <div className="w-8 h-8 rounded-full flex items-center justify-center bg-gray-100 text-gray-600">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="16" x2="12" y2="12"></line>
+              <line x1="12" y1="8" x2="12.01" y2="8"></line>
+            </svg>
+          </div>
+        );
+    }
+  };
+
   return (
     <div
-      className={`fixed top-0 right-0 h-full w-80 bg-white shadow-lg transform transition-transform duration-300 z-[101] pointer-events-auto ${
+      className={`fixed top-0 right-0 h-full w-80 bg-white shadow-xl transform transition-transform duration-300 z-[101] pointer-events-auto ${
         isOpen ? "translate-x-0" : "translate-x-full"
       }`}
       style={{ zIndex: 101 }}
     >
-      <div className="p-4 border-b flex justify-between items-center">
-        <h2 className="text-lg font-bold">Notifications</h2>
+      {/* Header with gradient */}
+      <div className="grad p-4 text-white flex justify-between items-center shadow-md">
+        <div>
+          <h2 className="text-lg font-bold flex items-center">
+            Notifications
+            {unreadCount > 0 && (
+              <span className="ml-2 bg-white text-blue-600 text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                {unreadCount}
+              </span>
+            )}
+          </h2>
+        </div>
+        <div className="flex items-center">
+          <button
+            onClick={refreshNotifications}
+            className="text-white hover:text-gray-200 mr-3"
+            title="Refresh"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M23 4v6h-6"></path>
+              <path d="M1 20v-6h6"></path>
+              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"></path>
+              <path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14"></path>
+            </svg>
+          </button>
+          <button
+            onClick={onClose}
+            className="text-white hover:text-gray-200"
+            title="Close"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      {/* Filter tabs */}
+      <div className="flex border-b text-sm">
         <button
-          onClick={onClose}
-          className="text-gray-500 hover:text-gray-700 cursor-pointer"
+          className={`flex-1 py-2 px-3 font-medium ${
+            activeTab === "all"
+              ? "text-blue-600 border-b-2 border-blue-600"
+              : "text-gray-600 hover:bg-gray-50"
+          }`}
+          onClick={() => setActiveTab("all")}
         >
-          Close
+          All
+        </button>
+        <button
+          className={`flex-1 py-2 px-3 font-medium flex items-center justify-center ${
+            activeTab === "requests"
+              ? "text-blue-600 border-b-2 border-blue-600"
+              : "text-gray-600 hover:bg-gray-50"
+          }`}
+          onClick={() => setActiveTab("requests")}
+        >
+          Requests
+          {connectionRequestNotifications.length > 0 && (
+            <span className="ml-1 bg-blue-100 text-blue-600 text-xs rounded-full h-5 w-5 flex items-center justify-center">
+              {connectionRequestNotifications.length}
+            </span>
+          )}
+        </button>
+        <button
+          className={`flex-1 py-2 px-3 font-medium ${
+            activeTab === "accepted"
+              ? "text-blue-600 border-b-2 border-blue-600"
+              : "text-gray-600 hover:bg-gray-50"
+          }`}
+          onClick={() => setActiveTab("accepted")}
+        >
+          Accepted
+        </button>
+        <button
+          className={`flex-1 py-2 px-3 font-medium ${
+            activeTab === "other"
+              ? "text-blue-600 border-b-2 border-blue-600"
+              : "text-gray-600 hover:bg-gray-50"
+          }`}
+          onClick={() => setActiveTab("other")}
+        >
+          Other
         </button>
       </div>
-      <div className="p-4 overflow-y-auto h-full">
+
+      <div className="overflow-y-auto h-[calc(100%-8rem)]">
         {loading ? (
-          <p>Loading notifications...</p>
+          <div className="flex flex-col items-center justify-center h-full">
+            <div className="flex space-x-2 mb-3">
+              <div
+                className="w-3 h-3 bg-blue-600 rounded-full animate-bounce"
+                style={{ animationDelay: "0s" }}
+              ></div>
+              <div
+                className="w-3 h-3 bg-blue-600 rounded-full animate-bounce"
+                style={{ animationDelay: "0.2s" }}
+              ></div>
+              <div
+                className="w-3 h-3 bg-blue-600 rounded-full animate-bounce"
+                style={{ animationDelay: "0.4s" }}
+              ></div>
+            </div>
+            <p className="text-gray-500 text-sm">Loading notifications...</p>
+          </div>
         ) : error ? (
-          <p className="text-red-500">{error}</p>
-        ) : notifications.length === 0 ? (
-          <p>No notifications yet.</p>
+          <div className="flex flex-col items-center justify-center h-full">
+            <div className="w-12 h-12 rounded-full flex items-center justify-center bg-red-100 text-red-500 mb-3">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="12"></line>
+                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+              </svg>
+            </div>
+            <p className="text-red-500">{error}</p>
+          </div>
+        ) : displayedNotifications.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full text-center p-6">
+            <div className="w-16 h-16 rounded-full flex items-center justify-center bg-gray-100 text-gray-400 mb-4">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="28"
+                height="28"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+              </svg>
+            </div>
+            <p className="text-gray-500 mb-1">No notifications to display</p>
+            <p className="text-gray-400 text-sm">You're all caught up!</p>
+          </div>
         ) : (
-          <div>
-            {/* Connection Request Notifications with Accept/Reject buttons */}
-            {connectionRequestNotifications.length > 0 && (
-              <div className="mb-6">
-                <h3 className="font-bold mb-2 text-green-800">
-                  Connection Requests
-                </h3>
-                <ul>
-                  {connectionRequestNotifications.map((notification) => (
-                    <li
-                      key={notification._id}
-                      className={`p-3 border rounded-lg mb-2 ${
-                        notification.isRead ? "bg-gray-50" : "bg-green-50"
-                      }`}
-                      onClick={() => markNotificationAsRead(notification._id)}
-                    >
-                      <h4 className="font-semibold">{notification.title}</h4>
-                      <p className="mb-2">{notification.content}</p>
-                      <div className="flex justify-between mt-2 pointer-events-auto">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleAcceptRequest(notification.referenceId);
-                          }}
-                          className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 relative z-[102] cursor-pointer"
-                        >
-                          Accept
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleRejectRequest(notification.referenceId);
-                          }}
-                          className="px-3 py-1 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 relative z-[102] cursor-pointer"
-                        >
-                          Reject
-                        </button>
-                      </div>
-                      <small className="text-gray-500 block mt-2">
-                        {new Date(notification.createdAt).toLocaleString()}
-                      </small>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
+          <div className="py-2">
+            {/* Notifications list */}
+            {displayedNotifications.map((notification) => (
+              <div
+                key={notification._id}
+                className={`p-3 mx-2 my-1.5 rounded-lg transition-all duration-200 ${
+                  notification.isRead ? "bg-white" : "bg-blue-50"
+                } hover:bg-gray-50 border border-gray-100 shadow-sm`}
+                onClick={() => markNotificationAsRead(notification._id)}
+              >
+                <div className="flex">
+                  {/* Icon based on notification type */}
+                  {getNotificationIcon(notification.type)}
 
-            {/* Connection Accepted Notifications */}
-            {connectionAcceptedNotifications.length > 0 && (
-              <div className="mb-6">
-                <h3 className="font-bold mb-2 text-green-800">
-                  Accepted Connections
-                </h3>
-                <ul>
-                  {connectionAcceptedNotifications.map((notification) => (
-                    <li
-                      key={notification._id}
-                      className={`p-3 border rounded-lg mb-2 ${
-                        notification.isRead ? "bg-gray-50" : "bg-green-100"
-                      }`}
-                    >
-                      <h4 className="font-semibold">{notification.title}</h4>
-                      <p className="mb-2">{notification.content}</p>
-                      <small className="text-gray-500 block mt-2">
+                  <div className="ml-3 flex-1">
+                    <h4 className="font-medium text-gray-900 text-sm">
+                      {notification.title}
+                      {!notification.isRead && (
+                        <span className="inline-block ml-2 w-2 h-2 rounded-full bg-blue-600"></span>
+                      )}
+                    </h4>
+                    <p className="text-gray-600 text-sm mt-0.5">
+                      {notification.content}
+                    </p>
+
+                    {/* Connection request action buttons */}
+                    {notification.type === "connection_request" &&
+                      (!notification.referenceId ||
+                        !connectionStatuses[notification.referenceId] ||
+                        connectionStatuses[notification.referenceId] ===
+                          "pending") && (
+                        <div className="flex space-x-2 mt-2.5">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleAcceptRequest(notification.referenceId);
+                            }}
+                            className="px-3 py-1.5 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white text-xs font-medium rounded shadow-sm flex-1 flex items-center justify-center"
+                          >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              width="12"
+                              height="12"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              className="mr-1"
+                            >
+                              <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            Accept
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRejectRequest(notification.referenceId);
+                            }}
+                            className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-medium rounded flex-1 flex items-center justify-center"
+                          >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              width="12"
+                              height="12"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              className="mr-1"
+                            >
+                              <line x1="18" y1="6" x2="6" y2="18"></line>
+                              <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                            Decline
+                          </button>
+                        </div>
+                      )}
+
+                    <div className="flex justify-between items-center mt-1.5">
+                      <small className="text-gray-400 text-xs">
                         {new Date(
                           notification.timestamp || notification.createdAt
-                        ).toLocaleString()}
+                        ).toLocaleString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                          hour: "numeric",
+                          minute: "numeric",
+                        })}
                       </small>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
 
-            {/* Connection Rejected Notifications */}
-            {connectionRejectedNotifications.length > 0 && (
-              <div className="mb-6">
-                <h3 className="font-bold mb-2 text-red-800">
-                  Rejected Connections
-                </h3>
-                <ul>
-                  {connectionRejectedNotifications.map((notification) => (
-                    <li
-                      key={notification._id}
-                      className={`p-3 border rounded-lg mb-2 ${
-                        notification.isRead ? "bg-gray-50" : "bg-red-50"
-                      }`}
-                    >
-                      <h4 className="font-semibold">{notification.title}</h4>
-                      <p className="mb-2">{notification.content}</p>
-                      <small className="text-gray-500 block mt-2">
-                        {new Date(
-                          notification.timestamp || notification.createdAt
-                        ).toLocaleString()}
-                      </small>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
+                      {notification.type === "connection_accepted" && (
+                        <span
+                          className={`text-xs px-2 py-0.5 rounded-full ${
+                            notification.content.includes("You accepted")
+                              ? "bg-gradient-to-r from-green-500 to-green-600 text-white font-medium"
+                              : "bg-green-50 text-green-600"
+                          }`}
+                        >
+                          {notification.content.includes("You accepted")
+                            ? "Accepted"
+                            : "Accepted"}
+                        </span>
+                      )}
 
-            {/* Other Notifications */}
-            {otherNotifications.length > 0 && (
-              <div>
-                <h3 className="font-bold mb-2 text-gray-800">
-                  Other Notifications
-                </h3>
-                <ul>
-                  {otherNotifications.map((notification) => (
-                    <li
-                      key={notification._id}
-                      className={`p-3 border rounded-lg mb-2 ${
-                        notification.isRead ? "bg-gray-50" : "bg-blue-50"
-                      }`}
-                    >
-                      <h4 className="font-semibold">{notification.title}</h4>
-                      <p>{notification.content}</p>
-                      <small className="text-gray-500 block mt-2">
-                        {new Date(notification.createdAt).toLocaleString()}
-                      </small>
-                    </li>
-                  ))}
-                </ul>
+                      {notification.type === "connection_rejected" && (
+                        <span
+                          className={`text-xs px-2 py-0.5 rounded-full ${
+                            notification.content.includes("You declined")
+                              ? "bg-gradient-to-r from-red-500 to-red-600 text-white font-medium"
+                              : "bg-red-50 text-red-600"
+                          }`}
+                        >
+                          {notification.content.includes("You declined")
+                            ? "Declined"
+                            : "Declined"}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
-            )}
+            ))}
           </div>
         )}
       </div>
@@ -437,7 +852,10 @@ const Nav = () => {
   });
 
   const handleSignout = async () => {
+    setIsLoading(true);
+
     try {
+      // Call the signout API
       await fetch("/api/users/signout", {
         method: "POST",
         credentials: "include", // Include cookies if used
@@ -447,7 +865,9 @@ const Nav = () => {
       window.location.href = "/login"; // Redirect to login page
     } catch (error) {
       console.error("Error signing out:", error);
-      alert("Failed to sign out. Please try again.");
+      setIsLoading(false);
+      // Show error in a non-modal way, such as toast notification
+      // For now just log to console
     }
   };
 
@@ -640,25 +1060,13 @@ const Nav = () => {
                     : "text-gray-700 hover:bg-gradient-to-r hover:from-purple-50 hover:to-red-50"
                 }`}
               >
-                <svg
-                  className={`w-5 h-5 ${
-                    activeItem === "notifications"
-                      ? "text-white"
-                      : "text-gray-500"
-                  } transition duration-75`}
-                  aria-hidden="true"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  strokeWidth="2"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
-                  />
-                </svg>
+                <NavNotificationButton
+                  isActive={activeItem === "notifications"}
+                  onClick={() => {
+                    setActiveSlider("notifications");
+                    setActiveItem("notifications");
+                  }}
+                />
                 <span className="ms-3 font-medium">Notifications</span>
               </button>
             </li>

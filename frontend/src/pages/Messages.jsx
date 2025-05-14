@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import api from "../utils/axios"; // Import the configured axios instance
 import Nav from "../components/Nav";
 import socket from "../utils/socket";
@@ -145,16 +145,207 @@ const MessagingPage = () => {
   }, [selectedChat]);
 
   // Function to fetch chats list
-  const fetchChatsList = async () => {
+  const fetchChatsList = useCallback(async () => {
     try {
+      console.log("Fetching chats list...");
       const chatsResponse = await api.get("/messages/conversations");
       if (chatsResponse.data && chatsResponse.data.success) {
-        setChats(chatsResponse.data.data);
+        console.log("Successfully fetched chats list:", chatsResponse.data.data);
+        
+        // Process and normalize the chat data
+        const formattedChats = chatsResponse.data.data.map(chat => {
+          // Extract key data from the chat object
+          const id = chat._id?.toString() || chat.id?.toString() || "";
+          const name = chat.user?.username || chat.name || "";
+          const email = chat.user?.email || chat.email || "";
+          const profilePicture = chat.user?.profilePicture || chat.profilePicture || "";
+          
+          // Extract and format the last message
+          let lastMessage = "";
+          if (chat.lastMessage?.content) {
+            lastMessage = chat.lastMessage.content;
+          } else if (typeof chat.lastMessage === 'string') {
+            lastMessage = chat.lastMessage;
+          }
+          
+          // Get proper timestamp
+          let timestamp = new Date();
+          if (chat.lastMessage?.createdAt) {
+            timestamp = new Date(chat.lastMessage.createdAt);
+          } else if (chat.timestamp) {
+            timestamp = new Date(chat.timestamp);
+          }
+          
+          // Count unread messages
+          const unreadCount = chat.unreadCount || 0;
+          
+          return {
+            id,
+            name,
+            email,
+            profilePicture,
+            lastMessage,
+            timestamp,
+            unreadCount
+          };
+        });
+        
+        // Sort chats by timestamp (most recent first)
+        formattedChats.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+        
+        console.log("Formatted chats list:", formattedChats);
+        
+        // Update state with new chats
+        setChats(formattedChats);
       }
     } catch (error) {
       console.error("Error fetching chat list:", error);
     }
-  };
+  }, []);
+
+  // Listen for messages and online users
+  useEffect(() => {
+    // Listen for online users
+    socket.on("getUsers", (users) => {
+      console.log("Online users received:", users);
+      if (Array.isArray(users)) {
+        setOnlineUsers(users);
+      }
+    });
+
+    // Listen for new messages (MongoDB format)
+    const handleNewMessage = (message) => {
+      console.log("New message received via socket:", message);
+      if (!message) return;
+
+      // Ignore messages with invalid format
+      if (!message.sender || !message.content) {
+        console.error("Invalid message format received:", message);
+        return;
+      }
+
+      // Extract sender and receiver IDs
+      const senderId = typeof message.sender === 'object' ? message.sender._id : message.sender;
+      const receiverId = typeof message.receiver === 'object' ? message.receiver._id : message.receiver;
+      
+      // Determine if current user is the sender
+      const isSentByMe = senderId === currentUser.id;
+      
+      // Determine the other user's ID (the one we're chatting with)
+      const otherUserId = isSentByMe ? receiverId : senderId;
+      
+      console.log("Message belongs to chat with:", {
+        senderId,
+        receiverId,
+        otherUserId,
+        currentUserId: currentUser.id,
+        selectedChatId: selectedChat?.id,
+        isSentByMe
+      });
+
+      // Format the message to match our expected structure
+      const formattedMessage = {
+        _id: message._id || Date.now().toString(),
+        content: message.content,
+        createdAt: message.createdAt || new Date().toISOString(),
+        isRead: message.isRead || false,
+        sender: {
+          _id: senderId,
+          isCurrentUser: isSentByMe
+        },
+        receiver: receiverId
+      };
+
+      // Add message to current chat if it belongs there
+      if (selectedChat && selectedChat.id === otherUserId) {
+        console.log("Adding message to current chat:", selectedChat.id);
+        
+        // Check if this message already exists to avoid duplicates
+        setMessages(prev => {
+          // Check if message already exists by ID
+          if (formattedMessage._id && prev.some(m => m._id === formattedMessage._id)) {
+            console.log("Message already exists in chat, skipping:", formattedMessage._id);
+            return prev;
+          }
+          
+          // Add new message to the list
+          return [...prev, formattedMessage];
+        });
+        
+        // Mark message as read if we're the receiver
+        if (!isSentByMe) {
+          socket.emit("markAsRead", {
+            messageId: formattedMessage._id,
+            chatId: selectedChat.id
+          });
+        }
+      } else if (!isSentByMe) {
+        // If received and not in current chat, increment unread count
+        setUnreadCount(prev => prev + 1);
+      }
+
+      // Update chat list to ensure most recent chat is at the top
+      setChats(prevChats => {
+        // Find if chat exists
+        const chatIndex = prevChats.findIndex(chat => 
+          chat.id === otherUserId
+        );
+        
+        // Create new chats array
+        const updatedChats = [...prevChats];
+
+        if (chatIndex >= 0) {
+          // Update existing chat
+          const existingChat = updatedChats[chatIndex];
+          
+          // Create updated version with new message
+          const updatedChat = {
+            ...existingChat,
+            lastMessage: formattedMessage.content,
+            timestamp: new Date().toISOString(), // Always use current time for sorting
+            unreadCount: !isSentByMe && (!selectedChat || selectedChat.id !== otherUserId)
+              ? (existingChat.unreadCount || 0) + 1
+              : existingChat.unreadCount || 0
+          };
+          
+          // Remove from current position
+          updatedChats.splice(chatIndex, 1);
+          
+          // Add to the beginning (most recent)
+          updatedChats.unshift(updatedChat);
+        } else {
+          // Chat doesn't exist, create new one (using sender info)
+          const senderInfo = typeof message.sender === 'object' ? message.sender : {};
+          const receiverInfo = typeof message.receiver === 'object' ? message.receiver : {};
+          const chatInfo = !isSentByMe ? senderInfo : receiverInfo;
+          
+          const newChat = {
+            id: otherUserId,
+            name: chatInfo.username || "User",
+            email: chatInfo.email || "",
+            profilePicture: chatInfo.profilePicture || "",
+            lastMessage: formattedMessage.content,
+            timestamp: new Date().toISOString(),
+            unreadCount: !isSentByMe ? 1 : 0
+          };
+          
+          // Add to the beginning
+          updatedChats.unshift(newChat);
+        }
+        
+        return updatedChats;
+      });
+    };
+    
+    // Listen for messages
+    socket.on("newMessage", handleNewMessage);
+    
+    // Cleanup
+    return () => {
+      socket.off("getUsers");
+      socket.off("newMessage", handleNewMessage);
+    };
+  }, [currentUser.id, selectedChat]);
 
   // Connect to socket and join user room
   useEffect(() => {
@@ -173,7 +364,13 @@ const MessagingPage = () => {
 
       // Connect with both ID and email immediately after connecting
       socket.emit("joinRoom", currentUser.id);
-      socket.emit("addUser", currentUser.email);
+      socket.emit("addUser", {
+        userId: currentUser.id,
+        userEmail: currentUser.email
+      });
+      
+      // Register for new messages
+      socket.emit("registerForNewMessages", currentUser.id);
     }
 
     function onDisconnect() {
@@ -188,7 +385,13 @@ const MessagingPage = () => {
       setIsConnected(true);
       // If already connected, join room
       socket.emit("joinRoom", currentUser.id);
-      socket.emit("addUser", currentUser.email);
+      socket.emit("addUser", {
+        userId: currentUser.id,
+        userEmail: currentUser.email
+      });
+      
+      // Register for new messages
+      socket.emit("registerForNewMessages", currentUser.id);
     }
 
     return () => {
@@ -203,144 +406,35 @@ const MessagingPage = () => {
     let interval;
 
     if (fallbackMode) {
-      // Set up polling for messages instead of relying on socket
+      // Set up polling for messages and chats instead of relying on socket
       interval = setInterval(() => {
-        // Fetch messages using REST API
-        fetchMessagesFromApi();
+        // Fetch messages using REST API if a chat is selected
+        if (selectedChat) {
+          fetchMessagesFromApi();
+        }
+        
+        // Always fetch latest chats to keep the list updated
+        fetchChatsList();
       }, 3000);
     }
 
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [fallbackMode, selectedChat, fetchMessagesFromApi]);
+  }, [fallbackMode, selectedChat, fetchMessagesFromApi, fetchChatsList]);
 
-  // Listen for messages and online users
+  // Modify the useEffect that fetches the chat list to always sort by timestamp
   useEffect(() => {
-    // Listen for online users
-    socket.on("getUsers", (users) => {
-      console.log("Online users:", users);
-      if (Array.isArray(users)) {
-        setOnlineUsers(users);
-      } else {
-        console.error("Received invalid users data:", users);
-        setOnlineUsers([]);
-      }
-    });
-
-    // Listen for messages - support both formats
-    socket.on("getMessage", (message) => {
-      console.log("Got message (MySQL format):", message);
-      if (!message) return;
-
-      const formattedMessage = {
-        id: message.messageId || Date.now().toString(),
-        sender: {
-          _id: message.senderEmail,
-          isCurrentUser: false,
-        },
-        content: message.text,
-        timestamp: message.timestamp || new Date(),
-        isRead: false,
-      };
-
-      // Add message to chat if selected, otherwise update unread count
-      if (selectedChat && selectedChat.email === message.senderEmail) {
-        setMessages((prev) => [...prev, formattedMessage]);
-      } else {
-        setUnreadCount((prev) => prev + 1);
-        // Update chat unread count
-        setChats((prevChats) => {
-          // Check if chat exists
-          const chatIndex = prevChats.findIndex(
-            (chat) => chat.email === message.senderEmail
-          );
-
-          if (chatIndex >= 0) {
-            // Update existing chat
-            const updatedChats = [...prevChats];
-            updatedChats[chatIndex] = {
-              ...updatedChats[chatIndex],
-              lastMessage: message.text,
-              timestamp: message.timestamp || new Date(),
-              unreadCount: (updatedChats[chatIndex].unreadCount || 0) + 1,
-            };
-            return updatedChats;
-          } else {
-            // Fetch chats to get the new one
-            fetchChatsList();
-            return prevChats;
-          }
-        });
-      }
-    });
-
-    // Listen for MongoDB format messages
-    socket.on("newMessage", (message) => {
-      if (!message) return;
-
-      console.log("Received new message:", message);
-
-      const formattedMessage = {
-        id: message._id,
-        content: message.content,
-        timestamp: message.createdAt || new Date().toISOString(),
-        isRead: message.isRead,
-        sender: {
-          _id: message.sender._id || message.sender,
-          isCurrentUser: message.sender.isCurrentUser,
-        },
-      };
-
-      console.log("Formatted new message:", formattedMessage);
-
-      if (selectedChat && selectedChat.id === formattedMessage.sender._id) {
-        setMessages((prev) => [...prev, formattedMessage]);
-      }
-
-      setChats((prevChats) => {
-        const chatIndex = prevChats.findIndex(
-          (chat) => chat.id === formattedMessage.sender._id
-        );
-
-        if (chatIndex >= 0) {
-          const updatedChats = [...prevChats];
-          updatedChats[chatIndex] = {
-            ...updatedChats[chatIndex],
-            lastMessage: message.content,
-            timestamp: message.createdAt || new Date().toISOString(),
-            unreadCount:
-              selectedChat && selectedChat.id === formattedMessage.sender._id
-                ? 0
-                : (updatedChats[chatIndex].unreadCount || 0) + 1,
-          };
-          return updatedChats;
-        } else {
-          fetchChatsList();
-          return prevChats;
-        }
-      });
-    });
-
-    socket.on("addUser", (socketId, email) => {
-      if (email && socketId) {
-        const user = getUserBySocketId(socketId);
-        console.log("User added to socket:", user);
-      }
-    });
-
-    return () => {
-      socket.off("getUsers");
-      socket.off("getMessage");
-      socket.off("newMessage");
-      socket.off("addUser");
-    };
-  }, [selectedChat]);
-
-  // Fetch chats - try MongoDB endpoint first, fall back to mock data
-  useEffect(() => {
+    // Initial fetch
     fetchChatsList();
-  }, []);
+    
+    // Set up polling for chat list at a reasonable interval
+    const interval = setInterval(() => {
+      fetchChatsList();
+    }, 10000); // Every 10 seconds
+    
+    return () => clearInterval(interval);
+  }, [fetchChatsList]);
 
   // Fetch unread message count
   useEffect(() => {
@@ -360,43 +454,6 @@ const MessagingPage = () => {
     fetchUnreadCount();
   }, []);
 
-  // Fetch messages for selected chat
-  useEffect(() => {
-    if (selectedChat) {
-      const fetchMessages = async () => {
-        try {
-          const response = await api.get(
-            `/messages/conversation/${selectedChat.id}`
-          );
-          if (response.data && response.data.success) {
-            console.log("Fetched messages:", response.data.data.messages);
-            const formattedMessages = response.data.data.messages.map(
-              (message) => ({
-                ...message,
-                sender: {
-                  _id: message.sender._id,
-                  isCurrentUser: message.sender.isCurrentUser,
-                },
-              })
-            );
-            setMessages(formattedMessages);
-          }
-        } catch (error) {
-          console.error("Error fetching messages:", error);
-        }
-      };
-
-      fetchMessages();
-
-      // Mark chat as read when selected
-      setChats((prevChats) =>
-        prevChats.map((chat) =>
-          chat.id === selectedChat.id ? { ...chat, unreadCount: 0 } : chat
-        )
-      );
-    }
-  }, [selectedChat, currentUser.id]);
-
   useEffect(() => {
     if (location.state && location.state.userId) {
       // Try to select the chat with this user
@@ -409,23 +466,95 @@ const MessagingPage = () => {
     }
   }, [location.state]);
 
+  // Fetch messages for selected chat
+  const fetchMessages = async (chatId) => {
+    if (!chatId) return;
+    
+    try {
+      console.log("Fetching messages for chat:", chatId);
+      const response = await api.get(`/messages/conversation/${chatId}`);
+      
+      if (response.data && response.data.success) {
+        console.log("Successfully fetched messages:", response.data.data.messages.length);
+        // Set messages from API response
+        setMessages(response.data.data.messages || []);
+        
+        // Mark messages as read
+        const unreadMessages = response.data.data.messages.filter(
+          msg => !msg.isRead && msg.sender._id !== currentUser.id
+        );
+        
+        if (unreadMessages.length > 0) {
+          console.log(`Marking ${unreadMessages.length} messages as read`);
+          unreadMessages.forEach(msg => {
+            socket.emit("markAsRead", {
+              messageId: msg._id,
+              chatId: chatId
+            });
+          });
+        }
+      } else {
+        console.error("Failed to fetch messages:", response.data);
+        setMessages([]);
+      }
+    } catch (error) {
+      console.error("Error fetching messages:", error);
+      setMessages([]);
+    }
+  };
+
   // Handle sending a message
   const handleSendMessage = async () => {
     if (!messageInput.trim() || !selectedChat) return;
 
+    // Create unique message ID for optimistic update
+    const tempMessageId = Date.now().toString();
+
+    // Format message with proper structure to match backend format
     const newMessage = {
-      id: Date.now().toString(),
+      _id: tempMessageId,
       content: messageInput,
-      timestamp: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
       isRead: false,
       sender: {
         _id: currentUser.id,
-        isCurrentUser: true,
+        isCurrentUser: true
       },
+      receiver: selectedChat.id
     };
 
-    setMessages((prev) => [...prev, newMessage]);
+    console.log("Adding optimistic message to UI:", newMessage);
+
+    // Optimistically update UI immediately - add to messages array
+    setMessages(prev => [...prev, newMessage]);
     setMessageInput("");
+
+    // Update chat list immediately - Always move chat to top on new message
+    setChats(prevChats => {
+      // Find the chat to update
+      const chatIndex = prevChats.findIndex(chat => chat.id === selectedChat.id);
+      
+      if (chatIndex === -1) return prevChats; // Chat not found
+      
+      // Create a copy of the chats array
+      const updatedChats = [...prevChats];
+      
+      // Update the chat with latest message details
+      const updatedChat = {
+        ...updatedChats[chatIndex],
+        lastMessage: messageInput,
+        timestamp: new Date().toISOString(),
+        unreadCount: 0, // Messages sent by current user are already read
+      };
+      
+      // Remove the chat from its current position
+      updatedChats.splice(chatIndex, 1);
+      
+      // Add it to the top of the list
+      updatedChats.unshift(updatedChat);
+      
+      return updatedChats;
+    });
 
     try {
       const response = await api.post("/messages", {
@@ -438,53 +567,54 @@ const MessagingPage = () => {
         const serverMessage = response.data.data;
         console.log("Server response for sent message:", serverMessage);
 
-        setMessages((prev) =>
-          prev.map((msg) =>
-            msg.id === newMessage.id
+        // Update message with server data
+        setMessages(prev =>
+          prev.map(msg =>
+            msg._id === tempMessageId
               ? {
                   ...msg,
-                  id: serverMessage._id,
-                  sender: {
-                    _id: serverMessage.sender._id || serverMessage.sender,
-                    isCurrentUser: true,
-                  },
-                  timestamp:
-                    serverMessage.createdAt || new Date().toISOString(),
+                  _id: serverMessage._id,
+                  createdAt: serverMessage.createdAt || new Date().toISOString(),
                 }
               : msg
           )
         );
-
-        setChats((prevChats) => {
-          const updatedChats = prevChats.map((chat) =>
-            chat.id === selectedChat.id
-              ? {
-                  ...chat,
-                  lastMessage: messageInput,
-                  timestamp: new Date().toISOString(),
-                }
-              : chat
-          );
-
-          const chatIndex = updatedChats.findIndex(
-            (chat) => chat.id === selectedChat.id
-          );
-          if (chatIndex > 0) {
-            const chatToMove = updatedChats.splice(chatIndex, 1)[0];
-            updatedChats.unshift(chatToMove);
-          }
-
-          return updatedChats;
-        });
       }
     } catch (error) {
       console.error("Error sending message:", error);
+      // Revert optimistic update on error
+      setMessages(prev => prev.filter(msg => msg._id !== tempMessageId));
     }
   };
 
   // Handle selecting a chat
   const handleSelectChat = (chat) => {
+    // Clear messages immediately to avoid showing old messages
+    setMessages([]);
+    
+    // Update the selected chat
     setSelectedChat(chat);
+    
+    // Reset unread count for this chat immediately
+    setChats(prevChats => {
+      return prevChats.map(c => 
+        c.id === chat.id 
+          ? { ...c, unreadCount: 0 } 
+          : c
+      );
+    });
+    
+    // Update the total unread count
+    setUnreadCount(prevCount => {
+      // Calculate the new total by subtracting this chat's unread count
+      const newTotal = Math.max(0, prevCount - (chat.unreadCount || 0));
+      return newTotal;
+    });
+    
+    // Fetch messages for this chat immediately
+    if (chat.id) {
+      fetchMessages(chat.id);
+    }
   };
 
   // Generate placeholder images for profiles
@@ -499,49 +629,204 @@ const MessagingPage = () => {
     e.target.src = generateProfilePlaceholder(name);
   };
 
-  const filteredChats = chats
-    .map((chat) => ({
-      id: chat.user?._id || chat._id || chat.id,
-      name: chat.user?.username || chat.user?.name || chat.name || "",
-      email: chat.user?.email || chat.email || "",
-      profilePicture: chat.user?.profilePicture || chat.profilePicture || "",
-      lastMessage: chat.lastMessage?.content || chat.lastMessage || "",
-      timestamp: chat.lastMessage?.createdAt || chat.timestamp || new Date(),
-      unreadCount: chat.unreadCount || 0,
-    }))
-    .filter(
-      (chat) =>
-        chat.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        chat.email.toLowerCase().includes(searchTerm.toLowerCase())
+  // Update the filteredChats calculation to maintain timestamp sorting
+  const filteredChats = useMemo(() => {
+    // First, convert any MongoDB dates to JS Date objects
+    const normalizedChats = chats.map(chat => ({
+      ...chat,
+      timestamp: new Date(chat.timestamp)
+    }));
+    
+    // Next, filter by search term
+    const filtered = normalizedChats.filter(chat => 
+      chat.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      chat.email.toLowerCase().includes(searchTerm.toLowerCase())
     );
+    
+    // Finally, sort by timestamp
+    return filtered.sort((a, b) => b.timestamp - a.timestamp);
+  }, [chats, searchTerm]);
 
-  // Sort chats by timestamp (most recent first)
-  const sortedChats = [...filteredChats].sort(
-    (a, b) => new Date(b.timestamp) - new Date(a.timestamp)
-  );
-
-  // Update the formatMessageTime function
+  // Format message time - for individual messages
   const formatMessageTime = (timestamp) => {
+    try {
+      // Check if timestamp is valid, handle both createdAt and timestamp formats
+      const date = new Date(timestamp);
+      if (isNaN(date.getTime())) {
+        console.error("Invalid timestamp:", timestamp);
+        return '';
+      }
+      
+      // Just return time in 12-hour format
+      return date.toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch (error) {
+      console.error('Error formatting message time:', error);
+      return '';
+    }
+  };
+  
+  // Format date - for date separators
+  const formatMessageDate = (timestamp) => {
     try {
       const date = new Date(timestamp);
       if (isNaN(date.getTime())) {
-        return new Date().toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        });
+        return '';
       }
-      return date.toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
+      
+      const today = new Date();
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
+      
+      // Check if it's today
+      if (date.toDateString() === today.toDateString()) {
+        return 'Today';
+      }
+      
+      // Check if it's yesterday
+      if (date.toDateString() === yesterday.toDateString()) {
+        return 'Yesterday';
+      }
+      
+      // Otherwise, return the full date
+      return date.toLocaleDateString([], {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
       });
     } catch (error) {
-      console.error("Error formatting date:", error);
-      return new Date().toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-      });
+      console.error('Error formatting message date:', error);
+      return '';
     }
   };
+  
+  // Format chat list timestamps
+  const formatChatTime = (timestamp) => {
+    try {
+      const date = new Date(timestamp);
+      if (isNaN(date.getTime())) {
+        return '';
+      }
+      
+      const today = new Date();
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
+      
+      // Check if it's today
+      if (date.toDateString() === today.toDateString()) {
+        return date.toLocaleTimeString([], {
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+      }
+      
+      // Check if it's yesterday
+      if (date.toDateString() === yesterday.toDateString()) {
+        return 'Yesterday';
+      }
+      
+      // If it's within the last week, show the day name
+      const oneWeekAgo = new Date(today);
+      oneWeekAgo.setDate(oneWeekAgo.getDate() - 6);
+      if (date >= oneWeekAgo) {
+        return date.toLocaleDateString([], { weekday: 'short' });
+      }
+      
+      // Otherwise, return the date
+      return date.toLocaleDateString([], {
+        month: 'numeric',
+        day: 'numeric'
+      });
+    } catch (error) {
+      console.error('Error formatting chat time:', error);
+      return '';
+    }
+  };
+
+  // Format message timestamps with more detail for hover
+  const formatFullMessageTime = (timestamp) => {
+    try {
+      // Check if timestamp is valid
+      const date = new Date(timestamp);
+      if (isNaN(date.getTime())) {
+        console.error("Invalid timestamp:", timestamp);
+        return "";
+      }
+      
+      // Format the full date and time
+      return date.toLocaleString([], {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch (error) {
+      console.error("Error formatting full date:", error);
+      return "";
+    }
+  };
+
+  // Listen for message delivery confirmations and update sent messages
+  useEffect(() => {
+    const handleMessageDelivery = (data) => {
+      console.log("Message delivery confirmation received:", data);
+      if (!data || !data.success) return;
+      
+      // If there's a specific messageId in the response, use that to update messages
+      if (data.messageId) {
+        setMessages(prev => {
+          const updatedMessages = prev.map(msg => {
+            // Find temporary messages by checking if ID is a timestamp (numeric string)
+            const isTemporaryMessage = typeof msg._id === 'string' && !isNaN(Number(msg._id));
+            if (isTemporaryMessage) {
+              console.log("Updating temporary message with server ID:", data.messageId);
+              return {
+                ...msg,
+                _id: data.messageId,
+                // Any other server-provided fields
+              };
+            }
+            return msg;
+          });
+          
+          return updatedMessages;
+        });
+      }
+    };
+    
+    socket.on("messageReceived", handleMessageDelivery);
+    
+    return () => {
+      socket.off("messageReceived", handleMessageDelivery);
+    };
+  }, []);
+
+  // Keep messages refreshed when in a chat
+  useEffect(() => {
+    // Only set up refresh if a chat is selected
+    if (!selectedChat) return;
+    
+    console.log("Setting up message refresh for chat:", selectedChat.id);
+    
+    // Initial fetch
+    fetchMessages(selectedChat.id);
+    
+    // Set up an interval to periodically check for new messages
+    const refreshInterval = setInterval(() => {
+      console.log("Refreshing messages for chat:", selectedChat.id);
+      fetchMessages(selectedChat.id);
+    }, 5000); // Check every 5 seconds
+    
+    // Clean up
+    return () => {
+      clearInterval(refreshInterval);
+    };
+  }, [selectedChat?.id]);
 
   return (
     <div className="flex h-screen bg-gray-100">
@@ -572,8 +857,9 @@ const MessagingPage = () => {
                 className="w-full px-3 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-300"
               />
             </div>
-            <ul>
-              {sortedChats.map((chat) => (
+            <ul className="divide-y divide-gray-100">
+              {/* Use filteredChats directly - they're already sorted */}
+              {filteredChats.map((chat) => (
                 <li
                   key={chat.id}
                   onClick={() => handleSelectChat(chat)}
@@ -585,35 +871,34 @@ const MessagingPage = () => {
                     <img
                       src={chat.profilePicture || "/default-profile.png"}
                       alt={chat.name}
-                      className="w-12 h-12 rounded-full"
+                      className="w-12 h-12 rounded-full object-cover border border-gray-200"
                       onError={(e) => handleImageError(e, chat.name)}
                     />
                     {onlineUsers.some(
                       (u) => u.userId === chat.id || u.email === chat.email
                     ) && (
-                      <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full"></span>
+                      <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border border-white"></span>
                     )}
                   </div>
-                  <div className="flex-1">
-                    <div className="flex justify-between">
-                      <span className="font-medium text-gray-700">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex justify-between items-start">
+                      <span className="font-medium text-gray-800 truncate max-w-[70%]">
                         {chat.name}
                       </span>
-                      <span className="text-xs text-gray-500">
-                        {new Date(chat.timestamp).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </span>
+                      <div className="flex items-center">
+                        <span className="text-xs text-gray-500 whitespace-nowrap">
+                          {formatChatTime(chat.timestamp)}
+                        </span>
+                        {chat.unreadCount > 0 && (
+                          <span className="ml-2 bg-red-500 text-white text-xs px-2 py-0.5 rounded-full min-w-[20px] text-center font-medium">
+                            {chat.unreadCount}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    <p className="text-sm text-gray-500 truncate">
+                    <p className={`text-sm mt-1 ${chat.unreadCount > 0 ? "font-medium text-gray-800" : "text-gray-500"} truncate`}>
                       {chat.lastMessage}
                     </p>
-                    {chat.unreadCount > 0 && (
-                      <span className="text-sm bg-red-500 text-white px-2 py-1 rounded-full">
-                        {chat.unreadCount}
-                      </span>
-                    )}
                   </div>
                 </li>
               ))}
@@ -646,48 +931,50 @@ const MessagingPage = () => {
 
                 {/* Messages */}
                 <div className="flex-1 p-4 overflow-y-auto bg-gray-50">
-                  <div className="flex flex-col space-y-2">
-                    {messages.map((message) => {
-                      console.log("Rendering message:", {
-                        messageId: message.id,
-                        sender: message.sender,
-                        isCurrentUser: message.sender.isCurrentUser,
-                        timestamp: message.timestamp,
-                      });
+                  <div className="flex flex-col space-y-3">
+                    {messages.length > 0 ? (
+                      messages.map((message, index) => {
+                        if (!message || !message.sender) {
+                          console.error("Invalid message format:", message);
+                          return null;
+                        }
 
-                      const isCurrentUser = message.sender.isCurrentUser;
-                      const formattedTime = formatMessageTime(
-                        message.timestamp
-                      );
+                        // Determine if current user is the sender
+                        const isCurrentUser = message.sender.isCurrentUser || 
+                                              (message.sender._id === currentUser.id);
 
-                      return (
-                        <div
-                          key={message.id}
-                          className={`flex w-full ${
-                            isCurrentUser ? "justify-end" : "justify-start"
-                          }`}
-                        >
+                        // Get timestamp from wherever it exists in the message object
+                        const messageTimestamp = message.createdAt || message.timestamp;
+
+                        return (
                           <div
-                            className={`max-w-[70%] px-4 py-2 rounded-2xl ${
-                              isCurrentUser
-                                ? "bg-red-300 text-gray-800 rounded-tr-none"
-                                : "bg-purple-200 text-black rounded-tl-none shadow-sm"
+                            key={message._id || index}
+                            className={`flex w-full ${
+                              isCurrentUser ? "justify-end" : "justify-start"
                             }`}
                           >
-                            <p className="text-sm break-words">
-                              {message.content}
-                            </p>
-                            <p
-                              className={`text-xs mt-1 ${
-                                isCurrentUser ? "text-black" : "text-black"
+                            <div
+                              className={`max-w-[70%] px-4 py-2 rounded-2xl ${
+                                isCurrentUser
+                                  ? "bg-red-300 text-gray-800 rounded-tr-none"
+                                  : "bg-purple-200 text-black rounded-tl-none shadow-sm"
                               }`}
                             >
-                              {formattedTime}
-                            </p>
+                              <p className="text-sm break-words">
+                                {message.content}
+                              </p>
+                              <div className="text-xs text-gray-500 mt-1 text-right">
+                                {formatMessageTime(messageTimestamp)}
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      })
+                    ) : (
+                      <div className="flex justify-center mt-4">
+                        <p className="text-gray-500">No messages yet</p>
+                      </div>
+                    )}
                     <div ref={messagesEndRef} />
                   </div>
                 </div>

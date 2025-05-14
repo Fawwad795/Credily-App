@@ -32,11 +32,39 @@ const __dirname = path.dirname(__filename);
 // Load environment variables
 dotenv.config();
 
+// Connect to MongoDB with retry
+const connectWithRetry = async () => {
+  let retries = 3;
+  while (retries > 0) {
+    try {
+      await connectDB();
+      return;
+    } catch (error) {
+      retries--;
+      if (retries === 0) {
+        console.error(
+          "Failed to connect to MongoDB after all retries:",
+          error.message
+        );
+        throw error;
+      }
+      console.log(
+        `Retrying MongoDB connection... (${retries} attempts remaining)`
+      );
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+    }
+  }
+};
+
 // Initialize Express app
 const app = express();
 
-// Connect to MongoDB
-connectDB();
+// Connect to MongoDB with retry
+try {
+  await connectWithRetry();
+} catch (error) {
+  console.error("Could not connect to MongoDB:", error.message);
+}
 
 // Middleware
 app.use(cors());
@@ -58,7 +86,10 @@ const io = new Server(server, {
     methods: ["GET", "POST"],
     credentials: true,
   },
-  pingTimeout: 60000,
+  pingTimeout: 30000,
+  pingInterval: 10000,
+  transports: ["websocket", "polling"],
+  connectTimeout: 5000,
 });
 
 // Make io accessible to routes
@@ -87,35 +118,78 @@ const getUserBySocketId = (socketId) => {
 
 // Socket.IO connection handling
 io.on("connection", (socket) => {
-  console.log(`User connected: ${socket.id}`);
-
   // Join a room for a specific user (using MongoDB ObjectId)
   socket.on("joinRoom", (userId) => {
     socket.join(userId);
     addUser(userId, socket.id);
-    console.log(`User ${userId} joined their room`);
+
+    // Emit user joined event
+    io.emit("getUsers", getAllUsers());
   });
 
-  // Add user with email (for MySQL compatibility)
-  socket.on("addUser", (email) => {
-    if (email) {
-      // Get the existing user if they connected with userId already
-      const existingUser = getUserBySocketId(socket.id);
-      if (existingUser) {
-        // Update with email
-        addUser(existingUser.userId, socket.id, email);
-      } else {
-        // Add new user with email as both userId and email
-        addUser(email, socket.id, email);
+  // Add user with email or with user object
+  socket.on("addUser", (userData) => {
+    // Handle both formats - string and object
+    if (typeof userData === "string") {
+      const email = userData;
+      if (email) {
+        // Get the existing user if they connected with userId already
+        const existingUser = getUserBySocketId(socket.id);
+        if (existingUser) {
+          // Update with email
+          addUser(existingUser.userId, socket.id, email);
+        } else {
+          // Add new user with email as both userId and email
+          addUser(email, socket.id, email);
+        }
+
+        // Emit updated users list to all clients
+        io.emit("getUsers", getAllUsers());
       }
+    } else if (userData && userData.userId && userData.userEmail) {
+      // New format with user object
+      const { userId, userEmail } = userData;
+      addUser(userId, socket.id, userEmail);
 
       // Emit updated users list to all clients
       io.emit("getUsers", getAllUsers());
-      console.log(`User ${email} added with socket ${socket.id}`);
     }
   });
 
-  // Handle sendMessage event - support both MongoDB and MySQL formats
+  // Add event listener to handle new notifications
+  socket.on("sendNotification", (data) => {
+    // data should contain the recipient userId
+    const { recipient, notification } = data;
+    if (recipient) {
+      // Send notification to specific user's room
+      io.to(recipient).emit("newNotification", notification);
+    }
+  });
+
+  // Handle message read status
+  socket.on("markAsRead", async ({ messageId, chatId }) => {
+    try {
+      // Update message read status in database
+      await Message.findByIdAndUpdate(messageId, { isRead: true });
+
+      // Notify sender that message was read
+      const message = await Message.findById(messageId);
+      if (message) {
+        io.to(message.sender.toString()).emit("messageRead", {
+          messageId,
+          chatId,
+        });
+      }
+
+      // Emit acknowledgment back to the client
+      socket.emit("markAsReadAck", { success: true, messageId, chatId });
+    } catch (error) {
+      console.error("Error marking message as read:", error);
+      socket.emit("markAsReadAck", { success: false, error: error.message });
+    }
+  });
+
+  // Handle sendMessage event
   socket.on("sendMessage", async (messageData) => {
     try {
       // Handle message format from MongoDB-style client
@@ -127,8 +201,8 @@ io.on("connection", (socket) => {
             ...messageData,
             sender: {
               ...messageData.sender,
-              isCurrentUser: true
-            }
+              isCurrentUser: true,
+            },
           };
           io.to(receiver.socketId).emit("newMessage", messageWithFlags);
         }
@@ -149,8 +223,6 @@ io.on("connection", (socket) => {
             messageType: "text",
             createdAt: timestamp || new Date(),
           });
-
-          console.log(`Message stored in MongoDB: ${message._id}`);
 
           // Emit to receiver if online
           if (receiver) {
@@ -173,20 +245,44 @@ io.on("connection", (socket) => {
             });
           }
         }
-      } else {
-        console.warn("Invalid message format:", messageData);
       }
     } catch (error) {
       console.error("Error processing message:", error);
     }
   });
 
+  // Listen for events from message routes
+  // This allows the API routes to emit socket events
+  socket.on("registerForNewMessages", (userId) => {
+    socket.join(`user:${userId}:messages`);
+  });
+
   // Handle disconnection
   socket.on("disconnect", () => {
-    console.log(`User disconnected: ${socket.id}`);
     removeUser(socket.id);
     io.emit("getUsers", getAllUsers());
   });
+});
+
+// Add message route utility to emit socket events
+app.use((req, res, next) => {
+  req.socketEmitNewMessage = (receiverId, message) => {
+    try {
+      console.log(`Emitting new message to ${receiverId}:`, message);
+      // Emit to the specific user room
+      io.to(receiverId).emit("newMessage", message);
+      // Also emit acknowledgment to sender
+      io.to(message.sender._id || message.sender).emit("messageReceived", {
+        success: true,
+        messageId: message._id,
+      });
+      return true;
+    } catch (error) {
+      console.error("Error emitting socket message:", error);
+      return false;
+    }
+  };
+  next();
 });
 
 // Fix the server configuration to use a single port
