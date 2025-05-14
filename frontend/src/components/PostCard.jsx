@@ -1,15 +1,20 @@
 import { useState } from "react";
-import { FaRegComment, FaHeart, FaRegHeart } from "react-icons/fa";
+import { FaRegComment, FaHeart, FaRegHeart, FaShare } from "react-icons/fa";
+import { Link } from "react-router-dom";
 
 export default function PostCard({
+  authorId,
   authorName,
   authorImage,
   postImage,
   postCaption,
   comments: initialComments = [],
+  postDate,
+  postId,
+  likesCount = 0,
 }) {
   const [liked, setLiked] = useState(false);
-  const [likeCount, setLikeCount] = useState(0);
+  const [likeCount, setLikeCount] = useState(likesCount);
   const [commentsVisible, setCommentsVisible] = useState(false);
   const [comments, setComments] = useState(initialComments);
   const [newComment, setNewComment] = useState("");
@@ -19,6 +24,7 @@ export default function PostCard({
   const toggleLike = () => {
     setLiked(!liked);
     setLikeCount((prev) => (liked ? prev - 1 : prev + 1));
+    // Here you would make an API call to like/unlike the post
   };
 
   const handleCommentSubmit = (e) => {
@@ -26,6 +32,7 @@ export default function PostCard({
     if (newComment.trim()) {
       setComments([...comments, newComment]);
       setNewComment("");
+      // Here you would make an API call to add the comment
     }
   };
 
@@ -35,7 +42,7 @@ export default function PostCard({
   };
 
   const generateAuthorFallback = () => {
-    const initial = authorName ? authorName.charAt(0) : "U";
+    const initial = authorName ? authorName.charAt(0).toUpperCase() : "U";
     return `https://placehold.co/50/gray/white?text=${initial}`;
   };
 
@@ -48,103 +55,147 @@ export default function PostCard({
     setAuthorImgSrc(generateAuthorFallback());
   };
 
+  // Format date
+  const formatDate = (dateString) => {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return "";
+
+    return date.toLocaleDateString("en-US", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+  };
+
   return (
-    <div className="mx-auto px-4 max-w-xl my-15">
-      <div className="bg-white shadow-2xl rounded-lg tracking-wide">
-        <img
-          src={postImgSrc}
-          alt="Post"
-          className="w-full h-64 object-cover rounded-t-lg"
-          onError={handlePostImageError}
-        />
-
-        <div className="px-4 py-2">
-          <h2 className="font-bold text-2xl text-gray-800">
-            My Amazing Journey to the Mountains
-          </h2>
-          <p className="text-sm text-gray-700 mt-2">{postCaption}</p>
-
-          {/* Author Section */}
-          <div className="author flex items-center mt-5">
+    <div
+      className="w-full glass rounded-xl overflow-hidden shadow-lg border border-gray-100"
+      data-post-id={postId}
+    >
+      {/* Author Section */}
+      <div className="p-4 flex items-center justify-between">
+        <div className="flex items-center space-x-3">
+          <Link to={authorId ? `/profile/${authorId}` : "#"}>
             <img
-              className="w-12 h-12 object-cover rounded-full shadow mr-4"
+              className="w-10 h-10 object-cover rounded-full ring-2 ring-gradient shadow"
               src={authorImgSrc}
-              alt="Author"
+              alt={authorName}
               onError={handleAuthorImageError}
             />
-            <div>
-              <p className="text-sm text-gray-900 font-semibold">
-                {authorName}
-              </p>
-              <span className="text-xs text-gray-600">21 SEP 2015</span>
-            </div>
-          </div>
-
-          {/* Comments Section */}
-          <div className="mt-4">
-            <button
-              onClick={() => setCommentsVisible(!commentsVisible)}
-              className="text-blue-500 text-xs"
+          </Link>
+          <div>
+            <Link
+              to={authorId ? `/profile/${authorId}` : "#"}
+              className="font-medium hover:text-purple-600 transition-colors"
             >
-              {commentsVisible ? "Hide Comments" : "Show Comments"}
-            </button>
-
-            {commentsVisible && (
-              <div className="mt-4 border-t pt-2">
-                <form
-                  onSubmit={handleCommentSubmit}
-                  className="flex items-center space-x-2"
-                >
-                  <input
-                    type="text"
-                    className="w-full border px-3 py-1 rounded text-sm focus:outline-none"
-                    placeholder="Add a comment..."
-                    value={newComment}
-                    onChange={(e) => setNewComment(e.target.value)}
-                  />
-                  <button
-                    type="submit"
-                    className="text-blue-500 text-sm font-medium"
-                  >
-                    Post
-                  </button>
-                </form>
-                <ul className="mt-3 space-y-2">
-                  {comments.map((comment, index) => (
-                    <li key={index} className="text-gray-700 text-sm">
-                      {comment}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
+              {authorName}
+            </Link>
+            <p className="text-xs text-gray-500">
+              {formatDate(postDate) || "Unknown date"}
+            </p>
           </div>
         </div>
+        <div className="text-gray-400 cursor-pointer hover:text-gray-600">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-5 w-5"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+          >
+            <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+          </svg>
+        </div>
+      </div>
 
-        {/* Footer Section */}
-        <div className="flex items-center justify-between px-4 py-4">
-          {/* Like Button */}
+      {/* Post Content - Caption */}
+      <div className="px-4 pb-3">
+        <p className="text-gray-800">{postCaption}</p>
+      </div>
+
+      {/* Post Image */}
+      <img
+        src={postImgSrc}
+        alt="Post content"
+        className="w-full object-cover max-h-[500px]"
+        onError={handlePostImageError}
+      />
+
+      {/* Engagement Section */}
+      <div className="p-4">
+        {/* Like & Comment Counts */}
+        <div className="flex justify-between text-sm text-gray-600 mb-3">
+          <div>{likeCount} likes</div>
+          <div>{comments.length} comments</div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex justify-between border-t border-b border-gray-100 py-2">
           <button
             onClick={toggleLike}
-            className="flex items-center text-gray-700"
+            className={`flex items-center justify-center space-x-2 px-4 py-2 rounded-full transition-colors ${
+              liked ? "text-red-500" : "text-gray-700 hover:bg-gray-100"
+            }`}
           >
-            {liked ? (
-              <FaHeart className="text-red-500 w-5 h-5 mr-1" />
-            ) : (
-              <FaRegHeart className="text-blue-500 w-5 h-5 mr-1" />
-            )}
-            {likeCount}
+            {liked ? <FaHeart className="text-red-500" /> : <FaRegHeart />}
+            <span>{liked ? "Liked" : "Like"}</span>
           </button>
 
-          {/* Comments Button */}
           <button
             onClick={() => setCommentsVisible(!commentsVisible)}
-            className="flex items-center text-gray-700"
+            className="flex items-center justify-center space-x-2 px-4 py-2 rounded-full text-gray-700 hover:bg-gray-100 transition-colors"
           >
-            <FaRegComment className="w-5 h-5 mr-1" />
-            {comments.length}
+            <FaRegComment />
+            <span>Comment</span>
+          </button>
+
+          <button className="flex items-center justify-center space-x-2 px-4 py-2 rounded-full text-gray-700 hover:bg-gray-100 transition-colors">
+            <FaShare className="text-sm" />
+            <span>Share</span>
           </button>
         </div>
+
+        {/* Comments Section */}
+        {commentsVisible && (
+          <div className="mt-4">
+            <form
+              onSubmit={handleCommentSubmit}
+              className="flex items-center space-x-2 mb-4"
+            >
+              <input
+                type="text"
+                className="w-full border border-gray-200 px-4 py-2 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                placeholder="Add a comment..."
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+              />
+              <button
+                type="submit"
+                className="grad text-white px-4 py-2 rounded-full text-sm font-medium transition duration-300 hover:shadow-md disabled:opacity-50"
+                disabled={!newComment.trim()}
+              >
+                Post
+              </button>
+            </form>
+
+            {comments.length > 0 ? (
+              <div className="space-y-3 max-h-60 overflow-y-auto">
+                {comments.map((comment, index) => (
+                  <div
+                    key={index}
+                    className="text-sm bg-gray-50 p-3 rounded-lg"
+                  >
+                    <p className="text-gray-800">{comment}</p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-center text-gray-500 text-sm py-4">
+                No comments yet. Be the first to comment!
+              </p>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

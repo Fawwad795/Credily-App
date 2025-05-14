@@ -1,5 +1,6 @@
 import Post from "../models/post.model.js";
 import User from "../models/user.model.js";
+import Connection from "../models/connection.model.js";
 
 export const createPost = async (req, res) => {
   try {
@@ -102,10 +103,17 @@ export const loadHome = async (req, res) => {
       conn.requester.toString() === userId ? conn.recipient : conn.requester
     );
 
+    // Include the current user's posts in the feed
+    connectionUserIds.push(userId);
+
     const posts = await Post.find({ author: { $in: connectionUserIds } })
       .sort({ createdAt: -1 })
       .limit(20)
-      .populate("author", "username phoneNumber");
+      .populate("author", "username profilePicture")
+      .populate({
+        path: "comments.user",
+        select: "username profilePicture",
+      });
 
     res.status(200).json({
       success: true,
