@@ -6,6 +6,27 @@ import api from "../utils/axios";
 import NotificationBadge from "./NotificationBadge";
 import NavNotificationButton from "./NavNotificationButton";
 
+// Define a Back Arrow SVG
+const BackArrowIcon = () => (
+  <svg className="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+  </svg>
+);
+
+// Existing XIcon (example, taken from your Nav.jsx structure for the close button)
+const XIcon = () => (
+  <svg className="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+  </svg>
+);
+
+// Existing MenuIcon (example, taken from your Nav.jsx structure for the hamburger button)
+const MenuIcon = () => (
+  <svg className="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
+  </svg>
+);
+
 // Loading Screen Component
 const LoadingScreen = ({ message }) => {
   return (
@@ -839,7 +860,7 @@ const Notifications = ({ isOpen, onClose }) => {
   );
 };
 
-const Nav = () => {
+const Nav = ({ isChatViewActive, onChatBackClick }) => {
   const [activeSlider, setActiveSlider] = useState(null); // 'search' or 'notifications'
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false); // State for mobile menu
   const [activeItem, setActiveItem] = useState(() => {
@@ -886,25 +907,29 @@ const Nav = () => {
 
   return (
     <>
-      {/* Hamburger Button - visible only on small screens */}
-      <button
-        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-        className={`sm:hidden fixed top-4 z-50 p-2 rounded-md text-gray-700 bg-white shadow-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-purple-500 ${isMobileMenuOpen ? 'right-4' : 'left-4'}`}
-        aria-label={isMobileMenuOpen ? "Close sidebar" : "Open sidebar"}
-      >
-        {isMobileMenuOpen ? (
-          <svg className="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        ) : (
-          <svg className="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
-          </svg>
-        )}
-      </button>
+      {/* Mobile top-left button: Back Arrow or Hamburger/Close */}
+      {isChatViewActive ? (
+        // If in chat view (on Messages page, mobile, chat open), show Back Arrow
+        <button
+          onClick={onChatBackClick}
+          className="sm:hidden fixed top-4 left-4 z-50 p-2 rounded-md text-gray-700 bg-white shadow-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-purple-500"
+          aria-label="Back to chat list"
+        >
+          <BackArrowIcon />
+        </button>
+      ) : (
+        // Otherwise, show the standard Hamburger/Close button for the Nav sidebar
+        <button
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          className={`sm:hidden fixed top-4 z-50 p-2 rounded-md text-gray-700 bg-white shadow-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-purple-500 ${isMobileMenuOpen ? 'right-4' : 'left-4'}`}
+          aria-label={isMobileMenuOpen ? "Close sidebar" : "Open sidebar"}
+        >
+          {isMobileMenuOpen ? <XIcon /> : <MenuIcon />}
+        </button>
+      )}
 
-      {/* Overlay for mobile menu */}
-      {isMobileMenuOpen && (
+      {/* Overlay for mobile menu (only if not in chat view) */}
+      {!isChatViewActive && isMobileMenuOpen && (
         <div
           className="sm:hidden fixed inset-0 bg-black bg-opacity-50 z-30"
           onClick={closeMobileMenu}
@@ -915,7 +940,7 @@ const Nav = () => {
       {/* Sidebar */}
       <aside
         id="default-sidebar"
-        className={`fixed top-0 left-0 z-40 h-screen bg-white shadow-lg transition-transform duration-300 ease-in-out ${isMobileMenuOpen ? "w-full translate-x-0" : "w-full -translate-x-full"} sm:w-64 sm:translate-x-0 sm:shadow-lg`}
+        className={`fixed top-0 left-0 z-40 h-screen bg-white shadow-lg transition-transform duration-300 ease-in-out ${(!isChatViewActive && isMobileMenuOpen) ? "w-full translate-x-0" : "w-full -translate-x-full"} sm:w-64 sm:translate-x-0 sm:shadow-lg`}
         aria-label="Sidebar"
       >
         <div className="h-full flex flex-col overflow-y-auto">
