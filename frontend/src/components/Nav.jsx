@@ -915,9 +915,7 @@ const Nav = () => {
       {/* Sidebar */}
       <aside
         id="default-sidebar"
-        className={`fixed top-0 left-0 z-40 w-64 h-screen bg-white shadow-lg transition-transform duration-300 ease-in-out 
-                   ${isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"} 
-                   sm:translate-x-0 sm:shadow-lg`}
+        className={`fixed top-0 left-0 z-40 h-screen bg-white shadow-lg transition-transform duration-300 ease-in-out ${isMobileMenuOpen ? "w-full translate-x-0" : "w-full -translate-x-full"} sm:w-64 sm:translate-x-0 sm:shadow-lg`}
         aria-label="Sidebar"
       >
         <div className="h-full flex flex-col overflow-y-auto">
