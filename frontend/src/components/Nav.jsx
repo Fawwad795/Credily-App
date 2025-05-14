@@ -912,7 +912,7 @@ const Nav = ({ isChatViewActive, onChatBackClick }) => {
         // If in chat view (on Messages page, mobile, chat open), show Back Arrow
         <button
           onClick={onChatBackClick}
-          className="sm:hidden fixed top-4 left-4 z-50 p-2 rounded-md text-gray-700 bg-white shadow-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-purple-500"
+          className="sm:hidden fixed top-4 left-4 z-50 p-2 rounded-full text-gray-700 bg-white shadow-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-purple-500"
           aria-label="Back to chat list"
         >
           <BackArrowIcon />
@@ -1042,7 +1042,7 @@ const Nav = ({ isChatViewActive, onChatBackClick }) => {
                 <span className="ms-3 font-medium">Search</span>
               </button>
             </li>
-            <li className="hidden md:block">
+            <li>
               <Link
                 to="/messages"
                 className={`flex items-center p-3 rounded-lg transition-all duration-200 cursor-pointer ${
