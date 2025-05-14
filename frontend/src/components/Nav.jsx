@@ -863,6 +863,20 @@ const Notifications = ({ isOpen, onClose }) => {
 const Nav = ({ isChatViewActive, onChatBackClick }) => {
   const [activeSlider, setActiveSlider] = useState(null); // 'search' or 'notifications'
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false); // State for mobile menu
+  const [isOverlayRendered, setIsOverlayRendered] = useState(false); // New state for delayed overlay rendering
+
+  useEffect(() => {
+    let timerId;
+    if (isMobileMenuOpen && !isChatViewActive) { // Only manage overlay if menu should open and not in chat view mode
+      timerId = setTimeout(() => {
+        setIsOverlayRendered(true);
+      }, 50); // 50ms delay - adjust if needed
+    } else {
+      setIsOverlayRendered(false); // Hide immediately if menu is closing or in chat view mode
+    }
+    return () => clearTimeout(timerId);
+  }, [isMobileMenuOpen, isChatViewActive]);
+
   const [activeItem, setActiveItem] = useState(() => {
     // Determine active item based on current path
     const path = window.location.pathname;
@@ -900,16 +914,18 @@ const Nav = ({ isChatViewActive, onChatBackClick }) => {
   const handleSliderToggle = (sliderName) => {
     setActiveSlider(sliderName);
     setActiveItem(sliderName); // Set active item to match slider
-    setIsMobileMenuOpen(false); // Close mobile menu when a slider opens
+    setIsMobileMenuOpen(false); // Close mobile menu when a slider opens (this will also hide overlay via useEffect)
   };
   
-  const closeMobileMenu = () => setIsMobileMenuOpen(false);
+  // Simplified closeMobileMenu or use inline for overlay click
+  const handleOverlayClick = () => {
+    setIsMobileMenuOpen(false);
+  };
 
   return (
     <>
       {/* Mobile top-left button: Back Arrow or Hamburger/Close */}
       {isChatViewActive ? (
-        // If in chat view (on Messages page, mobile, chat open), show Back Arrow
         <button
           onClick={onChatBackClick}
           className="sm:hidden fixed top-4 left-4 z-50 p-2 rounded-full text-gray-700 bg-white shadow-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-purple-500"
@@ -918,9 +934,8 @@ const Nav = ({ isChatViewActive, onChatBackClick }) => {
           <BackArrowIcon />
         </button>
       ) : (
-        // Otherwise, show the standard Hamburger/Close button for the Nav sidebar
         <button
-          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          onClick={() => setIsMobileMenuOpen(prev => !prev)} // Simplified onClick
           className={`sm:hidden fixed top-4 z-50 p-2 rounded-md text-gray-700 bg-white shadow-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-purple-500 ${isMobileMenuOpen ? 'right-4' : 'left-4'}`}
           aria-label={isMobileMenuOpen ? "Close sidebar" : "Open sidebar"}
         >
@@ -928,11 +943,11 @@ const Nav = ({ isChatViewActive, onChatBackClick }) => {
         </button>
       )}
 
-      {/* Overlay for mobile menu (only if not in chat view) */}
-      {!isChatViewActive && isMobileMenuOpen && (
+      {/* Overlay for mobile menu (only if not in chat view and conditions from useEffect met) */}
+      {isOverlayRendered && (
         <div
-          className="sm:hidden fixed inset-0 bg-black bg-opacity-50 z-30"
-          onClick={closeMobileMenu}
+          className="sm:hidden fixed inset-0 bg-black bg-opacity-50 z-30 transition-opacity duration-150 ease-in-out"
+          onClick={handleOverlayClick} // Use new handler or inline setIsMobileMenuOpen(false)
           aria-hidden="true"
         ></div>
       )}
@@ -1099,7 +1114,7 @@ const Nav = ({ isChatViewActive, onChatBackClick }) => {
             <button
               onClick={() => {
                 handleSignout();
-                closeMobileMenu(); // Close menu on signout
+                setIsMobileMenuOpen(false); // Close menu on signout
               }}
               className="w-full flex items-center p-3 rounded-lg text-gray-700 hover:bg-gradient-to-r hover:from-purple-50 hover:to-red-50 transition-all duration-200 cursor-pointer"
             >
