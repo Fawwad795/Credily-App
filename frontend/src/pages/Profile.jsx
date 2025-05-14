@@ -1,5 +1,14 @@
 import React, { useState, useEffect } from "react";
-import { CheckCircle, MapPin, Pencil, X, Upload, Camera } from "lucide-react";
+import {
+  CheckCircle,
+  MapPin,
+  Pencil,
+  X,
+  Upload,
+  Camera,
+  AtSign,
+  Image,
+} from "lucide-react";
 import { useLocation } from "react-router-dom";
 import Nav from "../components/Nav";
 import ReviewList from "../components/ReviewList";
@@ -50,6 +59,7 @@ const samplePosts = [
 
 const Profile = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isWallpaperModalOpen, setIsWallpaperModalOpen] = useState(false);
   const [profile, setProfile] = useState();
   const [connections, setConnections] = useState(0);
   const [userPosts, setUserPosts] = useState([]);
@@ -58,6 +68,11 @@ const Profile = () => {
     imageFile: null,
     caption: "",
   });
+  const [wallpaper, setWallpaper] = useState({
+    image: null,
+    imageFile: null,
+  });
+  const [profileWallpaper, setProfileWallpaper] = useState("");
 
   const location = useLocation();
   const user = location.state?.user;
@@ -175,6 +190,9 @@ const Profile = () => {
   useEffect(() => {
     if (profile) {
       console.log("Profile updated:", profile);
+      if (profile.wallpaperPicture) {
+        setProfileWallpaper(profile.wallpaperPicture);
+      }
     }
   }, [profile]);
 
@@ -324,6 +342,102 @@ const Profile = () => {
     }
   };
 
+  // Function to handle wallpaper image change
+  const handleWallpaperChange = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setWallpaper({
+        imageFile: file,
+        image: URL.createObjectURL(file),
+      });
+    }
+  };
+
+  // Function to submit wallpaper change
+  const handleWallpaperSubmit = async (event) => {
+    event.preventDefault();
+
+    let token =
+      localStorage.getItem("token") || localStorage.getItem("authToken");
+
+    // Ensure token exists and has the correct format
+    if (!token) {
+      console.error("No authentication token found");
+      alert("Authentication required. Please log in again.");
+      return;
+    }
+
+    // Make sure token has "Bearer " prefix for the Authorization header
+    if (!token.startsWith("Bearer ")) {
+      token = `Bearer ${token}`;
+    }
+
+    try {
+      // Upload the wallpaper image
+      if (wallpaper.imageFile) {
+        const formData = new FormData();
+        formData.append("wallpaper", wallpaper.imageFile);
+
+        // Get user ID from token (remove "Bearer " prefix if it exists)
+        const parseJwt = (token) => {
+          try {
+            const tokenContent = token.startsWith("Bearer ")
+              ? token.split(" ")[1]
+              : token;
+            return JSON.parse(atob(tokenContent.split(".")[1]));
+          } catch (error) {
+            console.error("Error parsing JWT token:", error);
+            return null;
+          }
+        };
+
+        const decodedToken = parseJwt(token);
+
+        if (!decodedToken || !decodedToken.id) {
+          console.error("Could not extract user ID from token");
+          alert("Authentication issue. Please log in again.");
+          return;
+        }
+
+        const userId = decodedToken.id;
+        console.log("Using userId for wallpaper upload:", userId);
+
+        // Upload to cloudinary via the backend
+        const uploadResponse = await fetch(`/api/uploads/wallpaper/${userId}`, {
+          method: "POST",
+          headers: {
+            Authorization: token,
+          },
+          body: formData,
+        });
+
+        const uploadData = await uploadResponse.json();
+
+        if (!uploadData.success) {
+          console.error("Failed to upload wallpaper:", uploadData.message);
+          alert("Failed to upload wallpaper. Please try again.");
+          return;
+        }
+
+        // The API already updates the user profile, so we just need to update the local state
+        setProfile({
+          ...profile,
+          wallpaperPicture: uploadData.data.wallpaperPicture,
+        });
+        setProfileWallpaper(uploadData.data.wallpaperPicture);
+
+        // Close modal and reset form
+        setIsWallpaperModalOpen(false);
+        setWallpaper({ image: null, imageFile: null });
+      }
+    } catch (error) {
+      console.error("Error updating wallpaper:", error);
+      alert(
+        "Error updating wallpaper. Please check your connection and try again."
+      );
+    }
+  };
+
   if (!profile) {
     return (
       <div className="flex justify-center items-center h-screen">
@@ -342,8 +456,20 @@ const Profile = () => {
         {/* Profile Section */}
 
         <div className="max-w-4xl mx-auto my-6 bg-white rounded-lg shadow-md p-6">
-          <div className="h-48 relative">
-            <div className="absolute inset-0 bg-black opacity-10"></div>
+          <div className="h-48 relative overflow-hidden rounded-t-lg">
+            {/* Wallpaper Background */}
+            {profileWallpaper ? (
+              <img
+                src={profileWallpaper}
+                alt="Profile Wallpaper"
+                className="absolute inset-0 w-full h-full object-cover rounded-t-lg"
+              />
+            ) : (
+              <div className="absolute inset-0 bg-black opacity-10 rounded-t-lg"></div>
+            )}
+
+            {/* Wallpaper overlay with gradient */}
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black opacity-40 rounded-t-lg"></div>
 
             <div className="absolute inset-0">
               <div className="absolute top-0 left-0 w-1/3 h-px bg-red-300 opacity-30"></div>
@@ -365,13 +491,22 @@ const Profile = () => {
 
             {/* Username and Email */}
             <div className="absolute bottom-0 left-32 right-0 p-4 text-white">
-              <h1 className="text-4xl font-bold">{profile.username}</h1>
-              <p className="text-gray-200">{profile.email}</p>
+              <h1 className="text-4xl font-bold">
+                {profile.firstName || profile.lastName
+                  ? `${profile.firstName || ""} ${
+                      profile.lastName || ""
+                    }`.trim()
+                  : profile.username}
+              </h1>
             </div>
 
-            {/* Edit Button */}
-            <button className="absolute top-4 right-4 p-2 rounded-full bg-white bg-opacity-10 hover:bg-opacity-20">
-              <Pencil size={18} className="text-white" />
+            {/* Edit Wallpaper Button */}
+            <button
+              onClick={() => setIsWallpaperModalOpen(true)}
+              className="absolute top-4 right-4 p-2 rounded-full bg-white bg-opacity-40 hover:bg-opacity-60 transition-all duration-300 cursor-pointer shadow-md z-10"
+              title="Edit wallpaper"
+            >
+              <Image size={20} className="text-gray-800" />
             </button>
           </div>
 
@@ -413,6 +548,13 @@ const Profile = () => {
               <p className="text-gray-700 mt-1 max-w-lg">
                 {profile.bio || "No bio provided"}
               </p>
+
+              <div className="flex items-center text-gray-600 mt-2">
+                <AtSign size={16} className="mr-1" />
+                <span className="mr-3">
+                  {profile.email || "No email provided"}
+                </span>
+              </div>
 
               <div className="flex items-center text-gray-600 mt-2">
                 <MapPin size={16} className="mr-1" />
@@ -551,6 +693,100 @@ const Profile = () => {
                   }`}
                 >
                   Post
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Wallpaper Update Modal */}
+      {isWallpaperModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6 relative">
+            {/* Close button */}
+            <button
+              onClick={() => {
+                setIsWallpaperModalOpen(false);
+                setWallpaper({ image: null, imageFile: null });
+              }}
+              className="absolute top-3 right-3 text-gray-500 hover:text-gray-700"
+            >
+              <X size={20} />
+            </button>
+
+            <h3 className="text-xl font-bold text-gray-900 mb-4">
+              Update Profile Wallpaper
+            </h3>
+
+            <form onSubmit={handleWallpaperSubmit} className="space-y-4">
+              {/* Image Upload Area */}
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 flex flex-col items-center justify-center bg-gray-50">
+                {wallpaper.image ? (
+                  <div className="relative w-full">
+                    <img
+                      src={wallpaper.image}
+                      alt="Selected Wallpaper"
+                      className="w-full h-48 object-cover rounded-md"
+                    />
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setWallpaper({
+                          ...wallpaper,
+                          image: null,
+                          imageFile: null,
+                        })
+                      }
+                      className="absolute top-2 right-2 bg-white bg-opacity-70 rounded-full p-1 text-gray-700 hover:text-red-500"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <Image size={40} className="text-gray-400 mb-2" />
+                    <p className="text-sm text-gray-500 mb-2">
+                      Upload wallpaper image
+                    </p>
+                    <p className="text-xs text-gray-400 mb-4">
+                      PNG, JPG or GIF (recommended resolution: 1280x400)
+                    </p>
+                    <label className="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium">
+                      Select Image
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleWallpaperChange}
+                        className="hidden"
+                      />
+                    </label>
+                  </>
+                )}
+              </div>
+
+              {/* Submit Button */}
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsWallpaperModalOpen(false);
+                    setWallpaper({ image: null, imageFile: null });
+                  }}
+                  className="mr-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={!wallpaper.image}
+                  className={`px-4 py-2 text-sm font-medium text-white rounded-md ${
+                    wallpaper.image
+                      ? "bg-blue-600 hover:bg-blue-700"
+                      : "bg-blue-400 cursor-not-allowed"
+                  }`}
+                >
+                  Save Wallpaper
                 </button>
               </div>
             </form>

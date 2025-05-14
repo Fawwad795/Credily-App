@@ -261,8 +261,16 @@ const Signup = () => {
         throw new Error(data.message || "Registration failed");
       }
 
+      // Store the token in localStorage immediately
+      localStorage.setItem("token", data.token);
+
       // Navigate to the additional info page after successful registration
-      navigate("/additional-info", { state: { user: data.data } });
+      navigate("/additional-info", {
+        state: {
+          user: data.data,
+          token: data.token, // Pass the token to the next page
+        },
+      });
     } catch (error) {
       setError(error.message);
     } finally {

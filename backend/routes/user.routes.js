@@ -9,6 +9,7 @@ import {
   updateLastActive,
   getTotalConnections,
   updateProfilePicture,
+  updateWallpaperPicture,
   searchUsersByUsername,
   sendConnectionRequest,
   acceptConnectionRequest,
@@ -32,7 +33,8 @@ router.post("/login", loginUser);
 
 router.get("/profile/:id", getUserProfile);
 router.put("/profile/:id", updateUserProfile);
-router.put("/profile/:id", updateProfilePicture);
+router.put("/profile-picture", protect, updateProfilePicture);
+router.put("/wallpaper", protect, updateWallpaperPicture);
 router.put("/profile/:id/additional-info", updateUserAdditionalInfo);
 router.get("/check-username/:username", checkUsernameAvailability);
 router.get("/check-phone/:phoneNumber", checkPhoneAvailability);

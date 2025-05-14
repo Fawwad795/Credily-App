@@ -367,6 +367,17 @@ const AdditionalInfo = () => {
     return () => clearTimeout(timer); // Clean up timer
   }, [email]); // Remove validateEmail from dependencies
 
+  // Check for token in location state or localStorage
+  useEffect(() => {
+    // Get token from the navigate state (from signup) if available
+    const token = location?.state?.token;
+
+    // If token is available in location state, save it to localStorage
+    if (token) {
+      localStorage.setItem("token", token);
+    }
+  }, [location]);
+
   const handleEmailChange = (e) => {
     const value = e.target.value;
     // Convert to lowercase immediately
@@ -539,6 +550,12 @@ const AdditionalInfo = () => {
       const capitalizedFirstName = capitalizeFirstLetter(firstName);
       const capitalizedLastName = capitalizeFirstLetter(lastName);
 
+      // Get authentication token - try from various sources
+      const token =
+        localStorage.getItem("token") ||
+        localStorage.getItem("authToken") ||
+        location?.state?.token;
+
       // First, update the user's additional info
       const response = await fetch(
         `/api/users/profile/${user._id}/additional-info`,
@@ -579,6 +596,9 @@ const AdditionalInfo = () => {
           `/api/uploads/profile-picture/${user._id}`,
           {
             method: "POST",
+            headers: {
+              Authorization: `Bearer ${token}`, // Add the token for authentication
+            },
             body: formData,
           }
         );

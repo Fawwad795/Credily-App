@@ -69,6 +69,14 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: "", // Cloudinary public ID
     },
+    wallpaperPicture: {
+      type: String,
+      default: "", // Default to empty, no default wallpaper
+    },
+    wallpaperPictureId: {
+      type: String,
+      default: "", // Cloudinary public ID for wallpaper
+    },
     bio: {
       type: String,
       maxlength: 100,

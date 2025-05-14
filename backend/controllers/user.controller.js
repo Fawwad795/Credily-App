@@ -590,6 +590,73 @@ export const updateProfilePicture = async (req, res) => {
   }
 };
 
+export const updateWallpaperPicture = async (req, res) => {
+  try {
+    const userId = req.user.id; // Assuming you're using authentication middleware
+    const { wallpaper } = req.body; // Expect Base64 string from the frontend
+
+    if (!wallpaper) {
+      return res.status(400).json({
+        success: false,
+        message: "Wallpaper picture is required",
+      });
+    }
+
+    // Upload base64 image to Cloudinary
+    const uploadResult = await cloudinary.uploader.upload(wallpaper, {
+      folder: "wallpapers",
+      resource_type: "auto",
+      transformation: [
+        { width: 1280, height: 400, crop: "fill" },
+        { quality: "auto" },
+      ],
+    });
+
+    // Delete previous wallpaper if exists
+    if (req.user.wallpaperPictureId) {
+      try {
+        await cloudinary.uploader.destroy(req.user.wallpaperPictureId);
+      } catch (err) {
+        console.error("Error deleting previous wallpaper:", err);
+        // Continue with the update even if deletion fails
+      }
+    }
+
+    // Update the user's wallpaper picture in the database
+    const user = await User.findByIdAndUpdate(
+      userId,
+      {
+        wallpaperPicture: uploadResult.secure_url,
+        wallpaperPictureId: uploadResult.public_id,
+      },
+      { new: true }
+    );
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Wallpaper picture updated successfully",
+      data: {
+        wallpaperPicture: user.wallpaperPicture,
+        user: user,
+      },
+    });
+  } catch (error) {
+    console.error("Error updating wallpaper picture:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to update wallpaper picture",
+      error: error.message,
+    });
+  }
+};
+
 // Accept connection request
 export const acceptConnectionRequest = async (req, res) => {
   try {
