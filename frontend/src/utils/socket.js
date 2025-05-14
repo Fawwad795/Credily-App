@@ -7,7 +7,7 @@ const BACKEND_URLS = [
   "http://localhost:8900",
 ];
 
-// Initialize with the first URL
+// Initialize with null - will be created in the function
 let socket = null;
 let reconnectAttempts = 0;
 const MAX_RECONNECT_ATTEMPTS = 10;
@@ -25,12 +25,33 @@ const connectToSocketIO = () => {
     timeout: 5000,
     autoConnect: true,
     forceNew: false,
+    extraHeaders: {
+      Authorization: `Bearer ${localStorage.getItem("token")}`,
+    },
   });
 
   // Set up event listeners
   socket.on("connect", () => {
     reconnectAttempts = 0;
     window.dispatchEvent(new CustomEvent("socketConnected"));
+
+    // Automatically join rooms when connected
+    const userId = localStorage.getItem("userId");
+    const userEmail = localStorage.getItem("userEmail");
+
+    if (userId) {
+      socket.emit("joinRoom", userId);
+
+      if (userEmail) {
+        socket.emit("addUser", {
+          userId,
+          userEmail,
+        });
+      }
+
+      // Register for messages
+      socket.emit("registerForNewMessages", userId);
+    }
   });
 
   socket.on("connect_error", () => {
@@ -63,6 +84,11 @@ const connectToSocketIO = () => {
     }
   });
 
+  // Add error handling
+  socket.on("error", (error) => {
+    console.error("Socket.IO error:", error);
+  });
+
   return socket;
 };
 
@@ -83,11 +109,37 @@ const tryAlternativeUrls = () => {
       reconnection: true,
       reconnectionAttempts: 3,
       reconnectionDelay: 500,
+      extraHeaders: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
     });
 
     socket.on("connect", () => {
       window.dispatchEvent(new CustomEvent("socketConnected"));
+
+      // Automatically join rooms when connected
+      const userId = localStorage.getItem("userId");
+      const userEmail = localStorage.getItem("userEmail");
+
+      if (userId) {
+        socket.emit("joinRoom", userId);
+
+        if (userEmail) {
+          socket.emit("addUser", {
+            userId,
+            userEmail,
+          });
+        }
+
+        // Register for messages
+        socket.emit("registerForNewMessages", userId);
+      }
+
       return; // Successfully connected
+    });
+
+    socket.on("error", (error) => {
+      console.error("Socket.IO error:", error);
     });
   }
 

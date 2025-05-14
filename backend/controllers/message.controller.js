@@ -22,7 +22,6 @@ export const sendMessage = async (req, res) => {
       content,
       messageType,
       attachments,
-      isCurrentUser: true,
     });
 
     // Get sender and receiver details
@@ -36,17 +35,22 @@ export const sendMessage = async (req, res) => {
       sender: {
         _id: sender._id,
         username: sender.username,
-        isCurrentUser: true,
       },
       receiver: {
         _id: receiverUser._id,
         username: receiverUser.username,
-        isCurrentUser: false,
       },
     };
 
-    // Emit the new message event to the receiver's room
-    req.io.to(receiverId).emit("newMessage", messageWithUsernames);
+    // Use the new socket utility function for real-time delivery
+    if (req.socketEmitNewMessage) {
+      console.log("Emitting new message via socket utility");
+      req.socketEmitNewMessage(receiverId.toString(), messageWithUsernames);
+    } else {
+      // Fallback to direct socket emission if utility not available
+      console.log("Using direct socket emission for new message");
+      req.io.to(receiverId.toString()).emit("newMessage", messageWithUsernames);
+    }
 
     res.status(201).json({
       success: true,
@@ -121,7 +125,7 @@ export const getConversation = async (req, res) => {
     });
 
     // Mark unread messages as read
-    await Message.updateMany(
+    const unreadMessages = await Message.updateMany(
       {
         sender: userId,
         receiver: currentUserId,
@@ -129,6 +133,17 @@ export const getConversation = async (req, res) => {
       },
       { isRead: true }
     );
+
+    // If there were unread messages, update unread counts via socket
+    if (unreadMessages.modifiedCount > 0) {
+      // Emit read status updates
+      if (req.io) {
+        req.io.to(userId.toString()).emit("messagesRead", {
+          chatId: currentUserId.toString(),
+          count: unreadMessages.modifiedCount
+        });
+      }
+    }
 
     const total = await Message.countDocuments({
       $or: [

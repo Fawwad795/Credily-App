@@ -34,15 +34,27 @@ const connectDB = async () => {
         : `${uri}/Credily`
       : uri;
 
-    // Connect without deprecated options
-    const conn = await mongoose.connect(finalUri);
+    // Connection options
+    const options = {
+      serverSelectionTimeoutMS: 5000, // Shorter timeout for faster feedback
+      socketTimeoutMS: 10000,
+      connectTimeoutMS: 10000,
+      family: 4, // Force IPv4
+      maxPoolSize: 5,
+      minPoolSize: 1,
+      retryWrites: true,
+      retryReads: true,
+    };
+
+    // Connect with options
+    const conn = await mongoose.connect(finalUri, options);
     console.log(
       `MongoDB Connected: ${conn.connection.host} (Database: ${conn.connection.name})`
     );
     return conn;
   } catch (error) {
     console.error(`Error connecting to MongoDB: ${error.message}`);
-    process.exit(1);
+    throw error;
   }
 };
 
