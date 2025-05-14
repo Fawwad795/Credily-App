@@ -1,4 +1,18 @@
 @import "tailwindcss";
+
+/* Custom Handsome Font */
+@font-face {
+  font-family: "Handsome";
+  src: url("/fonts/handsome.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+.font-handsome {
+  font-family: "Handsome", sans-serif;
+}
+
 .home-grid {
   display: grid;
   grid-template-columns: 1fr 3fr 1fr;

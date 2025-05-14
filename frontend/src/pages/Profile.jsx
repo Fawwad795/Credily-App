@@ -627,13 +627,12 @@ const Profile = () => {
     );
   }
   return (
-    <div className="flex h-screen w-screen">
+    <div className="min-h-screen bg-gray-50">
       {/* Nav Bar */}
-      <div className="w-[24%]">
-        <Nav />
-      </div>
+      <Nav />
 
-      <div className="w-[76%] h-screen overflow-y-auto bg-gray-100">
+      {/* Main Content - adjusted to not overlap with Nav */}
+      <div className="sm:ml-64 min-h-screen overflow-y-auto bg-gray-100">
         {/* Profile Section */}
 
         <div className="max-w-4xl mx-auto my-6 bg-white rounded-lg shadow-md p-6">
