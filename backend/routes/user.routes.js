@@ -25,6 +25,7 @@ import {
   checkPhoneAvailability,
   checkEmailAvailability,
   getSuggestedUsers,
+  getConnectionById,
 } from "../controllers/user.controller.js";
 import { authenticateUser, protect } from "../middleware/auth.middleware.js";
 
@@ -70,5 +71,7 @@ router.get("/top", getTopUsers);
 router.get("/suggested", protect, getSuggestedUsers);
 
 router.put("/last-active/:id", updateLastActive);
+
+router.get("/connections/:connectionId", protect, getConnectionById);
 
 export default router;

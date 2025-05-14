@@ -15,6 +15,7 @@
     "@mui/material": "^7.1.0",
     "axios": "^1.9.0",
     "date-fns": "^4.1.0",
+    "framer-motion": "^12.11.3",
     "jwt-decode": "^4.0.0",
     "lucide-react": "^0.509.0",
     "react": "^19.0.0",

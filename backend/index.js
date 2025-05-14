@@ -58,7 +58,10 @@ const io = new Server(server, {
     methods: ["GET", "POST"],
     credentials: true,
   },
-  pingTimeout: 60000,
+  pingTimeout: 30000,
+  pingInterval: 10000,
+  transports: ["websocket", "polling"],
+  connectTimeout: 5000,
 });
 
 // Make io accessible to routes
@@ -87,13 +90,10 @@ const getUserBySocketId = (socketId) => {
 
 // Socket.IO connection handling
 io.on("connection", (socket) => {
-  console.log(`User connected: ${socket.id}`);
-
   // Join a room for a specific user (using MongoDB ObjectId)
   socket.on("joinRoom", (userId) => {
     socket.join(userId);
     addUser(userId, socket.id);
-    console.log(`User ${userId} joined their room`);
   });
 
   // Add user with email (for MySQL compatibility)
@@ -111,7 +111,16 @@ io.on("connection", (socket) => {
 
       // Emit updated users list to all clients
       io.emit("getUsers", getAllUsers());
-      console.log(`User ${email} added with socket ${socket.id}`);
+    }
+  });
+
+  // Add event listener to handle new notifications
+  socket.on("sendNotification", (data) => {
+    // data should contain the recipient userId
+    const { recipient, notification } = data;
+    if (recipient) {
+      // Send notification to specific user's room
+      io.to(recipient).emit("newNotification", notification);
     }
   });
 
@@ -127,8 +136,8 @@ io.on("connection", (socket) => {
             ...messageData,
             sender: {
               ...messageData.sender,
-              isCurrentUser: true
-            }
+              isCurrentUser: true,
+            },
           };
           io.to(receiver.socketId).emit("newMessage", messageWithFlags);
         }
@@ -149,8 +158,6 @@ io.on("connection", (socket) => {
             messageType: "text",
             createdAt: timestamp || new Date(),
           });
-
-          console.log(`Message stored in MongoDB: ${message._id}`);
 
           // Emit to receiver if online
           if (receiver) {
@@ -173,8 +180,6 @@ io.on("connection", (socket) => {
             });
           }
         }
-      } else {
-        console.warn("Invalid message format:", messageData);
       }
     } catch (error) {
       console.error("Error processing message:", error);
@@ -183,7 +188,6 @@ io.on("connection", (socket) => {
 
   // Handle disconnection
   socket.on("disconnect", () => {
-    console.log(`User disconnected: ${socket.id}`);
     removeUser(socket.id);
     io.emit("getUsers", getAllUsers());
   });

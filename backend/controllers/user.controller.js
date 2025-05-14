@@ -713,6 +713,15 @@ export const acceptConnectionRequest = async (req, res) => {
       });
     }
 
+    // Get requester info for the notification
+    const requester = await User.findById(connection.requester, "username");
+    if (!requester) {
+      return res.status(404).json({
+        success: false,
+        message: "User who sent the request not found",
+      });
+    }
+
     // Update connection status to accepted
     connection.status = "accepted";
     await connection.save();
@@ -727,6 +736,20 @@ export const acceptConnectionRequest = async (req, res) => {
         isRead: false,
       },
       { isRead: true }
+    );
+
+    // Also update the content of the original connection request notification
+    await Notification.updateMany(
+      {
+        recipient: userId,
+        referenceId: connectionId,
+        type: "connection_request",
+      },
+      {
+        type: "connection_accepted",
+        title: "Connection Request Accepted",
+        content: `You accepted ${requester.username}'s connection request.`,
+      }
     );
 
     // Try to add a notification for the requester, but don't fail if it doesn't work
@@ -1014,6 +1037,15 @@ export const rejectConnectionRequest = async (req, res) => {
       });
     }
 
+    // Get requester info for the notification
+    const requester = await User.findById(connection.requester, "username");
+    if (!requester) {
+      return res.status(404).json({
+        success: false,
+        message: "User who sent the request not found",
+      });
+    }
+
     // Update connection status to rejected
     connection.status = "rejected";
     await connection.save();
@@ -1028,6 +1060,20 @@ export const rejectConnectionRequest = async (req, res) => {
         isRead: false,
       },
       { isRead: true }
+    );
+
+    // Also update the content of the original connection request notification
+    await Notification.updateMany(
+      {
+        recipient: userId,
+        referenceId: connectionId,
+        type: "connection_request",
+      },
+      {
+        type: "connection_rejected",
+        title: "Connection Request Rejected",
+        content: `You declined ${requester.username}'s connection request.`,
+      }
     );
 
     // Try to add a notification for the requester, but don't fail if it doesn't work
@@ -1265,6 +1311,57 @@ export const getTotalFollowing = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to fetch total following",
+      error: error.message,
+    });
+  }
+};
+
+// Get a single connection by ID
+export const getConnectionById = async (req, res) => {
+  try {
+    const { connectionId } = req.params;
+
+    // Add check to ensure req.user exists
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: "Authentication required. User is not authenticated.",
+      });
+    }
+
+    const userId = req.user._id;
+
+    // Find the connection
+    const connection = await Connection.findById(connectionId);
+
+    if (!connection) {
+      return res.status(404).json({
+        success: false,
+        message: "Connection not found",
+      });
+    }
+
+    // Verify that the current user is either the requester or recipient
+    if (
+      connection.recipient.toString() !== userId.toString() &&
+      connection.requester.toString() !== userId.toString()
+    ) {
+      return res.status(403).json({
+        success: false,
+        message: "You don't have permission to view this connection",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Connection fetched successfully",
+      data: connection,
+    });
+  } catch (error) {
+    console.error("Error fetching connection:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch connection",
       error: error.message,
     });
   }
