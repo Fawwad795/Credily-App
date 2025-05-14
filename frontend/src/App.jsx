@@ -13,25 +13,38 @@ import Home from "./pages/Home";
 import Profile from "./pages/Profile";
 import Follow from "./pages/Follow";
 import AdditionalInfo from "./pages/AdditionalInfo";
-import { SliderProvider } from "./contexts/SliderContext";
+import ProtectedRoute from "./components/ProtectedRoute";
+import NotFoundPage from "./pages/NotFoundPage";
 
 const App = () => {
   return (
-    <SliderProvider>
-      <Router>
-        <Routes>
-          <Route path="/" element={<Navigate to="/home" />} />
-          <Route path="/signup" element={<Signup />} />
-          <Route path="/home" element={<Home />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/messages" element={<MessagingPage />} />
-          <Route path="/search" element={<SearchPage />} />
-          <Route path="/additional-info" element={<AdditionalInfo />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/profile/:id" element={<Follow />} />
-        </Routes>
-      </Router>
-    </SliderProvider>
+    <Router>
+      <Routes>
+        <Route path="/" element={<Navigate to="/home" />} />
+        <Route path="/signup" element={<Signup />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/search" element={<SearchPage />} />
+        <Route path="/additional-info" element={<AdditionalInfo />} />
+
+        <Route 
+          path="/home" 
+          element={<ProtectedRoute element={<Home />} />} 
+        />
+        <Route 
+          path="/profile" 
+          element={<ProtectedRoute element={<Profile />} />} 
+        />
+        <Route 
+          path="/profile/:id" 
+          element={<ProtectedRoute element={<Follow />} />}
+        />
+        <Route 
+          path="/messages" 
+          element={<ProtectedRoute element={<MessagingPage />} />} 
+        />
+        <Route path="*" element={<NotFoundPage />} />
+      </Routes>
+    </Router>
   );
 };
 

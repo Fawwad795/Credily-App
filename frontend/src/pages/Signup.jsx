@@ -316,9 +316,8 @@ const Signup = () => {
     { code: "+7", flag: "🇷🇺" },
   ];
 
-  return (
-    <div
-      className="min-h-screen grid grid-cols-2 bg-cover bg-center flex items-center justify-center"
+  return ( 
+     <div  className="min-h-screen grid sm:grid-cols-1 sm:grid-rows-2 md:grid-cols-2 md:grid-rows-1  lg:grid-cols-2 lg:grid-rows-1 bg-cover bg-center"
       style={{
         backgroundImage: `url(${background})`,
         backgroundSize: "120%", // Scales the background image to 120% of its original size

@@ -5,8 +5,27 @@ import "../index.css"; // Updated path to reference index.css in the src directo
 import api from "../utils/axios";
 import NotificationBadge from "./NotificationBadge";
 import NavNotificationButton from "./NavNotificationButton";
-import { useSlider } from "../contexts/SliderContext";
-import ConnectionsSlider from "./ConnectionsSlider";
+
+// Define a Back Arrow SVG
+const BackArrowIcon = () => (
+  <svg className="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+  </svg>
+);
+
+// Existing XIcon (example, taken from your Nav.jsx structure for the close button)
+const XIcon = () => (
+  <svg className="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+  </svg>
+);
+
+// Existing MenuIcon (example, taken from your Nav.jsx structure for the hamburger button)
+const MenuIcon = () => (
+  <svg className="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
+  </svg>
+);
 
 // Loading Screen Component
 const LoadingScreen = ({ message }) => {
@@ -841,9 +860,23 @@ const Notifications = ({ isOpen, onClose }) => {
   );
 };
 
-const Nav = () => {
-  const { activeSlider, sliderParams, openSearchSlider, openNotificationsSlider, closeSlider } = useSlider();
-  const [isLoading, setIsLoading] = useState(false);
+const Nav = ({ isChatViewActive, onChatBackClick }) => {
+  const [activeSlider, setActiveSlider] = useState(null); // 'search' or 'notifications'
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false); // State for mobile menu
+  const [isOverlayRendered, setIsOverlayRendered] = useState(false); // New state for delayed overlay rendering
+
+  useEffect(() => {
+    let timerId;
+    if (isMobileMenuOpen && !isChatViewActive) { // Only manage overlay if menu should open and not in chat view mode
+      timerId = setTimeout(() => {
+        setIsOverlayRendered(true);
+      }, 50); // 50ms delay - adjust if needed
+    } else {
+      setIsOverlayRendered(false); // Hide immediately if menu is closing or in chat view mode
+    }
+    return () => clearTimeout(timerId);
+  }, [isMobileMenuOpen, isChatViewActive]);
+
   const [activeItem, setActiveItem] = useState(() => {
     // Determine active item based on current path
     const path = window.location.pathname;
@@ -862,14 +895,9 @@ const Nav = () => {
         method: "POST",
         credentials: "include", // Include cookies if used
       });
-
-      // Clear user data
-      localStorage.removeItem("user");
-
-      // Wait at least 2 seconds before redirecting
-      setTimeout(() => {
-        window.location.href = "/login"; // Redirect to login page
-      }, 2000);
+      localStorage.removeItem("token"); // Changed "user" to "token"
+      alert("Signed out successfully!");
+      window.location.href = "/login"; // Redirect to login page
     } catch (error) {
       console.error("Error signing out:", error);
       setIsLoading(false);
@@ -878,17 +906,59 @@ const Nav = () => {
     }
   };
 
+  const handleMenuItemClick = (item) => {
+    setActiveItem(item);
+    setIsMobileMenuOpen(false); // Close mobile menu on item click
+  };
+
+  const handleSliderToggle = (sliderName) => {
+    setActiveSlider(sliderName);
+    setActiveItem(sliderName); // Set active item to match slider
+    setIsMobileMenuOpen(false); // Close mobile menu when a slider opens (this will also hide overlay via useEffect)
+  };
+  
+  // Simplified closeMobileMenu or use inline for overlay click
+  const handleOverlayClick = () => {
+    setIsMobileMenuOpen(false);
+  };
+
   return (
     <>
-      {isLoading && <LoadingScreen message="Signing out..." />}
+      {/* Mobile top-left button: Back Arrow or Hamburger/Close */}
+      {isChatViewActive ? (
+        <button
+          onClick={onChatBackClick}
+          className="sm:hidden fixed top-4 left-4 z-50 p-2 rounded-full text-gray-700 bg-white shadow-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-purple-500"
+          aria-label="Back to chat list"
+        >
+          <BackArrowIcon />
+        </button>
+      ) : (
+        <button
+          onClick={() => setIsMobileMenuOpen(prev => !prev)} // Simplified onClick
+          className={`sm:hidden fixed top-4 z-50 p-2 rounded-md text-gray-700 bg-white shadow-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-purple-500 ${isMobileMenuOpen ? 'right-4' : 'left-4'}`}
+          aria-label={isMobileMenuOpen ? "Close sidebar" : "Open sidebar"}
+        >
+          {isMobileMenuOpen ? <XIcon /> : <MenuIcon />}
+        </button>
+      )}
+
+      {/* Overlay for mobile menu (only if not in chat view and conditions from useEffect met) */}
+      {isOverlayRendered && (
+        <div
+          className="sm:hidden fixed inset-0 bg-black bg-opacity-50 z-30 transition-opacity duration-150 ease-in-out"
+          onClick={handleOverlayClick} // Use new handler or inline setIsMobileMenuOpen(false)
+          aria-hidden="true"
+        ></div>
+      )}
 
       {/* Sidebar */}
       <aside
         id="default-sidebar"
-        className="fixed top-0 left-0 z-40 w-64 h-screen transition-transform -translate-x-full sm:translate-x-0 shadow-lg"
+        className={`fixed top-0 left-0 z-40 h-screen bg-white shadow-lg transition-transform duration-300 ease-in-out ${(!isChatViewActive && isMobileMenuOpen) ? "w-full translate-x-0" : "w-full -translate-x-full"} sm:w-64 sm:translate-x-0 sm:shadow-lg`}
         aria-label="Sidebar"
       >
-        <div className="h-full flex flex-col overflow-y-auto bg-white">
+        <div className="h-full flex flex-col overflow-y-auto">
           {/* Gradient header */}
           <div className="grad p-5 pb-6 text-white rounded-b-xl mb-2 shadow-md">
             <h2 className="text-2xl font-bold font-handsome tracking-wide">
@@ -906,7 +976,7 @@ const Nav = () => {
                     ? "grad text-white shadow-md"
                     : "text-gray-700 hover:bg-gradient-to-r hover:from-purple-50 hover:to-red-50"
                 }`}
-                onClick={() => setActiveItem("profile")}
+                onClick={() => handleMenuItemClick("profile")}
               >
                 <svg
                   className={`w-5 h-5 ${
@@ -936,7 +1006,7 @@ const Nav = () => {
                     ? "grad text-white shadow-md"
                     : "text-gray-700 hover:bg-gradient-to-r hover:from-purple-50 hover:to-red-50"
                 }`}
-                onClick={() => setActiveItem("home")}
+                onClick={() => handleMenuItemClick("home")}
               >
                 <svg
                   className={`w-5 h-5 ${
@@ -960,10 +1030,7 @@ const Nav = () => {
             </li>
             <li>
               <button
-                onClick={() => {
-                  openSearchSlider();
-                  setActiveItem("search");
-                }}
+                onClick={() => handleSliderToggle("search")}
                 className={`w-full flex items-center p-3 rounded-lg transition-all duration-200 cursor-pointer ${
                   activeItem === "search"
                     ? "grad text-white shadow-md"
@@ -998,7 +1065,7 @@ const Nav = () => {
                     ? "grad text-white shadow-md"
                     : "text-gray-700 hover:bg-gradient-to-r hover:from-purple-50 hover:to-red-50"
                 }`}
-                onClick={() => setActiveItem("messages")}
+                onClick={() => handleMenuItemClick("messages")}
               >
                 <svg
                   className={`w-5 h-5 ${
@@ -1024,10 +1091,7 @@ const Nav = () => {
             {/* Notifications Button */}
             <li>
               <button
-                onClick={() => {
-                  openNotificationsSlider();
-                  setActiveItem("notifications");
-                }}
+                onClick={() => handleSliderToggle("notifications")}
                 className={`w-full flex items-center p-3 rounded-lg transition-all duration-200 cursor-pointer ${
                   activeItem === "notifications"
                     ? "grad text-white shadow-md"
@@ -1048,7 +1112,10 @@ const Nav = () => {
 
           <div className="mt-auto p-3">
             <button
-              onClick={handleSignout}
+              onClick={() => {
+                handleSignout();
+                setIsMobileMenuOpen(false); // Close menu on signout
+              }}
               className="w-full flex items-center p-3 rounded-lg text-gray-700 hover:bg-gradient-to-r hover:from-purple-50 hover:to-red-50 transition-all duration-200 cursor-pointer"
             >
               <svg

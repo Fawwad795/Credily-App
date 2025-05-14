@@ -718,8 +718,8 @@ const Profile = () => {
               ></div>
             </div>
 
-            {/* Username and Email */}
-            <div className="absolute bottom-0 left-32 right-0 p-4 text-white">
+            {/* Username on Wallpaper - Hidden on small screens */}
+            <div className="absolute bottom-0 left-32 right-0 p-4 text-white hidden sm:block">
               <h1 className="text-4xl font-bold">
                 {profile.firstName || profile.lastName
                   ? `${profile.firstName || ""} ${
@@ -864,11 +864,15 @@ const Profile = () => {
           </div>
         </div>
 
-        {/* Analytics Section */}
+        {/* Analytics Section with responsive padding */}
+        <div className="px-2 sm:px-6 py-4">
+          <Analytics />
+        </div>
 
-        <Analytics />
-        {/* Reviews Section */}
-        <ReviewList reviews={reviewsData} />
+        {/* Reviews Section with responsive padding */}
+        <div className="px-2 sm:px-6 py-4">
+          <ReviewList reviews={reviewsData} />
+        </div>
 
         {/* Posts Section - Horizontal Scrolling */}
         {console.log(

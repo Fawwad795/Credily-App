@@ -69,7 +69,7 @@ const Home = () => {
             <div className="w-full md:w-8/12">
               {/* Header & Create Post Button */}
               <div className="flex justify-between items-center mb-6">
-                <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-red-600">
+                <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-red-600 pl-16 sm:pl-0">
                   Your Feed
                 </h1>
                 <button className="grad text-white px-4 py-2 rounded-full flex items-center space-x-2 shadow-lg hover:shadow-xl transition duration-300 transform hover:scale-105">

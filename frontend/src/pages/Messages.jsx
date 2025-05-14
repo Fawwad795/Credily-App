@@ -21,14 +21,15 @@ const MessagingPage = () => {
   const [isConnected, setIsConnected] = useState(false);
   const [fallbackMode, setFallbackMode] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [isChatOpen, setIsChatOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const messagesEndRef = useRef(null);
 
-  // Helper function to get socket user by socket ID
-  const getUserBySocketId = (socketId) => {
-    return onlineUsers.find((user) => user.socketId === socketId);
-  };
+  // Helper function to get socket user by socket ID (commented out as unused)
+  // const getUserBySocketId = (socketId) => {
+  //   return onlineUsers.find((user) => user.socketId === socketId);
+  // };
 
   // Scroll to bottom of messages
   const scrollToBottom = () => {
@@ -854,6 +855,7 @@ const MessagingPage = () => {
         fetchMessages(chat.id);
       });
     }
+    setIsChatOpen(true);
   };
 
   // Generate placeholder images for profiles
@@ -903,40 +905,40 @@ const MessagingPage = () => {
     }
   };
   
-  // Format date - for date separators
-  const formatMessageDate = (timestamp) => {
-    try {
-      const date = new Date(timestamp);
-      if (isNaN(date.getTime())) {
-        return '';
-      }
-      
-      const today = new Date();
-      const yesterday = new Date(today);
-      yesterday.setDate(yesterday.getDate() - 1);
-      
-      // Check if it's today
-      if (date.toDateString() === today.toDateString()) {
-        return 'Today';
-      }
-      
-      // Check if it's yesterday
-      if (date.toDateString() === yesterday.toDateString()) {
-        return 'Yesterday';
-      }
-      
-      // Otherwise, return the full date
-      return date.toLocaleDateString([], {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      });
-    } catch (error) {
-      console.error('Error formatting message date:', error);
-      return '';
-    }
-  };
+  // Format date - for date separators (commented out as unused)
+  // const formatMessageDate = (timestamp) => {
+  //   try {
+  //     const date = new Date(timestamp);
+  //     if (isNaN(date.getTime())) {
+  //       return '';
+  //     }
+  //     
+  //     const today = new Date();
+  //     const yesterday = new Date(today);
+  //     yesterday.setDate(yesterday.getDate() - 1);
+  //     
+  //     // Check if it's today
+  //     if (date.toDateString() === today.toDateString()) {
+  //       return 'Today';
+  //     }
+  //     
+  //     // Check if it's yesterday
+  //     if (date.toDateString() === yesterday.toDateString()) {
+  //       return 'Yesterday';
+  //     }
+  //     
+  //     // Otherwise, return the full date
+  //     return date.toLocaleDateString([], {
+  //       weekday: 'long',
+  //       year: 'numeric',
+  //       month: 'long',
+  //       day: 'numeric'
+  //     });
+  //   } catch (error) {
+  //     console.error('Error formatting message date:', error);
+  //     return '';
+  //   }
+  // };
   
   // Format chat list timestamps - optimized
   const formatChatTime = (timestamp) => {
@@ -982,30 +984,30 @@ const MessagingPage = () => {
     }
   };
 
-  // Format message timestamps with more detail for hover
-  const formatFullMessageTime = (timestamp) => {
-    try {
-      // Check if timestamp is valid
-      const date = new Date(timestamp);
-      if (isNaN(date.getTime())) {
-        console.error("Invalid timestamp:", timestamp);
-        return "";
-      }
-      
-      // Format the full date and time
-      return date.toLocaleString([], {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      });
-    } catch (error) {
-      console.error("Error formatting full date:", error);
-      return "";
-    }
-  };
+  // Format message timestamps with more detail for hover (commented out as unused)
+  // const formatFullMessageTime = (timestamp) => {
+  //   try {
+  //     // Check if timestamp is valid
+  //     const date = new Date(timestamp);
+  //     if (isNaN(date.getTime())) {
+  //       console.error("Invalid timestamp:", timestamp);
+  //       return "";
+  //     }
+  //     
+  //     // Format the full date and time
+  //     return date.toLocaleString([], {
+  //       weekday: 'long',
+  //       year: 'numeric',
+  //       month: 'long',
+  //       day: 'numeric',
+  //       hour: '2-digit',
+  //       minute: '2-digit'
+  //     });
+  //   } catch (error) {
+  //     console.error("Error formatting full date:", error);
+  //     return "";
+  //   }
+  // };
 
   // Keep track of read status in the message delivery handler
   useEffect(() => {
@@ -1306,16 +1308,19 @@ const MessagingPage = () => {
   return (
     <div className="flex h-screen bg-gray-100">
       {/* Left Sidebar (Navbar) */}
-      <Nav />
+      <Nav 
+        isChatViewActive={isChatOpen} 
+        onChatBackClick={() => setIsChatOpen(false)} 
+      />
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col ml-64 overflow-hidden">
+      <div className="flex-1 flex flex-col sm:ml-64 overflow-hidden">
         {/* Header removed */}
 
         <div className="flex flex-1 overflow-hidden">
-          {/* Sidebar */}
-          <div className="w-1/3 bg-gray-50 shadow-md rounded-l-lg overflow-y-auto">
-            <div className="flex justify-between items-center p-4">
+          {/* Sidebar - Chat List */}
+          <div className={`w-full bg-gray-50 shadow-md rounded-l-lg overflow-y-auto ${isChatOpen ? 'hidden' : 'block'} sm:block sm:w-1/3`}>
+            <div className="flex justify-between items-center p-4 sm:pl-4 pl-16">
               <h2 className="text-xl font-bold">Chats</h2>
               {unreadCount > 0 && (
                 <span className="text-sm bg-red-500 text-white px-3 py-1 rounded-full">
@@ -1384,15 +1389,29 @@ const MessagingPage = () => {
           </div>
 
           {/* Chat Window */}
-          <div className="flex-1 flex flex-col overflow-hidden">
+          <div className={`flex-1 flex-col overflow-hidden ${isChatOpen ? 'flex' : 'hidden'} sm:flex`}>
             {selectedChat ? (
               <>
                 {/* Chat Header */}
                 <div
-                  className="p-4 w-full bg-gray-50 text-gray-800 shadow-md sticky top-0 z-10 cursor-pointer"
+                  className="relative p-4 w-full bg-gray-50 text-gray-800 shadow-md sticky top-0 z-10 cursor-pointer"
                   onClick={() => navigate(`/profile/${selectedChat.id}`)}
                 >
-                  <div className="flex items-center">
+                  {isChatOpen && (
+                    <button
+                      onClick={(e) => { 
+                        e.stopPropagation();
+                        setIsChatOpen(false); 
+                      }}
+                      className="absolute top-1/2 left-4 -translate-y-1/2 z-20 p-2 rounded-full hover:bg-gray-200 sm:hidden"
+                      aria-label="Back to chat list"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+                      </svg>
+                    </button>
+                  )}
+                  <div className={`flex items-center ${isChatOpen ? 'ml-16 sm:ml-0' : ''}`}>
                     <img
                       src={
                         selectedChat.profilePicture || "/default-profile.png"
