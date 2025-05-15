@@ -53,6 +53,10 @@ This project is structured into separate frontend and backend directories.
    CLOUDINARY_CLOUD_NAME=ds6xri71k
    CLOUDINARY_API_KEY=632696559246236
    CLOUDINARY_API_SECRET=PaT4mWgag51BgW_dpK835_W8Fhc
+
+   # Google Cloud credentials for sentiment analysis
+   GOOGLE_APPLICATION_CREDENTIALS=./config/google-credentials.json
+   USE_REAL_SENTIMENT=true
    ```
 
    > **Note:** The Cloudinary variables are essential for profile picture uploads and other media storage features. Create a free account at [cloudinary.com](https://cloudinary.com) to get your credentials.

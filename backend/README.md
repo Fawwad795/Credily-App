@@ -15,6 +15,15 @@ PORT=5000
 MONGODB_URI=your_mongodb_connection_string
 JWT_SECRET=your_jwt_secret
 NODE_ENV=development
+
+# Cloudinary credentials for image uploads
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_api_key
+CLOUDINARY_API_SECRET=your_api_secret
+
+# Google Cloud credentials for sentiment analysis
+GOOGLE_APPLICATION_CREDENTIALS=./config/google-credentials.json
+USE_REAL_SENTIMENT=true
 ```
 
 ## Development
