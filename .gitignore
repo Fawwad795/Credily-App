@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 
+# Google Cloud credentials
+backend/config/google-credentials.json
+
 # Environment variables
 .env
 .env.local

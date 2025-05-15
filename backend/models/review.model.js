@@ -19,12 +19,6 @@ const reviewSchema = new mongoose.Schema(
       minlength: 5,
       maxlength: 2000,
     },
-    rating: {
-      type: Number,
-      required: [true, "Rating is required"],
-      min: 1,
-      max: 5,
-    },
     categories: [
       {
         type: String,
@@ -43,8 +37,24 @@ const reviewSchema = new mongoose.Schema(
     },
     sentiment: {
       type: String,
-      enum: ["positive", "neutral", "negative"],
+      enum: [
+        "critically negative",
+        "negative",
+        "neutral",
+        "positive",
+        "critically positive",
+      ],
       default: "neutral",
+    },
+    sentimentDetails: {
+      score: {
+        type: Number,
+        default: 0,
+      },
+      magnitude: {
+        type: Number,
+        default: 0,
+      },
     },
     hasVerifiedConnection: {
       type: Boolean,

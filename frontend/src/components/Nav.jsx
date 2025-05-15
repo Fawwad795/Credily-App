@@ -842,6 +842,7 @@ const Notifications = ({ isOpen, onClose }) => {
 const Nav = () => {
   const [activeSlider, setActiveSlider] = useState(null); // 'search' or 'notifications'
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false); // State for mobile menu
+  const [isLoading, setIsLoading] = useState(false); // Add loading state for sign out
   const [activeItem, setActiveItem] = useState(() => {
     // Determine active item based on current path
     const path = window.location.pathname;
@@ -855,19 +856,17 @@ const Nav = () => {
     setIsLoading(true);
 
     try {
-      // Call the signout API
-      await fetch("/api/users/signout", {
-        method: "POST",
-        credentials: "include", // Include cookies if used
-      });
-      localStorage.removeItem("token"); // Changed "user" to "token"
-      alert("Signed out successfully!");
-      window.location.href = "/login"; // Redirect to login page
+      // No need to call API - just remove the token
+      localStorage.removeItem("token");
+
+      // Add a small delay to show the loading indicator
+      setTimeout(() => {
+        window.location.href = "/login"; // Redirect to login page
+      }, 500);
     } catch (error) {
       console.error("Error signing out:", error);
       setIsLoading(false);
-      // Show error in a non-modal way, such as toast notification
-      // For now just log to console
+      alert("Failed to sign out. Please try again.");
     }
   };
 
@@ -881,11 +880,12 @@ const Nav = () => {
     setActiveItem(sliderName); // Set active item to match slider
     setIsMobileMenuOpen(false); // Close mobile menu when a slider opens
   };
-  
+
   const closeMobileMenu = () => setIsMobileMenuOpen(false);
 
   return (
     <>
+      {isLoading && <LoadingScreen message="Signing out..." />}
       {/* Hamburger Button - visible only on small screens */}
       <button
         onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -893,12 +893,36 @@ const Nav = () => {
         aria-label="Open sidebar"
       >
         {isMobileMenuOpen ? (
-          <svg className="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+          <svg
+            className="h-6 w-6"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            aria-hidden="true"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              d="M6 18L18 6M6 6l12 12"
+            />
           </svg>
         ) : (
-          <svg className="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
+          <svg
+            className="h-6 w-6"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            aria-hidden="true"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              d="M4 6h16M4 12h16M4 18h16"
+            />
           </svg>
         )}
       </button>

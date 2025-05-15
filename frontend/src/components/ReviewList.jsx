@@ -1,7 +1,7 @@
 import React from "react";
 import { format } from "date-fns";
 
-const ReviewList = ({ reviews, isLoading, averageRating }) => {
+const ReviewList = ({ reviews, isLoading }) => {
   // Generate placeholder image for reviewer avatar
   const generateAvatar = (username) => {
     const colors = ["blue", "teal", "green", "orange", "red"];
@@ -13,24 +13,6 @@ const ReviewList = ({ reviews, isLoading, averageRating }) => {
     const color = colors[colorIndex];
     const initial = username ? username.charAt(0).toUpperCase() : "?";
     return `https://placehold.co/50/${color}/white?text=${initial}`;
-  };
-
-  // Function to render stars based on rating
-  const renderStars = (rating) => {
-    const stars = [];
-    for (let i = 1; i <= 5; i++) {
-      stars.push(
-        <span
-          key={i}
-          className={`text-xl ${
-            i <= rating ? "text-yellow-500" : "text-gray-300"
-          }`}
-        >
-          ★
-        </span>
-      );
-    }
-    return <div className="flex">{stars}</div>;
   };
 
   // Function to format date
@@ -84,30 +66,6 @@ const ReviewList = ({ reviews, isLoading, averageRating }) => {
     <div className="max-w-4xl mx-auto my-6 bg-white rounded-lg shadow-md p-6">
       <h2 className="text-xl font-bold text-gray-800 mb-4">Reviews</h2>
 
-      {/* Average Rating Display */}
-      {averageRating > 0 && (
-        <div className="mb-4 flex items-center">
-          <span className="text-gray-700 mr-2">Average Rating:</span>
-          <div className="flex">
-            {[1, 2, 3, 4, 5].map((star) => (
-              <span
-                key={star}
-                className={`text-xl ${
-                  star <= Math.round(averageRating)
-                    ? "text-yellow-500"
-                    : "text-gray-300"
-                }`}
-              >
-                ★
-              </span>
-            ))}
-          </div>
-          <span className="ml-2 text-sm text-gray-600">
-            ({averageRating.toFixed(1)})
-          </span>
-        </div>
-      )}
-
       {/* Vertical Scrolling Container */}
       <div className="max-h-96 overflow-y-auto space-y-4 hide-scrollbar">
         {reviews && reviews.length > 0 ? (
@@ -145,8 +103,6 @@ const ReviewList = ({ reviews, isLoading, averageRating }) => {
                         {formatDate(review.createdAt)}
                       </span>
                     </div>
-                    {/* Rating */}
-                    {renderStars(review.rating)}
                   </div>
                 </div>
 

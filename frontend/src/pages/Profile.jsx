@@ -875,12 +875,12 @@ const Profile = () => {
         </div>
 
         {/* Analytics Section with responsive padding */}
-        <div className="px-2 sm:px-6 py-4">
-          <Analytics />
+        <div className="px-2 sm:px-6 py-2">
+          <Analytics userId={profile._id} />
         </div>
 
         {/* Reviews Section with responsive padding */}
-        <div className="px-2 sm:px-6 py-4">
+        <div className="px-2 sm:px-6 py-2">
           <ReviewList
             reviews={reviews}
             isLoading={reviewsLoading}
