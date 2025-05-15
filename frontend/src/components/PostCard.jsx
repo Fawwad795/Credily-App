@@ -1,13 +1,18 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   FaRegComment,
   FaHeart,
   FaRegHeart,
   FaShare,
   FaCheck,
+  FaEdit,
+  FaTimes,
+  FaEllipsisV,
+  FaTrash
 } from "react-icons/fa";
 import { Link } from "react-router-dom";
 import axios from "axios";
+import socketClient from "../utils/socket.js";
 
 export default function PostCard({
   authorId,
@@ -21,6 +26,7 @@ export default function PostCard({
   likesCount = 0,
   userId,
   isLiked = false,
+  onDelete, // callback to remove post from parent UI
 }) {
   const [liked, setLiked] = useState(isLiked);
   const [likeCount, setLikeCount] = useState(likesCount);
@@ -31,6 +37,11 @@ export default function PostCard({
   const [authorImgSrc, setAuthorImgSrc] = useState(authorImage);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [commentSuccess, setCommentSuccess] = useState(false);
+  const [caption, setCaption] = useState(postCaption);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editCaption, setEditCaption] = useState(postCaption);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
 
   // Reset success state after 3 seconds
   useEffect(() => {
@@ -42,6 +53,56 @@ export default function PostCard({
     }
     return () => clearTimeout(timer);
   }, [commentSuccess]);
+
+  // Click outside to close dropdown
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setDropdownOpen(false);
+      }
+    }
+    if (dropdownOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    } else {
+      document.removeEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [dropdownOpen]);
+
+  // Polling for comments
+  useEffect(() => {
+    let interval;
+    if (commentsVisible && postId) {
+      // Fetch immediately
+      fetchComments();
+      // Poll every 2 seconds
+      interval = setInterval(() => {
+        fetchComments();
+      }, 2000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [commentsVisible, postId]);
+
+  // Fetch comments function
+  const fetchComments = async () => {
+    try {
+      const response = await axios.get(`/api/posts/${postId}/comments`, {
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
+      });
+      if (response.data && response.data.success) {
+        setComments(response.data.comments || []);
+      }
+    } catch (error) {
+      console.error("Error fetching comments:", error);
+    }
+  };
 
   const toggleLike = async () => {
     try {
@@ -59,29 +120,25 @@ export default function PostCard({
     }
   };
 
+  // --- COMMENT SUBMIT ---
   const handleCommentSubmit = async (e) => {
     e.preventDefault();
-    if (newComment.trim() && !isSubmitting) {
+    const commentText = newComment.trim();
+    if (commentText && !isSubmitting) {
       setIsSubmitting(true);
-
+      setNewComment(""); // Clear input immediately
       try {
         const response = await axios.post("/api/posts/comment", {
           postId,
           userId,
-          content: newComment.trim(),
+          content: commentText,
         });
-
         if (response.data.success) {
-          setComments([...comments, response.data.comment]);
-          setNewComment("");
+          // No need to manually add comment, polling will pick it up
           setCommentSuccess(true);
-          // Open comments section if not already open
-          if (!commentsVisible) {
-            setCommentsVisible(true);
-          }
         }
       } catch (error) {
-        console.error("Error posting comment:", error);
+        setNewComment(commentText); // Restore if error
       } finally {
         setIsSubmitting(false);
       }
@@ -140,9 +197,20 @@ export default function PostCard({
     }
   };
 
+  // --- DELETE POST ---
+  const handleDeletePost = async () => {
+    if (!window.confirm("Are you sure you want to delete this post?")) return;
+    try {
+      await axios.post("/api/posts/delete", { postId, userId });
+      if (onDelete) onDelete(postId);
+    } catch (err) {
+      alert("Failed to delete post");
+    }
+  };
+
   return (
     <div
-      className="w-full glass rounded-xl overflow-hidden shadow-lg border border-gray-100"
+      className="w-full glass rounded-xl overflow-hidden shadow-lg border border-gray-100 relative"
       data-post-id={postId}
     >
       {/* Author Section */}
@@ -168,21 +236,88 @@ export default function PostCard({
             </p>
           </div>
         </div>
-        <div className="text-gray-400 cursor-pointer hover:text-gray-600">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="h-5 w-5"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-          >
-            <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-          </svg>
-        </div>
+        {/* Dropdown menu for author */}
+        {userId === authorId && (
+          <div className="relative" ref={dropdownRef}>
+            <button
+              className="text-gray-400 hover:text-blue-600 p-2 rounded-full focus:outline-none"
+              onClick={() => setDropdownOpen((open) => !open)}
+              title="Post options"
+            >
+              <FaEllipsisV size={18} />
+            </button>
+            {dropdownOpen && (
+              <div className="absolute right-0 mt-2 w-36 bg-white border border-gray-200 rounded shadow-lg z-50">
+                <button
+                  className="flex items-center w-full px-4 py-2 text-sm hover:bg-gray-100 text-left"
+                  onClick={() => {
+                    setDropdownOpen(false);
+                    setIsEditing(true);
+                    setEditCaption(caption);
+                  }}
+                >
+                  <FaEdit className="mr-2" /> Edit Post
+                </button>
+                <button
+                  className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-gray-100 text-left"
+                  onClick={() => {
+                    setDropdownOpen(false);
+                    handleDeletePost();
+                  }}
+                >
+                  <FaTrash className="mr-2" /> Delete Post
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Post Content - Caption */}
       <div className="px-4 pb-3">
-        <p className="text-gray-800">{postCaption}</p>
+        {isEditing ? (
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              className="w-full border border-purple-300 rounded px-2 py-1 mb-2"
+              value={editCaption}
+              onChange={e => setEditCaption(e.target.value)}
+              autoFocus
+              placeholder="Edit your caption..."
+            />
+            <button
+              className="text-green-600 hover:text-green-800 px-2"
+              onClick={async () => {
+                try {
+                  const response = await axios.put("/api/posts/edit", {
+                    postId,
+                    userId,
+                    caption: editCaption
+                  });
+                  setCaption(editCaption);
+                  setIsEditing(false);
+                } catch {
+                  alert("Failed to update caption");
+                }
+              }}
+              title="Save"
+            >
+              <FaCheck />
+            </button>
+            <button
+              className="text-red-600 hover:text-red-800 px-2"
+              onClick={() => {
+                setIsEditing(false);
+                setEditCaption(caption);
+              }}
+              title="Cancel"
+            >
+              <FaTimes />
+            </button>
+          </div>
+        ) : (
+          <p className="text-gray-800">{caption}</p>
+        )}
       </div>
 
       {/* Post Image */}
