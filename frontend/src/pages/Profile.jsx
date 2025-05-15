@@ -14,6 +14,8 @@ import Nav from "../components/Nav";
 import ReviewList from "../components/ReviewList";
 import PostSection from "../components/PostSection";
 import Analytics from "../components/Analytics";
+import { useSlider } from "../contexts/SliderContext";
+import api from "../utils/axios";
 
 // Function to generate placeholder image URL for new posts
 const getDefaultPostImage = () => {
@@ -65,12 +67,11 @@ const Profile = () => {
   });
   const [editBio, setEditBio] = useState("");
   const [loading, setLoading] = useState(true);
-  const [reviews, setReviews] = useState([]);
-  const [reviewsLoading, setReviewsLoading] = useState(false);
-  const [averageRating, setAverageRating] = useState(0);
+  const [statusPopup, setStatusPopup] = useState({ show: false, message: "", type: "" });
 
   const location = useLocation();
   const user = location.state?.user;
+  const { openConnectionsSlider } = useSlider();
 
   useEffect(() => {
     // If no user data is passed via location state, get current user's profile
@@ -619,43 +620,71 @@ const Profile = () => {
     }
   };
 
-  // Add function to fetch reviews
-  const fetchReviews = async () => {
-    try {
-      setReviewsLoading(true);
-      // Extract user ID from current profile
-      const profileId = profile?._id;
-
-      if (!profileId) {
-        return;
-      }
-
-      const response = await fetch(`/api/reviews/user/${profileId}`);
-
-      if (!response.ok) {
-        setReviewsLoading(false);
-        return;
-      }
-
-      const data = await response.json();
-
-      if (data.success) {
-        setReviews(data.data.reviews);
-        setAverageRating(data.data.averageRating);
-      }
-    } catch (error) {
-      console.error("Error fetching reviews:", error);
-    } finally {
-      setReviewsLoading(false);
+  // Connections click handler
+  const handleConnectionsClick = () => {
+    const userId = profile?._id;
+    console.log("Profile: handleConnectionsClick called with userId:", userId);
+    if (userId) {
+      openConnectionsSlider(userId);
+    } else {
+      console.log("Profile: No userId available for connections slider");
     }
   };
 
-  // Call fetchReviews in useEffect when profile is available
-  useEffect(() => {
-    if (profile && profile._id) {
-      fetchReviews();
+  // Function to delete a post
+  const handleDeletePost = async (postId) => {
+    try {
+      if (!postId) {
+        console.error("No post ID provided for deletion");
+        setStatusPopup({ show: true, message: "Error: Post ID is missing", type: "error" });
+        return;
+      }
+
+      setLoading(true);
+      
+      // Get current user ID from profile
+      const userId = profile?._id;
+      if (!userId) {
+        console.error("No user ID available");
+        setStatusPopup({ show: true, message: "User ID is missing. Please try again.", type: "error" });
+        setLoading(false);
+        return;
+      }
+
+      console.log("Deleting post with ID:", postId, "for user:", userId);
+
+      // Make API call to delete the post using the axios instance
+      const response = await api.post("/posts/delete", { postId, userId });
+      const data = response.data;
+
+      if (data.success) {
+        console.log("Post deleted successfully:", data);
+        
+        // Update the posts list by removing the deleted post
+        setUserPosts(userPosts.filter(post => post._id !== postId));
+        
+        // Show success message
+        setStatusPopup({ show: true, message: "Post deleted successfully!", type: "success" });
+        
+        // Close the popup after 3 seconds
+        setTimeout(() => {
+          setStatusPopup({ show: false, message: "", type: "" });
+        }, 3000);
+      } else {
+        console.error("Failed to delete post:", data.message);
+        setStatusPopup({ show: true, message: data.message || "Failed to delete post. Please try again.", type: "error" });
+      }
+    } catch (error) {
+      console.error("Error deleting post:", error);
+      setStatusPopup({ 
+        show: true, 
+        message: error.response?.data?.message || "Error deleting post. Please check your connection and try again.", 
+        type: "error" 
+      });
+    } finally {
+      setLoading(false);
     }
-  }, [profile]);
+  };
 
   if (loading || !profile) {
     return (
@@ -834,7 +863,10 @@ const Profile = () => {
                     : "No location specified"}
                 </span>
                 <div className="flex items-center ml-2">
-                  <span className="text-blue-600 font-medium cursor-pointer">
+                  <span 
+                    className="text-blue-600 font-medium cursor-pointer hover:underline"
+                    onClick={handleConnectionsClick}
+                  >
                     · Connections {connections}
                   </span>
 
@@ -896,6 +928,7 @@ const Profile = () => {
         <PostSection
           posts={userPosts.length > 0 ? userPosts : samplePosts}
           onCreate={() => setIsModalOpen(true)}
+          onDelete={handleDeletePost}
         />
         {isModalOpen && <div>Your modal component goes here</div>}
       </div>
@@ -1246,6 +1279,36 @@ const Profile = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Status Popup for success and error messages */}
+      {statusPopup.show && (
+        <div className={`fixed bottom-5 right-5 max-w-md px-6 py-4 rounded-lg shadow-lg z-50 transition-all duration-300 ${
+          statusPopup.type === 'success' 
+            ? 'bg-green-50 border-l-4 border-green-500 text-green-700' 
+            : 'bg-red-50 border-l-4 border-red-500 text-red-700'
+        }`}>
+          <div className="flex items-center space-x-3">
+            {statusPopup.type === 'success' ? (
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            ) : (
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            )}
+            <p className="font-medium">{statusPopup.message}</p>
+            <button 
+              onClick={() => setStatusPopup({ show: false, message: "", type: "" })}
+              className="ml-auto -mx-1.5 -my-1.5 rounded-lg focus:ring-2 focus:ring-gray-400 p-1.5 inline-flex h-8 w-8 hover:bg-gray-200"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
           </div>
         </div>
       )}

@@ -3,9 +3,11 @@ import { useParams, useNavigate } from "react-router-dom";
 import { AtSign, MapPin } from "lucide-react";
 import Nav from "../components/Nav"; // Adjust the path to your Nav component
 import PostCard from "../components/PostCard"; // Import PostCard component
+import { useSlider } from "../contexts/SliderContext";
 
 const Follow = () => {
   const { id } = useParams(); // Get the user ID from URL params
+  const { openConnectionsSlider } = useSlider();
   const [isFollowing, setIsFollowing] = useState(false); // State to track follow status
   const [isPendingRequest, setIsPendingRequest] = useState(false); // State to track pending follow requests
   const [pendingRequestId, setPendingRequestId] = useState(null); // Store pending request ID for cancellation
@@ -531,69 +533,10 @@ const Follow = () => {
     return isFollowing || connectionStatus.hasMutualConnections;
   };
 
-  // Add this function to analyze sentiment in real-time
-  const analyzeReviewSentiment = async (content) => {
-    if (!content || content.trim().length < 5) {
-      setSentiment({
-        sentimentLabel: "neutral",
-        score: 0,
-        magnitude: 0,
-      });
-      return;
-    }
-
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) return;
-
-      const response = await fetch("/api/reviews/analyze-sentiment", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ content }),
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        setSentiment(data.data);
-      }
-    } catch (error) {
-      console.error("Error analyzing sentiment:", error);
-    }
-  };
-
-  // Update handleReviewContent to include sentiment analysis
-  const handleReviewContentChange = (e) => {
-    const content = e.target.value;
-    setReviewContent(content);
-
-    // Clear any existing timeout
-    if (typingTimeout) {
-      clearTimeout(typingTimeout);
-    }
-
-    // Set a new timeout to delay API calls until user stops typing
-    const timeoutId = setTimeout(() => {
-      analyzeReviewSentiment(content);
-    }, 500); // 500ms delay
-
-    setTypingTimeout(timeoutId);
-  };
-
-  // Helper function to generate a placeholder avatar for connections without a profile picture
-  const generateAvatar = (username) => {
-    const colors = ["blue", "teal", "green", "orange", "red", "purple"];
-    // Use a simple hash of the username to pick a consistent color
-    const colorIndex = username
-      ? username.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0) %
-        colors.length
-      : Math.floor(Math.random() * colors.length);
-    const color = colors[colorIndex];
-    const initial = username ? username.charAt(0).toUpperCase() : "?";
-    return `https://placehold.co/50/${color}/white?text=${initial}`;
+  // Handle clicking on followers count
+  const handleConnectionsClick = () => {
+    console.log("Follow: handleConnectionsClick called with id:", id);
+    openConnectionsSlider(id);
   };
 
   return (
@@ -778,9 +721,12 @@ const Follow = () => {
 
             {/* Stats */}
             <div className="flex justify-around mt-8 p-4 bg-white rounded-lg shadow-sm">
-              <div className="text-center">
+              <div 
+                className="text-center cursor-pointer hover:text-blue-600 transition-colors" 
+                onClick={handleConnectionsClick}
+              >
                 <h3 className="text-2xl font-bold">{followersCount}</h3>
-                <p className="text-gray-600">Followers</p>
+                <p className="text-gray-600 hover:underline">Followers</p>
               </div>
               <div className="text-center">
                 <h3 className="text-2xl font-bold">{followingCount}</h3>
