@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { AtSign, MapPin } from "lucide-react";
 import Nav from "../components/Nav"; // Adjust the path to your Nav component
 import PostCard from "../components/PostCard"; // Import PostCard component
+import ReviewList from "../components/ReviewList"; // Import ReviewList component
 import { useSlider } from "../contexts/SliderContext";
 
 const Follow = () => {
@@ -44,6 +45,8 @@ const Follow = () => {
     traits: [],
   });
   const [typingTimeout, setTypingTimeout] = useState(null);
+  const [reviews, setReviews] = useState([]);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
 
   const navigate = useNavigate();
 
@@ -258,6 +261,35 @@ const Follow = () => {
     }
   }, [id]);
 
+  // Function to fetch reviews for a user
+  const fetchReviews = useCallback(async () => {
+    try {
+      setReviewsLoading(true);
+      
+      const response = await fetch(`/api/reviews/user/${id}`, {
+        headers: {
+          "Content-Type": "application/json",
+        }
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok && data.success) {
+        // Access reviews array from nested structure
+        setReviews(data.data.reviews || []);
+        console.log("Reviews fetched:", data.data.reviews);
+      } else {
+        console.error("Failed to fetch reviews:", data.message);
+        setReviews([]);
+      }
+    } catch (error) {
+      console.error("Error fetching reviews:", error);
+      setReviews([]);
+    } finally {
+      setReviewsLoading(false);
+    }
+  }, [id]);
+
   useEffect(() => {
     // Fetch user data when component mounts
     if (id) {
@@ -266,6 +298,7 @@ const Follow = () => {
       fetchConnectionsCount();
       checkPendingRequest();
       fetchUserPosts(); // Add this to directly fetch posts
+      fetchReviews(); // Add this to fetch reviews
     }
   }, [
     id,
@@ -274,6 +307,7 @@ const Follow = () => {
     fetchConnectionsCount,
     checkPendingRequest,
     fetchUserPosts,
+    fetchReviews,
   ]);
 
   const handleFollow = async () => {
@@ -789,6 +823,14 @@ const Follow = () => {
                 <p className="text-gray-600">Posts</p>
               </div>
             </div>
+          </div>
+
+          {/* User Reviews Section - Always visible regardless of follow status */}
+          <div className="glass shadow-lg rounded-lg mt-6 p-6 w-full">
+            <h3 className="text-xl font-bold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-red-600">
+              User Reviews
+            </h3>
+            <ReviewList reviews={reviews} isLoading={reviewsLoading} />
           </div>
 
           {/* Conditional Sections based on Follow Status */}
