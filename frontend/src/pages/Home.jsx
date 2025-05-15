@@ -5,11 +5,23 @@ import PostCard from "../components/PostCard";
 import SuggestedUsers from "../components/SuggestedUsers";
 import api from "../utils/axios";
 import { FaPlus, FaUserFriends } from "react-icons/fa";
+import { X, Upload } from "lucide-react";
+
+// Function to generate placeholder image URL for new posts
+const getDefaultPostImage = () => {
+  return "https://placehold.co/600x350/red/white?text=New+Post";
+};
 
 const Home = () => {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [newPost, setNewPost] = useState({
+    image: null,
+    imageFile: null,
+    caption: "",
+  });
 
   useEffect(() => {
     const fetchConnectedUserPosts = async () => {
@@ -56,6 +68,123 @@ const Home = () => {
     fetchConnectedUserPosts();
   }, []);
 
+  const handleImageChange = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setNewPost({
+        ...newPost,
+        imageFile: file,
+        image: URL.createObjectURL(file),
+      });
+    }
+  };
+
+  const handleCaptionChange = (e) => {
+    setNewPost({
+      ...newPost,
+      caption: e.target.value,
+    });
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      console.error("No authentication token found");
+      return;
+    }
+
+    // Get user ID from token
+    const parseJwt = (token) => {
+      try {
+        return JSON.parse(atob(token.split(".")[1]));
+      } catch {
+        return null;
+      }
+    };
+
+    const decodedToken = parseJwt(token);
+
+    if (!decodedToken || !decodedToken.id) {
+      console.error("Could not extract user ID from token");
+      return;
+    }
+
+    try {
+      let imageUrl;
+
+      // First, upload the image if we have one
+      if (newPost.imageFile) {
+        const formData = new FormData();
+        formData.append("image", newPost.imageFile);
+
+        const uploadResponse = await fetch("/api/uploads/image", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            // Don't set Content-Type for FormData
+          },
+          body: formData,
+        });
+
+        const uploadData = await uploadResponse.json();
+
+        if (!uploadData.success) {
+          console.error("Failed to upload image:", uploadData.message);
+          alert("Failed to upload image. Please try again.");
+          return;
+        }
+
+        imageUrl = uploadData.imageUrl;
+      } else {
+        imageUrl = getDefaultPostImage();
+      }
+
+      // Create post data with the Cloudinary URL
+      const postData = {
+        caption: newPost.caption,
+        author: decodedToken.id,
+        media: [
+          {
+            type: "image",
+            url: imageUrl,
+            altText: "",
+          },
+        ],
+        visibility: "public",
+      };
+
+      // Send post data to backend
+      const response = await fetch("/api/posts", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(postData),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        console.log("Post created successfully:", data);
+        // Update posts list
+        fetchConnectedUserPosts();
+        // Reset form and close modal
+        setIsModalOpen(false);
+        setNewPost({ image: null, imageFile: null, caption: "" });
+      } else {
+        console.error("Failed to create post:", data.message);
+        alert("Failed to create post. Please try again.");
+      }
+    } catch (error) {
+      console.error("Error creating post:", error);
+      alert("Error creating post. Please check your connection and try again.");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Navigation on the side */}
@@ -72,7 +201,10 @@ const Home = () => {
                 <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-red-600 pl-16 sm:pl-0">
                   Your Feed
                 </h1>
-                <button className="grad text-white px-4 py-2 rounded-full flex items-center space-x-2 shadow-lg hover:shadow-xl transition duration-300 transform hover:scale-105">
+                <button 
+                  className="grad text-white px-4 py-2 rounded-full flex items-center space-x-2 shadow-lg hover:shadow-xl transition duration-300 transform hover:scale-105"
+                  onClick={() => setIsModalOpen(true)}
+                >
                   <FaPlus className="text-sm" />
                   <span>Create Post</span>
                 </button>
@@ -160,6 +292,110 @@ const Home = () => {
           </div>
         </div>
       </div>
+
+      {/* Create New Post Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-gradient-to-b from-white/60 to-gray-400/40 backdrop-filter backdrop-blur-[4px] flex items-center justify-center z-50">
+          <div className="bg-white/95 rounded-lg shadow-xl w-full max-w-md p-6 relative">
+            {/* Close button */}
+            <button
+              onClick={() => {
+                setIsModalOpen(false);
+                setNewPost({ image: null, imageFile: null, caption: "" });
+              }}
+              className="absolute top-3 right-3 text-gray-500 hover:text-gray-700"
+            >
+              <X size={20} />
+            </button>
+
+            <h3 className="text-xl font-bold text-gray-900 mb-4">
+              Create New Post
+            </h3>
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Image Upload Area */}
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 flex flex-col items-center justify-center bg-gray-50">
+                {newPost.image ? (
+                  <div className="relative w-full">
+                    <img
+                      src={newPost.image}
+                      alt="Selected"
+                      className="w-full h-48 object-cover rounded-md"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setNewPost({ ...newPost, image: null })}
+                      className="absolute top-2 right-2 bg-white bg-opacity-70 rounded-full p-1 text-gray-700 hover:text-red-500"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <Upload size={40} className="text-gray-400 mb-2" />
+                    <p className="text-sm text-gray-500 mb-2">Upload image</p>
+                    <p className="text-xs text-gray-400 mb-4">
+                      PNG, JPG or GIF (max. 5MB)
+                    </p>
+                    <label className="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium">
+                      Select Image
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageChange}
+                        className="hidden"
+                      />
+                    </label>
+                  </>
+                )}
+              </div>
+
+              {/* Caption Input */}
+              <div>
+                <label
+                  htmlFor="caption"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Caption
+                </label>
+                <textarea
+                  id="caption"
+                  rows="3"
+                  value={newPost.caption}
+                  onChange={handleCaptionChange}
+                  placeholder="Write a caption for your post..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                ></textarea>
+              </div>
+
+              {/* Submit Button */}
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsModalOpen(false);
+                    setNewPost({ image: null, imageFile: null, caption: "" });
+                  }}
+                  className="mr-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={!newPost.image || !newPost.caption}
+                  className={`px-4 py-2 text-sm font-medium text-white rounded-md ${
+                    newPost.image && newPost.caption
+                      ? "bg-blue-600 hover:bg-blue-700"
+                      : "bg-blue-400 cursor-not-allowed"
+                  }`}
+                >
+                  Post
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Custom style for hiding scrollbar */}
       <style jsx="true">{`
