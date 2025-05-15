@@ -506,7 +506,7 @@ const Follow = () => {
           revieweeId: id,
           content: reviewContent,
           categories: selectedCategories,
-          isAnonymous: false,
+          isAnonymous: true,
           isPublic: true,
         }),
       });

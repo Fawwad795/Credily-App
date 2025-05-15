@@ -101,16 +101,9 @@ const ReviewList = ({ reviews, isLoading }) => {
       <div className="max-h-96 overflow-y-auto space-y-4 hide-scrollbar">
         {reviews && reviews.length > 0 ? (
           reviews.map((review, index) => {
-            const reviewerName = review.reviewer
-              ? review.reviewer.firstName && review.reviewer.lastName
-                ? `${review.reviewer.firstName} ${review.reviewer.lastName}`
-                : review.reviewer.username
-              : `Reviewer ${index + 1}`;
-
-            const reviewerImage =
-              review.reviewer && review.reviewer.profilePicture
-                ? review.reviewer.profilePicture
-                : generateAvatar(reviewerName);
+            // Always display as anonymous regardless of the isAnonymous flag
+            const reviewerName = "Anonymous Reviewer";
+            const reviewerImage = generateAvatar("Anonymous");
 
             return (
               <div
