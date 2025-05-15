@@ -12,6 +12,16 @@ const getDefaultPostImage = () => {
   return "https://placehold.co/600x350/red/white?text=New+Post";
 };
 
+// Helper function to parse JWT token
+const parseJwt = (token) => {
+  try {
+    return JSON.parse(atob(token.split(".")[1]));
+  } catch (error) {
+    console.error("Error parsing JWT:", error);
+    return null;
+  }
+};
+
 const Home = () => {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -22,49 +32,42 @@ const Home = () => {
     imageFile: null,
     caption: "",
   });
+  const [statusPopup, setStatusPopup] = useState({ show: false, message: "", type: "" });
+
+  const fetchConnectedUserPosts = async () => {
+    try {
+      setLoading(true);
+      // Get the current user's ID from the token
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setError("You must be logged in to view posts");
+        setLoading(false);
+        return;
+      }
+
+      const decodedToken = parseJwt(token);
+      if (!decodedToken || !decodedToken.id) {
+        setError("Invalid authentication token");
+        setLoading(false);
+        return;
+      }
+
+      const userId = decodedToken.id;
+
+      // Use the loadHome endpoint to get posts from connected users
+      const response = await api.post("/posts/loadhome", { userId });
+      const postsData = response.data.data || [];
+
+      setPosts(postsData);
+      setLoading(false);
+    } catch (error) {
+      console.error("Error fetching posts:", error);
+      setError("Failed to load posts");
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchConnectedUserPosts = async () => {
-      try {
-        setLoading(true);
-        // Get the current user's ID from the token
-        const token = localStorage.getItem("token");
-        if (!token) {
-          setError("You must be logged in to view posts");
-          setLoading(false);
-          return;
-        }
-
-        const parseJwt = (token) => {
-          try {
-            return JSON.parse(atob(token.split(".")[1]));
-          } catch {
-            return null;
-          }
-        };
-
-        const decodedToken = parseJwt(token);
-        if (!decodedToken || !decodedToken.id) {
-          setError("Invalid authentication token");
-          setLoading(false);
-          return;
-        }
-
-        const userId = decodedToken.id;
-
-        // Use the loadHome endpoint to get posts from connected users
-        const response = await api.post("/posts/loadhome", { userId });
-        const postsData = response.data.data || [];
-
-        setPosts(postsData);
-        setLoading(false);
-      } catch (error) {
-        console.error("Error fetching posts:", error);
-        setError("Failed to load posts");
-        setLoading(false);
-      }
-    };
-
     fetchConnectedUserPosts();
   }, []);
 
@@ -88,31 +91,25 @@ const Home = () => {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-
-    const token = localStorage.getItem("token");
-
-    if (!token) {
-      console.error("No authentication token found");
-      return;
-    }
-
-    // Get user ID from token
-    const parseJwt = (token) => {
-      try {
-        return JSON.parse(atob(token.split(".")[1]));
-      } catch {
-        return null;
-      }
-    };
-
-    const decodedToken = parseJwt(token);
-
-    if (!decodedToken || !decodedToken.id) {
-      console.error("Could not extract user ID from token");
-      return;
-    }
+    setLoading(true);
 
     try {
+      // Get token and verify it's valid
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setStatusPopup({ show: true, message: "No authentication token found", type: "error" });
+        setLoading(false);
+        return;
+      }
+
+      const decodedToken = parseJwt(token);
+      if (!decodedToken || !decodedToken.id) {
+        setStatusPopup({ show: true, message: "Invalid authentication token", type: "error" });
+        setLoading(false);
+        return;
+      }
+
+      const userId = decodedToken.id;
       let imageUrl;
 
       // First, upload the image if we have one
@@ -120,32 +117,37 @@ const Home = () => {
         const formData = new FormData();
         formData.append("image", newPost.imageFile);
 
-        const uploadResponse = await fetch("/api/uploads/image", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            // Don't set Content-Type for FormData
-          },
-          body: formData,
-        });
-
-        const uploadData = await uploadResponse.json();
-
-        if (!uploadData.success) {
-          console.error("Failed to upload image:", uploadData.message);
-          alert("Failed to upload image. Please try again.");
+        // Upload image using FormData
+        try {
+          const uploadResponse = await api.post("/uploads/image", formData, {
+            headers: {
+              "Content-Type": "multipart/form-data"
+            }
+          });
+          
+          if (uploadResponse.data.success) {
+            imageUrl = uploadResponse.data.imageUrl;
+          } else {
+            throw new Error(uploadResponse.data.message || "Failed to upload image");
+          }
+        } catch (uploadError) {
+          console.error("Image upload error:", uploadError);
+          setStatusPopup({ 
+            show: true, 
+            message: uploadError.response?.data?.message || "Failed to upload image. Please try again.", 
+            type: "error" 
+          });
+          setLoading(false);
           return;
         }
-
-        imageUrl = uploadData.imageUrl;
       } else {
         imageUrl = getDefaultPostImage();
       }
 
-      // Create post data with the Cloudinary URL
+      // Create post data with the image URL
       const postData = {
         caption: newPost.caption,
-        author: decodedToken.id,
+        author: userId,
         media: [
           {
             type: "image",
@@ -156,32 +158,38 @@ const Home = () => {
         visibility: "public",
       };
 
-      // Send post data to backend
-      const response = await fetch("/api/posts", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(postData),
-      });
+      // Send post data to backend using API instance
+      const response = await api.post("/posts", postData);
 
-      const data = await response.json();
-
-      if (data.success) {
-        console.log("Post created successfully:", data);
+      if (response.data.success) {
+        console.log("Post created successfully:", response.data);
+        
+        // Show success message
+        setStatusPopup({ show: true, message: "Post created successfully!", type: "success" });
+        
+        // Close popup after 3 seconds
+        setTimeout(() => {
+          setStatusPopup({ show: false, message: "", type: "" });
+        }, 3000);
+        
         // Update posts list
         fetchConnectedUserPosts();
+        
         // Reset form and close modal
         setIsModalOpen(false);
         setNewPost({ image: null, imageFile: null, caption: "" });
       } else {
-        console.error("Failed to create post:", data.message);
-        alert("Failed to create post. Please try again.");
+        throw new Error(response.data.message || "Failed to create post");
       }
     } catch (error) {
       console.error("Error creating post:", error);
-      alert("Error creating post. Please check your connection and try again.");
+      setStatusPopup({ 
+        show: true, 
+        message: error.response?.data?.message || "Error creating post. Please try again.", 
+        type: "error" 
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -412,6 +420,36 @@ const Home = () => {
           -webkit-text-fill-color: transparent;
         }
       `}</style>
+
+      {/* Status Popup for success and error messages */}
+      {statusPopup.show && (
+        <div className={`fixed bottom-5 right-5 max-w-md px-6 py-4 rounded-lg shadow-lg z-50 transition-all duration-300 ${
+          statusPopup.type === 'success' 
+            ? 'bg-green-50 border-l-4 border-green-500 text-green-700' 
+            : 'bg-red-50 border-l-4 border-red-500 text-red-700'
+        }`}>
+          <div className="flex items-center space-x-3">
+            {statusPopup.type === 'success' ? (
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            ) : (
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            )}
+            <p className="font-medium">{statusPopup.message}</p>
+            <button 
+              onClick={() => setStatusPopup({ show: false, message: "", type: "" })}
+              className="ml-auto -mx-1.5 -my-1.5 rounded-lg focus:ring-2 focus:ring-gray-400 p-1.5 inline-flex h-8 w-8 hover:bg-gray-200"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
