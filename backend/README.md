@@ -26,6 +26,20 @@ GOOGLE_APPLICATION_CREDENTIALS=./config/google-credentials.json
 USE_REAL_SENTIMENT=true
 ```
 
+### Google Cloud Setup
+
+You need to create and add a `google-credentials.json` file in the `backend/config` directory. This file contains the credentials for Google Cloud services used for sentiment analysis.
+
+To get this file:
+
+1. Create a Google Cloud project
+2. Enable the Natural Language API
+3. Create a service account and download the JSON key file
+4. Rename the downloaded file to `google-credentials.json`
+5. Place it in the `backend/config` directory
+
+If you don't add this file, sentiment analysis features will not work correctly.
+
 ## Development
 
 ```bash

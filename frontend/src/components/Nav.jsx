@@ -588,10 +588,9 @@ const Notifications = ({ isOpen, onClose }) => {
         );
     }
   };
-
   return (
     <div
-      className={`fixed top-0 right-0 h-full w-80 bg-white shadow-xl transform transition-transform duration-300 z-[101] pointer-events-auto ${
+      className={`fixed top-0 right-0 h-full w-full sm:w-96 md:w-1/3 lg:w-1/4 bg-white shadow-xl transform transition-transform duration-300 z-[101] pointer-events-auto ${
         isOpen ? "translate-x-0" : "translate-x-full"
       }`}
       style={{ zIndex: 101 }}

@@ -52,20 +52,22 @@ This project is structured into separate frontend and backend directories.
    # Create an account at cloudinary.com and get these from your dashboard
    CLOUDINARY_CLOUD_NAME=ds6xri71k
    CLOUDINARY_API_KEY=632696559246236
-   CLOUDINARY_API_SECRET=PaT4mWgag51BgW_dpK835_W8Fhc
-
-   # Google Cloud credentials for sentiment analysis
+   CLOUDINARY_API_SECRET=PaT4mWgag51BgW_dpK835_W8Fhc   # Google Cloud credentials for sentiment analysis
    GOOGLE_APPLICATION_CREDENTIALS=./config/google-credentials.json
    USE_REAL_SENTIMENT=true
    ```
 
    > **Note:** The Cloudinary variables are essential for profile picture uploads and other media storage features. Create a free account at [cloudinary.com](https://cloudinary.com) to get your credentials.
 
-3. Start the backend server:
+3. **Google Cloud Setup:** You need to add the `google-credentials.json` file in the `backend/config` directory. This file contains the credentials for Google Cloud services used for sentiment analysis.
+
+   If you don't add this file, sentiment analysis features will not work correctly.
+
+4. Start the backend server:
    ```
    npm run dev
    ```
-4. To test your database connection:
+5. To test your database connection:
    ```
    node test-db-connection.js
    ```

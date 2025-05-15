@@ -19,10 +19,10 @@ const ConnectionsSlider = ({ isOpen, onClose, userId }) => {
     try {
       setLoading(true);
       console.log("Fetching connections for userId:", userId);
-      
-      const response = await api.get(`/users/${userId || 'me'}/connections`);
+
+      const response = await api.get(`/users/${userId || "me"}/connections`);
       console.log("Connections API response:", response.data);
-      
+
       if (response.data && response.data.success) {
         // Extract the connectionUsers array from the data object
         const connectionUsers = response.data.data?.connectionUsers || [];
@@ -58,10 +58,9 @@ const ConnectionsSlider = ({ isOpen, onClose, userId }) => {
     e.target.onerror = null; // Prevent infinite callbacks
     e.target.src = generatePlaceholderAvatar(username);
   };
-
   return (
     <div
-      className={`fixed top-0 right-0 h-full w-80 bg-white shadow-lg transform ${
+      className={`fixed top-0 right-0 h-full w-full sm:w-96 md:w-1/3 lg:w-1/4 bg-white shadow-lg transform ${
         isOpen ? "translate-x-0" : "translate-x-full"
       } transition-all duration-300 ease-in-out z-50 rounded-l-2xl`}
     >
@@ -174,4 +173,4 @@ const ConnectionsSlider = ({ isOpen, onClose, userId }) => {
   );
 };
 
-export default ConnectionsSlider; 
+export default ConnectionsSlider;
