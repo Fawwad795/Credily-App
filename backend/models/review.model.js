@@ -56,6 +56,12 @@ const reviewSchema = new mongoose.Schema(
         default: 0,
       },
     },
+    deducedTraits: [
+      {
+        type: String,
+        trim: true,
+      },
+    ],
     hasVerifiedConnection: {
       type: Boolean,
       default: false,

@@ -10,22 +10,58 @@ import ConnectionsSlider from "./ConnectionsSlider";
 
 // Define a Back Arrow SVG
 const BackArrowIcon = () => (
-  <svg className="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+  <svg
+    className="h-6 w-6"
+    xmlns="http://www.w3.org/2000/svg"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+    aria-hidden="true"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth="2"
+      d="M15 19l-7-7 7-7"
+    />
   </svg>
 );
 
 // Existing XIcon (example, taken from your Nav.jsx structure for the close button)
 const XIcon = () => (
-  <svg className="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+  <svg
+    className="h-6 w-6"
+    xmlns="http://www.w3.org/2000/svg"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+    aria-hidden="true"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth="2"
+      d="M6 18L18 6M6 6l12 12"
+    />
   </svg>
 );
 
 // Existing MenuIcon (example, taken from your Nav.jsx structure for the hamburger button)
 const MenuIcon = () => (
-  <svg className="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
+  <svg
+    className="h-6 w-6"
+    xmlns="http://www.w3.org/2000/svg"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+    aria-hidden="true"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth="2"
+      d="M4 6h16M4 12h16M4 18h16"
+    />
   </svg>
 );
 
@@ -863,14 +899,21 @@ const Notifications = ({ isOpen, onClose }) => {
 };
 
 const Nav = ({ isChatViewActive, onChatBackClick }) => {
-  const { activeSlider, sliderParams, openSearchSlider, openNotificationsSlider, closeSlider } = useSlider();
+  const {
+    activeSlider,
+    sliderParams,
+    openSearchSlider,
+    openNotificationsSlider,
+    closeSlider,
+  } = useSlider();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false); // State for mobile menu
   const [isOverlayRendered, setIsOverlayRendered] = useState(false); // New state for delayed overlay rendering
   const [isLoading, setIsLoading] = useState(false); // Add missing isLoading state
 
   useEffect(() => {
     let timerId;
-    if (isMobileMenuOpen && !isChatViewActive) { // Only manage overlay if menu should open and not in chat view mode
+    if (isMobileMenuOpen && !isChatViewActive) {
+      // Only manage overlay if menu should open and not in chat view mode
       timerId = setTimeout(() => {
         setIsOverlayRendered(true);
       }, 50); // 50ms delay - adjust if needed
@@ -921,7 +964,7 @@ const Nav = ({ isChatViewActive, onChatBackClick }) => {
     setActiveItem(sliderName); // Set active item to match slider
     setIsMobileMenuOpen(false); // Close mobile menu when a slider opens
   };
-  
+
   // Simplified closeMobileMenu or use inline for overlay click
   const handleOverlayClick = () => {
     setIsMobileMenuOpen(false);
@@ -930,7 +973,7 @@ const Nav = ({ isChatViewActive, onChatBackClick }) => {
   return (
     <>
       {isLoading && <LoadingScreen message="Signing out..." />}
-      
+
       {/* Mobile top-left button: Back Arrow or Hamburger/Close */}
       {isChatViewActive ? (
         <button
@@ -942,8 +985,10 @@ const Nav = ({ isChatViewActive, onChatBackClick }) => {
         </button>
       ) : (
         <button
-          onClick={() => setIsMobileMenuOpen(prev => !prev)} // Simplified onClick
-          className={`sm:hidden fixed top-4 z-50 p-2 rounded-md text-gray-700 bg-white shadow-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-purple-500 ${isMobileMenuOpen ? 'right-4' : 'left-4'}`}
+          onClick={() => setIsMobileMenuOpen((prev) => !prev)} // Simplified onClick
+          className={`sm:hidden fixed top-4 z-50 p-2 rounded-md text-gray-700 bg-white shadow-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-purple-500 ${
+            isMobileMenuOpen ? "right-4" : "left-4"
+          }`}
           aria-label={isMobileMenuOpen ? "Close sidebar" : "Open sidebar"}
         >
           {isMobileMenuOpen ? <XIcon /> : <MenuIcon />}
@@ -962,7 +1007,11 @@ const Nav = ({ isChatViewActive, onChatBackClick }) => {
       {/* Sidebar */}
       <aside
         id="default-sidebar"
-        className={`fixed top-0 left-0 z-40 h-screen bg-white shadow-lg transition-transform duration-300 ease-in-out ${(!isChatViewActive && isMobileMenuOpen) ? "w-full translate-x-0" : "w-full -translate-x-full"} sm:w-64 sm:translate-x-0 sm:shadow-lg`}
+        className={`fixed top-0 left-0 z-40 h-screen bg-white shadow-lg transition-transform duration-300 ease-in-out ${
+          !isChatViewActive && isMobileMenuOpen
+            ? "w-full translate-x-0"
+            : "w-full -translate-x-full"
+        } sm:w-64 sm:translate-x-0 sm:shadow-lg`}
         aria-label="Sidebar"
       >
         <div className="h-full flex flex-col overflow-y-auto">
@@ -1143,10 +1192,7 @@ const Nav = ({ isChatViewActive, onChatBackClick }) => {
       </aside>
 
       {/* Search Slider */}
-      <SearchSlider
-        isOpen={activeSlider === "search"}
-        onClose={closeSlider}
-      />
+      <SearchSlider isOpen={activeSlider === "search"} onClose={closeSlider} />
 
       {/* Notifications Slider */}
       <Notifications

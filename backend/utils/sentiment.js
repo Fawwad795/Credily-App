@@ -529,7 +529,7 @@ const traitKeywords = {
   ],
 };
 
-// Sentiment categories to trait categories mapping
+// Sentiment to trait category mapping
 const sentimentToTraitCategories = {
   "critically negative": [
     "unreliable",
@@ -539,21 +539,13 @@ const sentimentToTraitCategories = {
     "low attention to detail",
     "needs constant supervision",
   ],
-  negative: [
-    "inconsistent",
-    "needs guidance",
-    "skill gaps",
-    "slow to improve",
-    "careless",
-    "unreliable",
-  ],
+  negative: ["inconsistent", "needs guidance", "skill gaps", "slow to improve"],
   neutral: [
     "dependable but average",
     "follows instructions",
     "limited initiative",
     "adequate teamwork",
     "minimal innovation",
-    "reliable",
   ],
   positive: [
     "proactive",
@@ -561,22 +553,13 @@ const sentimentToTraitCategories = {
     "good communicator",
     "shows growth potential",
     "team-oriented",
-    "detail-oriented",
-    "adaptable",
   ],
   "critically positive": [
     "highly creative",
     "excellent problem solver",
-    "self-driven",
-    "motivated",
+    "self-driven and motivated",
     "leadership qualities",
-    "detail-oriented",
-    "quality-focused",
-    "exceptional performer",
-    "valuable team member",
-    "consistently exceeds expectations",
-    "impact-driven",
-    "adaptable",
+    "detail-oriented and quality-focused",
   ],
 };
 

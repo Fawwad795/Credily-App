@@ -42,6 +42,37 @@ const ReviewList = ({ reviews, isLoading }) => {
     );
   };
 
+  // Function to render deduced trait tags with their appropriate colors
+  const renderTraitTags = (traits, sentiment) => {
+    if (!traits || traits.length === 0) return null;
+
+    // Define color schemes based on sentiment categories
+    const colorMap = {
+      "critically negative": "bg-red-100 text-red-800",
+      negative: "bg-orange-100 text-orange-800",
+      neutral: "bg-gray-100 text-gray-800",
+      positive: "bg-green-100 text-green-800",
+      "critically positive": "bg-emerald-100 text-emerald-800",
+    };
+
+    // Default color if sentiment is undefined
+    const defaultColor = "bg-blue-100 text-blue-800";
+    const colorClass = sentiment ? colorMap[sentiment] : defaultColor;
+
+    return (
+      <div className="flex flex-wrap gap-2 mt-2">
+        {traits.map((trait, idx) => (
+          <span
+            key={idx}
+            className={`px-2 py-1 ${colorClass} text-xs rounded-full capitalize`}
+          >
+            {trait}
+          </span>
+        ))}
+      </div>
+    );
+  };
+
   if (isLoading) {
     return (
       <div className="max-w-4xl mx-auto my-6 bg-white rounded-lg shadow-md p-6 animate-pulse">
@@ -115,6 +146,13 @@ const ReviewList = ({ reviews, isLoading }) => {
                 <div className="ml-16 -mt-1">
                   {renderCategoryTags(review.categories)}
                 </div>
+
+                {/* Deduced Trait Tags */}
+                {review.deducedTraits && review.deducedTraits.length > 0 && (
+                  <div className="ml-16 -mt-1">
+                    {renderTraitTags(review.deducedTraits, review.sentiment)}
+                  </div>
+                )}
               </div>
             );
           })

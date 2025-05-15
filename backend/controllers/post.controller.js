@@ -109,10 +109,10 @@ export const loadHome = async (req, res) => {
     const posts = await Post.find({ author: { $in: connectionUserIds } })
       .sort({ createdAt: -1 })
       .limit(20)
-      .populate("author", "username profilePicture")
+      .populate("author", "username firstName lastName profilePicture")
       .populate({
         path: "comments.user",
-        select: "username profilePicture",
+        select: "username firstName lastName profilePicture",
       });
 
     res.status(200).json({
@@ -141,7 +141,14 @@ export const getUserPosts = async (req, res) => {
 
     const posts = await Post.find({ author: userId })
       .sort({ createdAt: -1 })
-      .populate("author", "username phoneNumber");
+      .populate(
+        "author",
+        "username firstName lastName profilePicture phoneNumber"
+      )
+      .populate({
+        path: "comments.user",
+        select: "username firstName lastName profilePicture",
+      });
 
     res.status(200).json({
       success: true,
@@ -206,9 +213,22 @@ export const commentPost = async (req, res) => {
     const comment = post.addComment(userId, content);
     await post.save();
 
-    res
-      .status(201)
-      .json({ success: true, comment, totalComments: post.totalComments });
+    // Fetch the user data to include with the comment response
+    const populatedPost = await Post.findById(postId).populate({
+      path: "comments.user",
+      select: "username firstName lastName profilePicture",
+      options: { limit: 1, sort: { createdAt: -1 } },
+    });
+
+    // Get the last comment which is the one we just added
+    const populatedComment =
+      populatedPost.comments[populatedPost.comments.length - 1];
+
+    res.status(201).json({
+      success: true,
+      comment: populatedComment,
+      totalComments: post.totalComments,
+    });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }

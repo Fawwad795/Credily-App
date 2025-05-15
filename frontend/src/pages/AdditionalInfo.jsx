@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import background from "../assets/background.png"; // Import the background image
+import { compressImage, isImageTooLarge } from "../utils/imageCompression";
 
 // Moved validateEmail outside the component to break dependency cycle
 const validateEmail = (email) => {
@@ -395,94 +396,7 @@ const AdditionalInfo = () => {
     }
   };
 
-  // Function to compress image
-  const compressImage = (file) => {
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onload = function (event) {
-        const img = new Image();
-        img.onload = function () {
-          // Create canvas
-          const canvas = document.createElement("canvas");
-
-          // Calculate new dimensions (max 800px width/height for more aggressive compression)
-          let width = img.width;
-          let height = img.height;
-          const maxSize = 800;
-
-          if (width > height && width > maxSize) {
-            height = Math.round((height * maxSize) / width);
-            width = maxSize;
-          } else if (height > maxSize) {
-            width = Math.round((width * maxSize) / height);
-            height = maxSize;
-          }
-
-          canvas.width = width;
-          canvas.height = height;
-
-          // Draw image on canvas
-          const ctx = canvas.getContext("2d");
-          ctx.drawImage(img, 0, 0, width, height);
-
-          // Convert to Blob
-          canvas.toBlob(
-            (blob) => {
-              // Create a new file from the blob
-              const compressedFile = new File([blob], file.name, {
-                type: "image/jpeg",
-                lastModified: Date.now(),
-              });
-
-              // If still too large, compress more
-              if (compressedFile.size > 9 * 1024 * 1024) {
-                // If still over 9MB
-                // Create another canvas with even smaller dimensions
-                const canvas2 = document.createElement("canvas");
-                const maxSize2 = 600; // Even smaller
-
-                let width2 = width;
-                let height2 = height;
-
-                if (width2 > height2 && width2 > maxSize2) {
-                  height2 = Math.round((height2 * maxSize2) / width2);
-                  width2 = maxSize2;
-                } else if (height2 > maxSize2) {
-                  width2 = Math.round((width2 * maxSize2) / height2);
-                  height2 = maxSize2;
-                }
-
-                canvas2.width = width2;
-                canvas2.height = height2;
-
-                const ctx2 = canvas2.getContext("2d");
-                ctx2.drawImage(img, 0, 0, width2, height2);
-
-                canvas2.toBlob(
-                  (blob2) => {
-                    const moreCompressedFile = new File([blob2], file.name, {
-                      type: "image/jpeg",
-                      lastModified: Date.now(),
-                    });
-                    resolve(moreCompressedFile);
-                  },
-                  "image/jpeg",
-                  0.5
-                ); // Even lower quality for large images
-              } else {
-                resolve(compressedFile);
-              }
-            },
-            "image/jpeg",
-            0.6
-          ); // Lower quality from 0.7 to 0.6
-        };
-        img.src = event.target.result;
-      };
-      reader.readAsDataURL(file);
-    });
-  };
-
+  // Remove the local compressImage function and update handleImageChange
   const handleImageChange = async (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -495,6 +409,16 @@ const AdditionalInfo = () => {
 
       // Compress image before setting it for upload
       try {
+        // Check if image is too large
+        if (isImageTooLarge(file)) {
+          console.log(
+            `Profile image is large (${(file.size / 1024 / 1024).toFixed(
+              2
+            )}MB), compressing...`
+          );
+        }
+
+        // Compress using our shared utility
         const compressedFile = await compressImage(file);
         setProfileImage(compressedFile);
       } catch (err) {
@@ -1018,10 +942,10 @@ const AdditionalInfo = () => {
                   type="button"
                   onClick={handleSubmit}
                   disabled={loading || emailError || emailStatus === "taken"}
-                  className={`px-4 py-2 grad text-white rounded-md hover:opacity-90 focus:outline-none focus:ring-0 cursor-pointer ${
+                  className={`px-4 py-2 grad text-white rounded-md hover:opacity-90 focus:outline-none focus:ring-0 ${
                     loading || emailError || emailStatus === "taken"
                       ? "opacity-70 cursor-not-allowed"
-                      : ""
+                      : "cursor-pointer"
                   }`}
                 >
                   {loading ? "Saving..." : "Complete Setup"}

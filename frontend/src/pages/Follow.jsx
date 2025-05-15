@@ -41,6 +41,7 @@ const Follow = () => {
     sentimentLabel: "neutral",
     score: 0,
     magnitude: 0,
+    traits: [],
   });
   const [typingTimeout, setTypingTimeout] = useState(null);
 
@@ -539,6 +540,57 @@ const Follow = () => {
     openConnectionsSlider(id);
   };
 
+  // Generate placeholder image for reviewer avatar
+  const generateAvatar = (username) => {
+    const colors = ["blue", "teal", "green", "orange", "red"];
+    // Use a simple hash of the username to pick a consistent color
+    const colorIndex = username
+      ? username.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0) %
+        colors.length
+      : Math.floor(Math.random() * colors.length);
+    const color = colors[colorIndex];
+    const initial = username ? username.charAt(0).toUpperCase() : "?";
+    return `https://placehold.co/50/${color}/white?text=${initial}`;
+  };
+
+  const handleReviewContentChange = (e) => {
+    const content = e.target.value;
+    setReviewContent(content);
+
+    // Clear any existing timeout
+    if (typingTimeout) {
+      clearTimeout(typingTimeout);
+    }
+
+    // Only process sentiment if we have enough text
+    if (content.length >= 5) {
+      // Set a new timeout to analyze sentiment after user stops typing
+      const newTimeout = setTimeout(async () => {
+        try {
+          const token = localStorage.getItem("token");
+          const response = await fetch("/api/reviews/analyze-sentiment", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ content }),
+          });
+
+          const data = await response.json();
+          if (response.ok && data.success) {
+            setSentiment(data.data);
+            console.log("Sentiment analysis:", data.data);
+          }
+        } catch (error) {
+          console.error("Error analyzing sentiment:", error);
+        }
+      }, 500); // 500ms debounce
+
+      setTypingTimeout(newTimeout);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Navigation on the side */}
@@ -721,8 +773,8 @@ const Follow = () => {
 
             {/* Stats */}
             <div className="flex justify-around mt-8 p-4 bg-white rounded-lg shadow-sm">
-              <div 
-                className="text-center cursor-pointer hover:text-blue-600 transition-colors" 
+              <div
+                className="text-center cursor-pointer hover:text-blue-600 transition-colors"
                 onClick={handleConnectionsClick}
               >
                 <h3 className="text-2xl font-bold">{followersCount}</h3>
@@ -774,14 +826,14 @@ const Follow = () => {
                               : "https://placehold.co/600x350/gray/white?text=No+Image"
                           }
                           postCaption={post.caption}
-                          comments={
-                            post.comments
-                              ? post.comments.map((comment) => comment.content)
-                              : []
-                          }
+                          comments={post.comments || []}
                           postDate={post.createdAt}
                           postId={post._id}
                           likesCount={post.totalLikes || 0}
+                          userId={userData.authUserId}
+                          isLiked={post.likes?.some(
+                            (like) => like.user === userData.authUserId
+                          )}
                         />
                       </div>
                     ))}
@@ -842,7 +894,7 @@ const Follow = () => {
                             <path
                               strokeLinecap="round"
                               strokeLinejoin="round"
-                              d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"
+                              d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6 0 3.375 3.375 0 016 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"
                             />
                           </svg>
                         </div>
@@ -1029,6 +1081,56 @@ const Follow = () => {
                       </div>
                     )}
                   </div>
+
+                  {/* Trait Tags - Show when traits are detected */}
+                  {sentiment.traits && sentiment.traits.length > 0 && (
+                    <div className="mt-2">
+                      <span className="text-gray-700 mr-2 text-sm">
+                        Detected Traits:
+                      </span>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {sentiment.traits.map((trait, idx) => {
+                          // Define color schemes based on sentiment
+                          let bgColor, textColor;
+
+                          switch (sentiment.sentimentLabel) {
+                            case "critically positive":
+                              bgColor = "bg-green-100";
+                              textColor = "text-green-800";
+                              break;
+                            case "positive":
+                              bgColor = "bg-blue-100";
+                              textColor = "text-blue-800";
+                              break;
+                            case "neutral":
+                              bgColor = "bg-gray-100";
+                              textColor = "text-gray-800";
+                              break;
+                            case "negative":
+                              bgColor = "bg-orange-100";
+                              textColor = "text-orange-800";
+                              break;
+                            case "critically negative":
+                              bgColor = "bg-red-100";
+                              textColor = "text-red-800";
+                              break;
+                            default:
+                              bgColor = "bg-gray-100";
+                              textColor = "text-gray-800";
+                          }
+
+                          return (
+                            <span
+                              key={idx}
+                              className={`px-2 py-1 rounded-full text-xs font-medium capitalize ${bgColor} ${textColor}`}
+                            >
+                              {trait}
+                            </span>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Error Message */}
                   {reviewError && (

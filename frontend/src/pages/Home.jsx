@@ -6,6 +6,7 @@ import SuggestedUsers from "../components/SuggestedUsers";
 import api from "../utils/axios";
 import { FaPlus, FaUserFriends } from "react-icons/fa";
 import { X, Upload } from "lucide-react";
+import { compressImage, isImageTooLarge } from "../utils/imageCompression";
 
 // Function to generate placeholder image URL for new posts
 const getDefaultPostImage = () => {
@@ -32,7 +33,12 @@ const Home = () => {
     imageFile: null,
     caption: "",
   });
-  const [statusPopup, setStatusPopup] = useState({ show: false, message: "", type: "" });
+  const [statusPopup, setStatusPopup] = useState({
+    show: false,
+    message: "",
+    type: "",
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const fetchConnectedUserPosts = async () => {
     try {
@@ -71,14 +77,42 @@ const Home = () => {
     fetchConnectedUserPosts();
   }, []);
 
-  const handleImageChange = (e) => {
+  const handleImageChange = async (e) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
+
+      // Set preview immediately with original file
       setNewPost({
         ...newPost,
-        imageFile: file,
         image: URL.createObjectURL(file),
       });
+
+      try {
+        // Check if image is too large and show a message
+        if (isImageTooLarge(file)) {
+          console.log(
+            `Image is large (${(file.size / 1024 / 1024).toFixed(
+              2
+            )}MB), compressing...`
+          );
+        }
+
+        // Compress the image
+        const compressedFile = await compressImage(file);
+
+        // Update state with compressed file
+        setNewPost((prev) => ({
+          ...prev,
+          imageFile: compressedFile,
+        }));
+      } catch (err) {
+        console.error("Error compressing image:", err);
+        // Fallback to original file if compression fails
+        setNewPost((prev) => ({
+          ...prev,
+          imageFile: file,
+        }));
+      }
     }
   };
 
@@ -92,19 +126,29 @@ const Home = () => {
   const handleSubmit = async (event) => {
     event.preventDefault();
     setLoading(true);
+    // Disable the submit button immediately to prevent double submissions
+    setIsSubmitting(true);
 
     try {
       // Get token and verify it's valid
       const token = localStorage.getItem("token");
       if (!token) {
-        setStatusPopup({ show: true, message: "No authentication token found", type: "error" });
+        setStatusPopup({
+          show: true,
+          message: "No authentication token found",
+          type: "error",
+        });
         setLoading(false);
         return;
       }
 
       const decodedToken = parseJwt(token);
       if (!decodedToken || !decodedToken.id) {
-        setStatusPopup({ show: true, message: "Invalid authentication token", type: "error" });
+        setStatusPopup({
+          show: true,
+          message: "Invalid authentication token",
+          type: "error",
+        });
         setLoading(false);
         return;
       }
@@ -121,21 +165,25 @@ const Home = () => {
         try {
           const uploadResponse = await api.post("/uploads/image", formData, {
             headers: {
-              "Content-Type": "multipart/form-data"
-            }
+              "Content-Type": "multipart/form-data",
+            },
           });
-          
+
           if (uploadResponse.data.success) {
             imageUrl = uploadResponse.data.imageUrl;
           } else {
-            throw new Error(uploadResponse.data.message || "Failed to upload image");
+            throw new Error(
+              uploadResponse.data.message || "Failed to upload image"
+            );
           }
         } catch (uploadError) {
           console.error("Image upload error:", uploadError);
-          setStatusPopup({ 
-            show: true, 
-            message: uploadError.response?.data?.message || "Failed to upload image. Please try again.", 
-            type: "error" 
+          setStatusPopup({
+            show: true,
+            message:
+              uploadError.response?.data?.message ||
+              "Failed to upload image. Please try again.",
+            type: "error",
           });
           setLoading(false);
           return;
@@ -163,18 +211,22 @@ const Home = () => {
 
       if (response.data.success) {
         console.log("Post created successfully:", response.data);
-        
+
         // Show success message
-        setStatusPopup({ show: true, message: "Post created successfully!", type: "success" });
-        
+        setStatusPopup({
+          show: true,
+          message: "Post created successfully!",
+          type: "success",
+        });
+
         // Close popup after 3 seconds
         setTimeout(() => {
           setStatusPopup({ show: false, message: "", type: "" });
         }, 3000);
-        
+
         // Update posts list
         fetchConnectedUserPosts();
-        
+
         // Reset form and close modal
         setIsModalOpen(false);
         setNewPost({ image: null, imageFile: null, caption: "" });
@@ -183,13 +235,17 @@ const Home = () => {
       }
     } catch (error) {
       console.error("Error creating post:", error);
-      setStatusPopup({ 
-        show: true, 
-        message: error.response?.data?.message || "Error creating post. Please try again.", 
-        type: "error" 
+      setStatusPopup({
+        show: true,
+        message:
+          error.response?.data?.message ||
+          "Error creating post. Please try again.",
+        type: "error",
       });
     } finally {
       setLoading(false);
+      // Re-enable the submit button after the operation completes
+      setIsSubmitting(false);
     }
   };
 
@@ -209,7 +265,7 @@ const Home = () => {
                 <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-red-600 pl-16 sm:pl-0">
                   Your Feed
                 </h1>
-                <button 
+                <button
                   className="grad text-white px-4 py-2 rounded-full flex items-center space-x-2 shadow-lg hover:shadow-xl transition duration-300 transform hover:scale-105"
                   onClick={() => setIsModalOpen(true)}
                 >
@@ -258,14 +314,16 @@ const Home = () => {
                             : "https://placehold.co/600x350/gray/white?text=No+Image"
                         }
                         postCaption={post.caption}
-                        comments={
-                          post.comments
-                            ? post.comments.map((comment) => comment.content)
-                            : []
-                        }
+                        comments={post.comments || []}
                         postDate={post.createdAt}
                         postId={post._id}
                         likesCount={post.totalLikes || 0}
+                        userId={parseJwt(localStorage.getItem("token"))?.id}
+                        isLiked={post.likes?.some(
+                          (like) =>
+                            like.user ===
+                            parseJwt(localStorage.getItem("token"))?.id
+                        )}
                       />
                     </div>
                   ))
@@ -390,14 +448,14 @@ const Home = () => {
                 </button>
                 <button
                   type="submit"
-                  disabled={!newPost.image || !newPost.caption}
+                  disabled={!newPost.image || !newPost.caption || isSubmitting}
                   className={`px-4 py-2 text-sm font-medium text-white rounded-md ${
-                    newPost.image && newPost.caption
-                      ? "bg-blue-600 hover:bg-blue-700"
+                    newPost.image && newPost.caption && !isSubmitting
+                      ? "bg-blue-600 hover:bg-blue-700 cursor-pointer"
                       : "bg-blue-400 cursor-not-allowed"
                   }`}
                 >
-                  Post
+                  {isSubmitting ? "Posting..." : "Post"}
                 </button>
               </div>
             </form>
@@ -423,28 +481,65 @@ const Home = () => {
 
       {/* Status Popup for success and error messages */}
       {statusPopup.show && (
-        <div className={`fixed bottom-5 right-5 max-w-md px-6 py-4 rounded-lg shadow-lg z-50 transition-all duration-300 ${
-          statusPopup.type === 'success' 
-            ? 'bg-green-50 border-l-4 border-green-500 text-green-700' 
-            : 'bg-red-50 border-l-4 border-red-500 text-red-700'
-        }`}>
+        <div
+          className={`fixed bottom-5 right-5 max-w-md px-6 py-4 rounded-lg shadow-lg z-50 transition-all duration-300 ${
+            statusPopup.type === "success"
+              ? "bg-green-50 border-l-4 border-green-500 text-green-700"
+              : "bg-red-50 border-l-4 border-red-500 text-red-700"
+          }`}
+        >
           <div className="flex items-center space-x-3">
-            {statusPopup.type === 'success' ? (
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            {statusPopup.type === "success" ? (
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-6 w-6 text-green-500"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M5 13l4 4L19 7"
+                />
               </svg>
             ) : (
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-6 w-6 text-red-500"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
             )}
             <p className="font-medium">{statusPopup.message}</p>
-            <button 
-              onClick={() => setStatusPopup({ show: false, message: "", type: "" })}
+            <button
+              onClick={() =>
+                setStatusPopup({ show: false, message: "", type: "" })
+              }
               className="ml-auto -mx-1.5 -my-1.5 rounded-lg focus:ring-2 focus:ring-gray-400 p-1.5 inline-flex h-8 w-8 hover:bg-gray-200"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
             </button>
           </div>

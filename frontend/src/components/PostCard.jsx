@@ -1,6 +1,13 @@
-import { useState } from "react";
-import { FaRegComment, FaHeart, FaRegHeart, FaShare } from "react-icons/fa";
+import { useState, useEffect } from "react";
+import {
+  FaRegComment,
+  FaHeart,
+  FaRegHeart,
+  FaShare,
+  FaCheck,
+} from "react-icons/fa";
 import { Link } from "react-router-dom";
+import axios from "axios";
 
 export default function PostCard({
   authorId,
@@ -12,27 +19,72 @@ export default function PostCard({
   postDate,
   postId,
   likesCount = 0,
+  userId,
+  isLiked = false,
 }) {
-  const [liked, setLiked] = useState(false);
+  const [liked, setLiked] = useState(isLiked);
   const [likeCount, setLikeCount] = useState(likesCount);
   const [commentsVisible, setCommentsVisible] = useState(false);
   const [comments, setComments] = useState(initialComments);
   const [newComment, setNewComment] = useState("");
   const [postImgSrc, setPostImgSrc] = useState(postImage);
   const [authorImgSrc, setAuthorImgSrc] = useState(authorImage);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [commentSuccess, setCommentSuccess] = useState(false);
 
-  const toggleLike = () => {
-    setLiked(!liked);
-    setLikeCount((prev) => (liked ? prev - 1 : prev + 1));
-    // Here you would make an API call to like/unlike the post
+  // Reset success state after 3 seconds
+  useEffect(() => {
+    let timer;
+    if (commentSuccess) {
+      timer = setTimeout(() => {
+        setCommentSuccess(false);
+      }, 3000);
+    }
+    return () => clearTimeout(timer);
+  }, [commentSuccess]);
+
+  const toggleLike = async () => {
+    try {
+      const response = await axios.post("/api/posts/like", {
+        postId,
+        userId,
+      });
+
+      if (response.data.success) {
+        setLiked(response.data.liked);
+        setLikeCount(response.data.totalLikes);
+      }
+    } catch (error) {
+      console.error("Error toggling like:", error);
+    }
   };
 
-  const handleCommentSubmit = (e) => {
+  const handleCommentSubmit = async (e) => {
     e.preventDefault();
-    if (newComment.trim()) {
-      setComments([...comments, newComment]);
-      setNewComment("");
-      // Here you would make an API call to add the comment
+    if (newComment.trim() && !isSubmitting) {
+      setIsSubmitting(true);
+
+      try {
+        const response = await axios.post("/api/posts/comment", {
+          postId,
+          userId,
+          content: newComment.trim(),
+        });
+
+        if (response.data.success) {
+          setComments([...comments, response.data.comment]);
+          setNewComment("");
+          setCommentSuccess(true);
+          // Open comments section if not already open
+          if (!commentsVisible) {
+            setCommentsVisible(true);
+          }
+        }
+      } catch (error) {
+        console.error("Error posting comment:", error);
+      } finally {
+        setIsSubmitting(false);
+      }
     }
   };
 
@@ -41,8 +93,8 @@ export default function PostCard({
     return `https://placehold.co/600x350/gray/white?text=Post+Image`;
   };
 
-  const generateAuthorFallback = () => {
-    const initial = authorName ? authorName.charAt(0).toUpperCase() : "U";
+  const generateAuthorFallback = (name) => {
+    const initial = name ? name.charAt(0).toUpperCase() : "U";
     return `https://placehold.co/50/gray/white?text=${initial}`;
   };
 
@@ -52,7 +104,7 @@ export default function PostCard({
   };
 
   const handleAuthorImageError = () => {
-    setAuthorImgSrc(generateAuthorFallback());
+    setAuthorImgSrc(generateAuthorFallback(authorName));
   };
 
   // Format date
@@ -68,6 +120,24 @@ export default function PostCard({
       hour: "2-digit",
       minute: "2-digit",
     });
+  };
+
+  // Format the full name
+  const formatFullName = (user) => {
+    if (!user) return "Unknown User";
+
+    const firstName = user.firstName || "";
+    const lastName = user.lastName || "";
+
+    if (firstName && lastName) {
+      return `${firstName} ${lastName}`;
+    } else if (firstName) {
+      return firstName;
+    } else if (user.username) {
+      return user.username;
+    } else {
+      return "Unknown User";
+    }
   };
 
   return (
@@ -116,12 +186,14 @@ export default function PostCard({
       </div>
 
       {/* Post Image */}
-      <img
-        src={postImgSrc}
-        alt="Post content"
-        className="w-full object-cover max-h-[500px]"
-        onError={handlePostImageError}
-      />
+      {postImgSrc && (
+        <img
+          src={postImgSrc}
+          alt="Post content"
+          className="w-full object-cover max-h-[500px]"
+          onError={handlePostImageError}
+        />
+      )}
 
       {/* Engagement Section */}
       <div className="p-4">
@@ -170,13 +242,28 @@ export default function PostCard({
                 placeholder="Add a comment..."
                 value={newComment}
                 onChange={(e) => setNewComment(e.target.value)}
+                disabled={commentSuccess}
               />
               <button
                 type="submit"
-                className="grad text-white px-4 py-2 rounded-full text-sm font-medium transition duration-300 hover:shadow-md disabled:opacity-50"
-                disabled={!newComment.trim()}
+                className={`${
+                  commentSuccess
+                    ? "bg-green-500 hover:bg-green-600"
+                    : "grad hover:shadow-md"
+                } text-white px-4 py-2 rounded-full text-sm font-medium transition duration-300 disabled:opacity-50 min-w-[100px] flex items-center justify-center`}
+                disabled={
+                  (!newComment.trim() && !commentSuccess) || isSubmitting
+                }
               >
-                Post
+                {isSubmitting ? (
+                  "Posting..."
+                ) : commentSuccess ? (
+                  <>
+                    <FaCheck className="mr-1" /> Commented
+                  </>
+                ) : (
+                  "Post"
+                )}
               </button>
             </form>
 
@@ -185,9 +272,47 @@ export default function PostCard({
                 {comments.map((comment, index) => (
                   <div
                     key={index}
-                    className="text-sm bg-gray-50 p-3 rounded-lg"
+                    className="flex items-start space-x-3 bg-gray-50 p-3 rounded-lg"
                   >
-                    <p className="text-gray-800">{comment}</p>
+                    <Link
+                      to={
+                        comment.user?._id ? `/profile/${comment.user._id}` : "#"
+                      }
+                    >
+                      <img
+                        className="w-8 h-8 object-cover rounded-full ring-1 ring-gray-200"
+                        src={
+                          comment.user?.profilePicture ||
+                          generateAuthorFallback(comment.user?.username)
+                        }
+                        alt={comment.user?.username || "User"}
+                        onError={(e) => {
+                          e.target.src = generateAuthorFallback(
+                            comment.user?.username
+                          );
+                        }}
+                      />
+                    </Link>
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-2">
+                        <Link
+                          to={
+                            comment.user?._id
+                              ? `/profile/${comment.user._id}`
+                              : "#"
+                          }
+                          className="font-medium text-sm hover:text-purple-600 transition-colors"
+                        >
+                          {formatFullName(comment.user)}
+                        </Link>
+                        <span className="text-xs text-gray-500">
+                          {formatDate(comment.createdAt)}
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-800 mt-1">
+                        {comment.content}
+                      </p>
+                    </div>
                   </div>
                 ))}
               </div>

@@ -16,30 +16,12 @@ import PostSection from "../components/PostSection";
 import Analytics from "../components/Analytics";
 import { useSlider } from "../contexts/SliderContext";
 import api from "../utils/axios";
+import { compressImage, isImageTooLarge } from "../utils/imageCompression";
 
 // Function to generate placeholder image URL for new posts
 const getDefaultPostImage = () => {
   return "https://placehold.co/600x350/red/white?text=New+Post";
 };
-
-const samplePosts = [
-  {
-    title: "Project Update 1",
-    description: "Implemented new UI design for user dashboard.",
-    image: "https://placehold.co/600x350/blue/white?text=Post+1",
-    date: "May 11, 2025",
-    likes: 24,
-    comments: 8,
-  },
-  {
-    title: "New Feature Launch",
-    description: "Launched AI assistant for student queries.",
-    image: "https://placehold.co/600x350/teal/white?text=Post+2",
-    date: "May 12, 2025",
-    likes: 30,
-    comments: 12,
-  },
-];
 
 const Profile = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -67,7 +49,19 @@ const Profile = () => {
   });
   const [editBio, setEditBio] = useState("");
   const [loading, setLoading] = useState(true);
-  const [statusPopup, setStatusPopup] = useState({ show: false, message: "", type: "" });
+  const [reviews, setReviews] = useState([]);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
+  const [averageRating, setAverageRating] = useState(0);
+  const [statusPopup, setStatusPopup] = useState({
+    show: false,
+    message: "",
+    type: "",
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isWallpaperSubmitting, setIsWallpaperSubmitting] = useState(false);
+  const [isProfilePictureSubmitting, setIsProfilePictureSubmitting] =
+    useState(false);
+  const [isBioSubmitting, setIsBioSubmitting] = useState(false);
 
   const location = useLocation();
   const user = location.state?.user;
@@ -141,6 +135,9 @@ const Profile = () => {
             setConnectionUsers(connData.data.connectionUsers || []);
           }
 
+          // Also fetch reviews for this user
+          fetchReviews(userId);
+
           setLoading(false); // End loading
         } catch (error) {
           console.error("Error fetching current user:", error);
@@ -183,6 +180,9 @@ const Profile = () => {
               connData.message
             );
           }
+
+          // Also fetch reviews for this user
+          fetchReviews(user._id);
 
           setLoading(false); // End loading
         } catch (error) {
@@ -236,14 +236,79 @@ const Profile = () => {
     }
   };
 
-  const handleImageChange = (e) => {
+  // Function to fetch reviews for a user
+  const fetchReviews = async (userId) => {
+    try {
+      setReviewsLoading(true);
+
+      const token =
+        localStorage.getItem("token") || localStorage.getItem("authToken");
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
+      const response = await fetch(`/api/reviews/user/${userId}`, {
+        headers,
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // Fixed: Access reviews array from nested structure
+        setReviews(data.data.reviews || []);
+
+        // Set the average rating directly from the API response
+        if (data.data && data.data.averageRating) {
+          setAverageRating(data.data.averageRating);
+        } else {
+          setAverageRating(0);
+        }
+
+        console.log("Reviews fetched:", data.data.reviews);
+      } else {
+        console.error("Failed to fetch reviews:", data.message);
+      }
+    } catch (error) {
+      console.error("Error fetching reviews:", error);
+    } finally {
+      setReviewsLoading(false);
+    }
+  };
+
+  const handleImageChange = async (e) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
+
+      // Set preview immediately with original file
       setNewPost({
         ...newPost,
-        imageFile: file,
         image: URL.createObjectURL(file),
       });
+
+      try {
+        // Check if image is too large and show a message
+        if (isImageTooLarge(file)) {
+          console.log(
+            `Image is large (${(file.size / 1024 / 1024).toFixed(
+              2
+            )}MB), compressing...`
+          );
+        }
+
+        // Compress the image
+        const compressedFile = await compressImage(file);
+
+        // Update state with compressed file
+        setNewPost((prev) => ({
+          ...prev,
+          imageFile: compressedFile,
+        }));
+      } catch (err) {
+        console.error("Error compressing image:", err);
+        // Fallback to original file if compression fails
+        setNewPost((prev) => ({
+          ...prev,
+          imageFile: file,
+        }));
+      }
     }
   };
 
@@ -257,11 +322,15 @@ const Profile = () => {
   const handleSubmit = async (event) => {
     event.preventDefault();
 
+    // Disable submit button immediately
+    setIsSubmitting(true);
+
     const token =
       localStorage.getItem("token") || localStorage.getItem("authToken");
 
     if (!token) {
       console.error("No authentication token found");
+      setIsSubmitting(false);
       return;
     }
 
@@ -278,6 +347,7 @@ const Profile = () => {
 
     if (!decodedToken || !decodedToken.id) {
       console.error("Could not extract user ID from token");
+      setIsSubmitting(false);
       return;
     }
 
@@ -303,6 +373,7 @@ const Profile = () => {
         if (!uploadData.success) {
           console.error("Failed to upload image:", uploadData.message);
           alert("Failed to upload image. Please try again.");
+          setIsSubmitting(false);
           return;
         }
 
@@ -351,23 +422,57 @@ const Profile = () => {
     } catch (error) {
       console.error("Error creating post:", error);
       alert("Error creating post. Please check your connection and try again.");
+    } finally {
+      // Re-enable submit button
+      setIsSubmitting(false);
     }
   };
 
   // Function to handle wallpaper image change
-  const handleWallpaperChange = (e) => {
+  const handleWallpaperChange = async (e) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
+
+      // Set preview immediately with original file
       setWallpaper({
-        imageFile: file,
         image: URL.createObjectURL(file),
       });
+
+      try {
+        // Check if image is too large and show a message
+        if (isImageTooLarge(file)) {
+          console.log(
+            `Wallpaper is large (${(file.size / 1024 / 1024).toFixed(
+              2
+            )}MB), compressing...`
+          );
+        }
+
+        // Compress the image
+        const compressedFile = await compressImage(file);
+
+        // Update state with compressed file
+        setWallpaper((prev) => ({
+          ...prev,
+          imageFile: compressedFile,
+        }));
+      } catch (err) {
+        console.error("Error compressing wallpaper:", err);
+        // Fallback to original file if compression fails
+        setWallpaper((prev) => ({
+          ...prev,
+          imageFile: file,
+        }));
+      }
     }
   };
 
   // Function to submit wallpaper change
   const handleWallpaperSubmit = async (event) => {
     event.preventDefault();
+
+    // Prevent double submissions
+    setIsWallpaperSubmitting(true);
 
     let token =
       localStorage.getItem("token") || localStorage.getItem("authToken");
@@ -376,6 +481,7 @@ const Profile = () => {
     if (!token) {
       console.error("No authentication token found");
       alert("Authentication required. Please log in again.");
+      setIsWallpaperSubmitting(false);
       return;
     }
 
@@ -447,17 +553,47 @@ const Profile = () => {
       alert(
         "Error updating wallpaper. Please check your connection and try again."
       );
+    } finally {
+      setIsWallpaperSubmitting(false);
     }
   };
 
   // Function to handle profile picture change
-  const handleProfilePictureChange = (e) => {
+  const handleProfilePictureChange = async (e) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
+
+      // Set preview immediately with original file
       setProfilePictureEdit({
-        imageFile: file,
         image: URL.createObjectURL(file),
       });
+
+      try {
+        // Check if image is too large and show a message
+        if (isImageTooLarge(file)) {
+          console.log(
+            `Profile picture is large (${(file.size / 1024 / 1024).toFixed(
+              2
+            )}MB), compressing...`
+          );
+        }
+
+        // Compress the image
+        const compressedFile = await compressImage(file);
+
+        // Update state with compressed file
+        setProfilePictureEdit((prev) => ({
+          ...prev,
+          imageFile: compressedFile,
+        }));
+      } catch (err) {
+        console.error("Error compressing profile picture:", err);
+        // Fallback to original file if compression fails
+        setProfilePictureEdit((prev) => ({
+          ...prev,
+          imageFile: file,
+        }));
+      }
     }
   };
 
@@ -465,12 +601,16 @@ const Profile = () => {
   const handleProfilePictureSubmit = async (event) => {
     event.preventDefault();
 
+    // Prevent double submissions
+    setIsProfilePictureSubmitting(true);
+
     let token =
       localStorage.getItem("token") || localStorage.getItem("authToken");
 
     if (!token) {
       console.error("No authentication token found");
       alert("Authentication required. Please log in again.");
+      setIsProfilePictureSubmitting(false);
       return;
     }
 
@@ -545,6 +685,8 @@ const Profile = () => {
       alert(
         "Error updating profile picture. Please check your connection and try again."
       );
+    } finally {
+      setIsProfilePictureSubmitting(false);
     }
   };
 
@@ -552,12 +694,16 @@ const Profile = () => {
   const handleBioSubmit = async (event) => {
     event.preventDefault();
 
+    // Prevent double submissions
+    setIsBioSubmitting(true);
+
     let token =
       localStorage.getItem("token") || localStorage.getItem("authToken");
 
     if (!token) {
       console.error("No authentication token found");
       alert("Authentication required. Please log in again.");
+      setIsBioSubmitting(false);
       return;
     }
 
@@ -617,6 +763,8 @@ const Profile = () => {
     } catch (error) {
       console.error("Error updating bio:", error);
       alert("Failed to update bio. Please try again.");
+    } finally {
+      setIsBioSubmitting(false);
     }
   };
 
@@ -636,17 +784,25 @@ const Profile = () => {
     try {
       if (!postId) {
         console.error("No post ID provided for deletion");
-        setStatusPopup({ show: true, message: "Error: Post ID is missing", type: "error" });
+        setStatusPopup({
+          show: true,
+          message: "Error: Post ID is missing",
+          type: "error",
+        });
         return;
       }
 
       setLoading(true);
-      
+
       // Get current user ID from profile
       const userId = profile?._id;
       if (!userId) {
         console.error("No user ID available");
-        setStatusPopup({ show: true, message: "User ID is missing. Please try again.", type: "error" });
+        setStatusPopup({
+          show: true,
+          message: "User ID is missing. Please try again.",
+          type: "error",
+        });
         setLoading(false);
         return;
       }
@@ -659,27 +815,37 @@ const Profile = () => {
 
       if (data.success) {
         console.log("Post deleted successfully:", data);
-        
+
         // Update the posts list by removing the deleted post
-        setUserPosts(userPosts.filter(post => post._id !== postId));
-        
+        setUserPosts(userPosts.filter((post) => post._id !== postId));
+
         // Show success message
-        setStatusPopup({ show: true, message: "Post deleted successfully!", type: "success" });
-        
+        setStatusPopup({
+          show: true,
+          message: "Post deleted successfully!",
+          type: "success",
+        });
+
         // Close the popup after 3 seconds
         setTimeout(() => {
           setStatusPopup({ show: false, message: "", type: "" });
         }, 3000);
       } else {
         console.error("Failed to delete post:", data.message);
-        setStatusPopup({ show: true, message: data.message || "Failed to delete post. Please try again.", type: "error" });
+        setStatusPopup({
+          show: true,
+          message: data.message || "Failed to delete post. Please try again.",
+          type: "error",
+        });
       }
     } catch (error) {
       console.error("Error deleting post:", error);
-      setStatusPopup({ 
-        show: true, 
-        message: error.response?.data?.message || "Error deleting post. Please check your connection and try again.", 
-        type: "error" 
+      setStatusPopup({
+        show: true,
+        message:
+          error.response?.data?.message ||
+          "Error deleting post. Please check your connection and try again.",
+        type: "error",
       });
     } finally {
       setLoading(false);
@@ -863,7 +1029,7 @@ const Profile = () => {
                     : "No location specified"}
                 </span>
                 <div className="flex items-center ml-2">
-                  <span 
+                  <span
                     className="text-blue-600 font-medium cursor-pointer hover:underline"
                     onClick={handleConnectionsClick}
                   >
@@ -920,16 +1086,14 @@ const Profile = () => {
           />
         </div>
 
-        {/* Posts Section - Horizontal Scrolling */}
-        {console.log(
-          "Posts passed to PostSection:",
-          userPosts.length > 0 ? userPosts : samplePosts
-        )}
-        <PostSection
-          posts={userPosts.length > 0 ? userPosts : samplePosts}
-          onCreate={() => setIsModalOpen(true)}
-          onDelete={handleDeletePost}
-        />
+        {/* Posts Section with responsive padding */}
+        <div className="px-2 sm:px-6 py-2">
+          <PostSection
+            posts={userPosts}
+            onCreate={() => setIsModalOpen(true)}
+            onDelete={handleDeletePost}
+          />
+        </div>
         {isModalOpen && <div>Your modal component goes here</div>}
       </div>
 
@@ -1022,14 +1186,14 @@ const Profile = () => {
                 </button>
                 <button
                   type="submit"
-                  disabled={!newPost.image || !newPost.caption}
+                  disabled={!newPost.image || !newPost.caption || isSubmitting}
                   className={`px-4 py-2 text-sm font-medium text-white rounded-md ${
-                    newPost.image && newPost.caption
-                      ? "bg-blue-600 hover:bg-blue-700"
+                    newPost.image && newPost.caption && !isSubmitting
+                      ? "bg-blue-600 hover:bg-blue-700 cursor-pointer"
                       : "bg-blue-400 cursor-not-allowed"
                   }`}
                 >
-                  Post
+                  {isSubmitting ? "Posting..." : "Post"}
                 </button>
               </div>
             </form>
@@ -1116,14 +1280,14 @@ const Profile = () => {
                 </button>
                 <button
                   type="submit"
-                  disabled={!wallpaper.image}
+                  disabled={!wallpaper.image || isWallpaperSubmitting}
                   className={`px-4 py-2 text-sm font-medium text-white rounded-md ${
-                    wallpaper.image
-                      ? "bg-blue-600 hover:bg-blue-700"
+                    wallpaper.image && !isWallpaperSubmitting
+                      ? "bg-blue-600 hover:bg-blue-700 cursor-pointer"
                       : "bg-blue-400 cursor-not-allowed"
                   }`}
                 >
-                  Save Wallpaper
+                  {isWallpaperSubmitting ? "Saving..." : "Save Wallpaper"}
                 </button>
               </div>
             </form>
@@ -1210,14 +1374,18 @@ const Profile = () => {
                 </button>
                 <button
                   type="submit"
-                  disabled={!profilePictureEdit.image}
+                  disabled={
+                    !profilePictureEdit.image || isProfilePictureSubmitting
+                  }
                   className={`px-4 py-2 text-sm font-medium text-white rounded-md ${
-                    profilePictureEdit.image
-                      ? "bg-blue-600 hover:bg-blue-700"
+                    profilePictureEdit.image && !isProfilePictureSubmitting
+                      ? "bg-blue-600 hover:bg-blue-700 cursor-pointer"
                       : "bg-blue-400 cursor-not-allowed"
                   }`}
                 >
-                  Save Profile Picture
+                  {isProfilePictureSubmitting
+                    ? "Saving..."
+                    : "Save Profile Picture"}
                 </button>
               </div>
             </form>
@@ -1273,9 +1441,14 @@ const Profile = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md"
+                  className={`px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md ${
+                    isBioSubmitting
+                      ? "opacity-70 cursor-not-allowed"
+                      : "cursor-pointer"
+                  }`}
+                  disabled={isBioSubmitting}
                 >
-                  Save Bio
+                  {isBioSubmitting ? "Saving..." : "Save Bio"}
                 </button>
               </div>
             </form>
@@ -1285,28 +1458,65 @@ const Profile = () => {
 
       {/* Status Popup for success and error messages */}
       {statusPopup.show && (
-        <div className={`fixed bottom-5 right-5 max-w-md px-6 py-4 rounded-lg shadow-lg z-50 transition-all duration-300 ${
-          statusPopup.type === 'success' 
-            ? 'bg-green-50 border-l-4 border-green-500 text-green-700' 
-            : 'bg-red-50 border-l-4 border-red-500 text-red-700'
-        }`}>
+        <div
+          className={`fixed bottom-5 right-5 max-w-md px-6 py-4 rounded-lg shadow-lg z-50 transition-all duration-300 ${
+            statusPopup.type === "success"
+              ? "bg-green-50 border-l-4 border-green-500 text-green-700"
+              : "bg-red-50 border-l-4 border-red-500 text-red-700"
+          }`}
+        >
           <div className="flex items-center space-x-3">
-            {statusPopup.type === 'success' ? (
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            {statusPopup.type === "success" ? (
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-6 w-6 text-green-500"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M5 13l4 4L19 7"
+                />
               </svg>
             ) : (
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-6 w-6 text-red-500"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
             )}
             <p className="font-medium">{statusPopup.message}</p>
-            <button 
-              onClick={() => setStatusPopup({ show: false, message: "", type: "" })}
+            <button
+              onClick={() =>
+                setStatusPopup({ show: false, message: "", type: "" })
+              }
               className="ml-auto -mx-1.5 -my-1.5 rounded-lg focus:ring-2 focus:ring-gray-400 p-1.5 inline-flex h-8 w-8 hover:bg-gray-200"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
             </button>
           </div>

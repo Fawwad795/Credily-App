@@ -24,6 +24,15 @@ const Analytics = ({ userId }) => {
     return colors[index] || "bg-gray-500"; // Default fallback
   };
 
+  // Get progress bar opacity based on percentage value
+  const getProgressBarOpacity = (percentage) => {
+    // Add slight variation to opacity to reflect relative importance
+    if (percentage >= 75) return "opacity-100";
+    if (percentage >= 50) return "opacity-90";
+    if (percentage >= 25) return "opacity-80";
+    return "opacity-70";
+  };
+
   // Get text color based on position (1st, 2nd, 3rd trait)
   const getTextColor = (index) => {
     const colors = [
@@ -35,13 +44,35 @@ const Analytics = ({ userId }) => {
     return colors[index] || "text-gray-700"; // Default fallback
   };
 
+  // Helper to capitalize and format trait text for better display
+  const formatTraitName = (trait) => {
+    // First ensure it's a string and trim whitespace
+    if (!trait || typeof trait !== "string") return "";
+
+    // Convert to lowercase and capitalize first letter of each word
+    return trait
+      .toLowerCase()
+      .split(" ")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
+  };
+
   useEffect(() => {
     const fetchAnalyticsData = async () => {
       if (!userId) return;
 
       try {
         setLoading(true);
-        const response = await fetch(`/api/reviews/analytics/${userId}`);
+        const token =
+          localStorage.getItem("token") || localStorage.getItem("authToken");
+        const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
+        const response = await fetch(
+          `/api/reviews/analytics/traits/${userId}`,
+          {
+            headers: headers,
+          }
+        );
 
         if (!response.ok) {
           throw new Error("Failed to fetch analytics data");
@@ -88,39 +119,49 @@ const Analytics = ({ userId }) => {
         <div className="text-center text-red-500 py-3">{error}</div>
       ) : (
         <>
+          {/* Section Title */}
+          <h3 className="text-lg font-semibold text-gray-700 mb-3">
+            Top Core Traits
+          </h3>
+
           {/* Trait Progress Bars */}
           {analyticsData.traits &&
-            analyticsData.traits.map((traitData, index) => (
-              <div className="mb-4" key={index}>
-                <div className="flex justify-between mb-1">
-                  <span
-                    className={`text-sm font-medium capitalize ${getTextColor(
-                      index
-                    )}`}
-                  >
-                    {traitData.trait}
-                  </span>
-                  <span
-                    className={`text-sm font-medium ${getTextColor(index)}`}
-                  >
-                    {traitData.percentage}%
-                  </span>
+            analyticsData.traits
+              .slice(0, 3) // Only show top 3 traits
+              .map((traitData, index) => (
+                <div className="mb-4" key={index}>
+                  <div className="flex justify-between mb-1">
+                    <span
+                      className={`text-sm font-medium capitalize ${getTextColor(
+                        index
+                      )}`}
+                    >
+                      {formatTraitName(traitData.trait)}
+                    </span>
+                    <span
+                      className={`text-sm font-medium ${getTextColor(index)}`}
+                    >
+                      {traitData.percentage}%
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-100 rounded-full h-3">
+                    <div
+                      className={`${getProgressBarColor(
+                        index
+                      )} ${getProgressBarOpacity(
+                        traitData.percentage
+                      )} h-3 rounded-full transition-all duration-500 ease-in-out`}
+                      style={{ width: `${traitData.percentage}%` }}
+                    ></div>
+                  </div>
                 </div>
-                <div className="w-full bg-gray-100 rounded-full h-3">
-                  <div
-                    className={`${getProgressBarColor(
-                      index
-                    )} h-3 rounded-full transition-all duration-500 ease-in-out`}
-                    style={{ width: `${traitData.percentage}%` }}
-                  ></div>
-                </div>
-              </div>
-            ))}
+              ))}
 
           {/* Additional context */}
           <p className="text-xs text-gray-500 mt-2">
-            These metrics are calculated based on user interactions and feedback
-            received over time.
+            These traits are calculated based on reviews you've received. They
+            represent how others perceive your key characteristics and
+            strengths.
           </p>
         </>
       )}
