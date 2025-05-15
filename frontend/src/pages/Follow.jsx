@@ -494,6 +494,7 @@ const Follow = () => {
 
   // Handle clicking on followers count
   const handleConnectionsClick = () => {
+    console.log("Follow: handleConnectionsClick called with id:", id);
     openConnectionsSlider(id);
   };
 

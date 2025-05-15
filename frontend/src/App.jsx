@@ -15,36 +15,40 @@ import Follow from "./pages/Follow";
 import AdditionalInfo from "./pages/AdditionalInfo";
 import ProtectedRoute from "./components/ProtectedRoute";
 import NotFoundPage from "./pages/NotFoundPage";
+import { SliderProvider } from "./contexts/SliderContext";
 
 const App = () => {
+  console.log("App component rendering with SliderProvider");
   return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<Navigate to="/home" />} />
-        <Route path="/signup" element={<Signup />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/search" element={<SearchPage />} />
-        <Route path="/additional-info" element={<AdditionalInfo />} />
+    <SliderProvider>
+      <Router>
+        <Routes>
+          <Route path="/" element={<Navigate to="/home" />} />
+          <Route path="/signup" element={<Signup />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/search" element={<SearchPage />} />
+          <Route path="/additional-info" element={<AdditionalInfo />} />
 
-        <Route 
-          path="/home" 
-          element={<ProtectedRoute element={<Home />} />} 
-        />
-        <Route 
-          path="/profile" 
-          element={<ProtectedRoute element={<Profile />} />} 
-        />
-        <Route 
-          path="/profile/:id" 
-          element={<ProtectedRoute element={<Follow />} />}
-        />
-        <Route 
-          path="/messages" 
-          element={<ProtectedRoute element={<MessagingPage />} />} 
-        />
-        <Route path="*" element={<NotFoundPage />} />
-      </Routes>
-    </Router>
+          <Route 
+            path="/home" 
+            element={<ProtectedRoute element={<Home />} />} 
+          />
+          <Route 
+            path="/profile" 
+            element={<ProtectedRoute element={<Profile />} />} 
+          />
+          <Route 
+            path="/profile/:id" 
+            element={<ProtectedRoute element={<Follow />} />}
+          />
+          <Route 
+            path="/messages" 
+            element={<ProtectedRoute element={<MessagingPage />} />} 
+          />
+          <Route path="*" element={<NotFoundPage />} />
+        </Routes>
+      </Router>
+    </SliderProvider>
   );
 };
 

@@ -5,6 +5,8 @@ import "../index.css"; // Updated path to reference index.css in the src directo
 import api from "../utils/axios";
 import NotificationBadge from "./NotificationBadge";
 import NavNotificationButton from "./NavNotificationButton";
+import { useSlider } from "../contexts/SliderContext";
+import ConnectionsSlider from "./ConnectionsSlider";
 
 // Define a Back Arrow SVG
 const BackArrowIcon = () => (
@@ -861,9 +863,10 @@ const Notifications = ({ isOpen, onClose }) => {
 };
 
 const Nav = ({ isChatViewActive, onChatBackClick }) => {
-  const [activeSlider, setActiveSlider] = useState(null); // 'search' or 'notifications'
+  const { activeSlider, sliderParams, openSearchSlider, openNotificationsSlider, closeSlider } = useSlider();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false); // State for mobile menu
   const [isOverlayRendered, setIsOverlayRendered] = useState(false); // New state for delayed overlay rendering
+  const [isLoading, setIsLoading] = useState(false); // Add missing isLoading state
 
   useEffect(() => {
     let timerId;
@@ -912,9 +915,13 @@ const Nav = ({ isChatViewActive, onChatBackClick }) => {
   };
 
   const handleSliderToggle = (sliderName) => {
-    setActiveSlider(sliderName);
+    if (sliderName === "search") {
+      openSearchSlider();
+    } else if (sliderName === "notifications") {
+      openNotificationsSlider();
+    }
     setActiveItem(sliderName); // Set active item to match slider
-    setIsMobileMenuOpen(false); // Close mobile menu when a slider opens (this will also hide overlay via useEffect)
+    setIsMobileMenuOpen(false); // Close mobile menu when a slider opens
   };
   
   // Simplified closeMobileMenu or use inline for overlay click
@@ -924,6 +931,8 @@ const Nav = ({ isChatViewActive, onChatBackClick }) => {
 
   return (
     <>
+      {isLoading && <LoadingScreen message="Signing out..." />}
+      
       {/* Mobile top-left button: Back Arrow or Hamburger/Close */}
       {isChatViewActive ? (
         <button
@@ -1100,10 +1109,6 @@ const Nav = ({ isChatViewActive, onChatBackClick }) => {
               >
                 <NavNotificationButton
                   isActive={activeItem === "notifications"}
-                  onClick={() => {
-                    openNotificationsSlider();
-                    setActiveItem("notifications");
-                  }}
                 />
                 <span className="ms-3 font-medium">Notifications</span>
               </button>

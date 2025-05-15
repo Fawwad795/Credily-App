@@ -10,6 +10,7 @@ const ConnectionsSlider = ({ isOpen, onClose, userId }) => {
 
   useEffect(() => {
     if (isOpen && userId) {
+      console.log("ConnectionsSlider opened with userId:", userId);
       fetchConnections(userId);
     }
   }, [isOpen, userId]);
@@ -17,12 +18,18 @@ const ConnectionsSlider = ({ isOpen, onClose, userId }) => {
   const fetchConnections = async (userId) => {
     try {
       setLoading(true);
+      console.log("Fetching connections for userId:", userId);
+      
       const response = await api.get(`/users/${userId || 'me'}/connections`);
+      console.log("Connections API response:", response.data);
       
       if (response.data && response.data.success) {
         // Extract the connectionUsers array from the data object
-        setConnections(response.data.data?.connectionUsers || []);
+        const connectionUsers = response.data.data?.connectionUsers || [];
+        console.log("Setting connections:", connectionUsers);
+        setConnections(connectionUsers);
       } else {
+        console.log("API response success is false or undefined");
         setConnections([]);
       }
       setError(null);

@@ -639,8 +639,11 @@ const Profile = () => {
   // Connections click handler
   const handleConnectionsClick = () => {
     const userId = profile?._id;
+    console.log("Profile: handleConnectionsClick called with userId:", userId);
     if (userId) {
       openConnectionsSlider(userId);
+    } else {
+      console.log("Profile: No userId available for connections slider");
     }
   };
 
