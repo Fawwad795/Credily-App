@@ -222,7 +222,7 @@ export default function PostCard({
         <div className="flex items-center space-x-3">
           <Link to={authorId ? `/profile/${authorId}` : "#"}>
             <img
-              className="w-10 h-10 object-cover rounded-full ring-2 ring-gradient shadow"
+              className={`w-10 h-10 object-cover rounded-full ${darkMode ? 'ring-gray-700 ring-2' : 'ring-gradient'} shadow`}
               src={authorImgSrc}
               alt={authorName}
               onError={handleAuthorImageError}
@@ -455,7 +455,7 @@ export default function PostCard({
                       }
                     >
                       <img
-                        className="w-8 h-8 object-cover rounded-full ring-1 ring-gray-200"
+                        className={`w-8 h-8 object-cover rounded-full ${darkMode ? 'ring-gray-700' : 'ring-gray-200'} ring-1`}
                         src={
                           comment.user?.profilePicture ||
                           generateAuthorFallback(comment.user?.username)

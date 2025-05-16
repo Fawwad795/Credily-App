@@ -115,7 +115,7 @@ const SuggestedUsers = () => {
                           : `/uploads/${user.profilePicture}`
                       }
                       alt={user.username}
-                      className="w-10 h-10 rounded-full object-cover ring-gradient"
+                      className={`w-10 h-10 rounded-full object-cover ${darkMode ? 'ring-gray-700 ring-2' : 'ring-gradient'}`}
                       onError={(e) => {
                         e.target.onerror = null;
                         e.target.src = `https://placehold.co/50/gray/white?text=${user.username
