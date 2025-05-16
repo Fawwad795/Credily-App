@@ -65,7 +65,7 @@ const SearchSlider = ({ isOpen, onClose }) => {
       } transition-transform duration-300 z-50 w-full sm:w-96 md:w-1/3 lg:w-1/4`}
     >
       {/* Header */}
-      <div className="p-4 border-b flex justify-between items-center bg-gradient-to-r from-[#dc2430] to-[#7b4397] text-white rounded-tl-2xl">
+      <div className="p-4 flex justify-between items-center bg-gradient-to-r from-[#dc2430] to-[#7b4397] text-white rounded-tl-2xl">
         <h2 className="text-lg font-bold">Search Accounts</h2>
         <button
           onClick={onClose}

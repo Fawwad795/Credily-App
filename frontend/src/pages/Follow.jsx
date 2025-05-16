@@ -5,8 +5,10 @@ import Nav from "../components/Nav"; // Adjust the path to your Nav component
 import PostCard from "../components/PostCard"; // Import PostCard component
 import ReviewList from "../components/ReviewList"; // Import ReviewList component
 import { useSlider } from "../contexts/SliderContext";
+import { useTheme } from "../components/Nav"; // Import the useTheme hook
 
 const Follow = () => {
+  const { darkMode } = useTheme(); // Use the theme context
   const { id } = useParams(); // Get the user ID from URL params
   const { openConnectionsSlider } = useSlider();
   const [isFollowing, setIsFollowing] = useState(false); // State to track follow status
@@ -626,7 +628,7 @@ const Follow = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className={`min-h-screen ${darkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
       {/* Navigation on the side */}
       <Nav />
 
@@ -642,7 +644,7 @@ const Follow = () => {
               className="absolute inset-0 w-full h-full object-cover"
             />
           ) : (
-            <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-indigo-800"></div>
+            <div className={`absolute inset-0 ${darkMode ? 'bg-gradient-to-r from-purple-900 to-indigo-900' : 'bg-gradient-to-r from-purple-600 to-indigo-800'}`}></div>
           )}
 
           {/* Wallpaper overlay with gradient */}
@@ -702,35 +704,35 @@ const Follow = () => {
 
         <div className="max-w-6xl mx-auto px-4 py-6">
           {/* Profile Info */}
-          <div className="glass shadow-lg rounded-lg p-6 w-full">
+          <div className={`glass shadow-lg rounded-lg p-6 w-full ${darkMode ? 'bg-gray-800' : ''}`}>
             <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
               <div>
                 {/* Username */}
                 <div className="flex items-center mb-0.5">
-                  <h2 className="text-xl font-bold text-gray-800">
+                  <h2 className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>
                     {userData.username || "User"}
                   </h2>
                 </div>
 
                 {/* Bio */}
                 <div className="relative">
-                  <p className="text-gray-700 text-sm mt-0.5 mb-1 max-w-lg">
+                  <p className={`text-sm mt-0.5 mb-1 max-w-lg ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                     {userData.bio || "No bio available"}
                   </p>
                 </div>
 
                 {/* Email */}
-                <div className="flex items-center text-gray-600 mt-1">
-                  <AtSign size={16} className="mr-1" />
-                  <span className="mr-3">
+                <div className="flex items-center mt-1">
+                  <AtSign size={16} className={`mr-1 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`} />
+                  <span className={`mr-3 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                     {userData.email || "email@example.com"}
                   </span>
                 </div>
 
                 {/* Location with Connections */}
-                <div className="flex items-center text-gray-600 mt-1">
-                  <MapPin size={16} className="mr-1" />
-                  <span>
+                <div className="flex items-center mt-1">
+                  <MapPin size={16} className={`mr-1 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`} />
+                  <span className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                     {userData.location && typeof userData.location === "object"
                       ? `${
                           userData.location.city ? userData.location.city : ""
@@ -748,7 +750,7 @@ const Follow = () => {
 
                   {/* Connections inline with location */}
                   <div className="flex items-center ml-2">
-                    <span className="text-blue-600 font-medium cursor-pointer">
+                    <span className={`font-medium cursor-pointer ${darkMode ? 'text-blue-400' : 'text-blue-600'}`}>
                       · Connections {followersCount}
                     </span>
 
@@ -758,7 +760,7 @@ const Follow = () => {
                         {connectionUsers.map((user) => (
                           <div
                             key={user._id}
-                            className="w-6 h-6 rounded-full border border-white overflow-hidden"
+                            className={`w-6 h-6 rounded-full overflow-hidden ${darkMode ? 'border-gray-700' : 'border-white'} border`}
                             title={
                               user.firstName && user.lastName
                                 ? `${user.firstName} ${user.lastName}`
@@ -780,7 +782,11 @@ const Follow = () => {
                           </div>
                         ))}
                         {followersCount > connectionUsers.length && (
-                          <div className="w-6 h-6 rounded-full border border-white bg-gray-200 flex items-center justify-center text-xs text-gray-600">
+                          <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs ${
+                            darkMode 
+                              ? 'border-gray-700 border bg-gray-700 text-gray-300' 
+                              : 'border-white border bg-gray-200 text-gray-600'
+                          }`}>
                             +{followersCount - connectionUsers.length}
                           </div>
                         )}
@@ -792,7 +798,11 @@ const Follow = () => {
               <div className="flex flex-col sm:flex-row gap-3">
                 <button
                   onClick={handleFollow}
-                  className={`px-6 py-2 rounded-full font-medium ${getFollowButtonClass()}`}
+                  className={`px-6 py-2 rounded-full font-medium ${
+                    darkMode && isFollowing 
+                      ? "bg-gray-700 text-white hover:bg-gray-600" 
+                      : getFollowButtonClass()
+                  }`}
                 >
                   {getFollowButtonText()}
                 </button>
@@ -806,38 +816,42 @@ const Follow = () => {
             </div>
 
             {/* Stats */}
-            <div className="flex justify-around mt-8 p-4 bg-white rounded-lg shadow-sm">
+            <div className={`flex justify-around mt-8 p-4 rounded-lg shadow-sm ${
+              darkMode ? 'bg-gray-700' : 'bg-white'
+            }`}>
               <div
-                className="text-center cursor-pointer hover:text-blue-600 transition-colors"
+                className={`text-center cursor-pointer transition-colors ${
+                  darkMode ? 'hover:text-blue-400' : 'hover:text-blue-600'
+                }`}
                 onClick={handleConnectionsClick}
               >
-                <h3 className="text-2xl font-bold">{followersCount}</h3>
-                <p className="text-gray-600 hover:underline">Followers</p>
+                <h3 className={`text-2xl font-bold ${darkMode ? 'text-white' : ''}`}>{followersCount}</h3>
+                <p className={`${darkMode ? 'text-gray-300 hover:underline' : 'text-gray-600 hover:underline'}`}>Followers</p>
               </div>
               <div className="text-center">
-                <h3 className="text-2xl font-bold">{followingCount}</h3>
-                <p className="text-gray-600">Following</p>
+                <h3 className={`text-2xl font-bold ${darkMode ? 'text-white' : ''}`}>{followingCount}</h3>
+                <p className={`${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>Following</p>
               </div>
               <div className="text-center">
-                <h3 className="text-2xl font-bold">{postsCount}</h3>
-                <p className="text-gray-600">Posts</p>
+                <h3 className={`text-2xl font-bold ${darkMode ? 'text-white' : ''}`}>{postsCount}</h3>
+                <p className={`${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>Posts</p>
               </div>
             </div>
           </div>
 
           {/* User Reviews Section - Always visible regardless of follow status */}
-          <div className="glass shadow-lg rounded-lg mt-6 p-6 w-full">
+          <div className={`glass shadow-lg rounded-lg mt-6 p-6 w-full ${darkMode ? 'bg-gray-800' : ''}`}>
             <h3 className="text-xl font-bold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-red-600">
               User Reviews
             </h3>
-            <ReviewList reviews={reviews} isLoading={reviewsLoading} />
+            <ReviewList reviews={reviews} isLoading={reviewsLoading} darkMode={darkMode} />
           </div>
 
           {/* Conditional Sections based on Follow Status */}
           {isFollowing ? (
             <>
               {/* Posts Section - Only show when following */}
-              <div className="glass shadow-lg rounded-lg mt-6 p-6 w-full">
+              <div className={`glass shadow-lg rounded-lg mt-6 p-6 w-full ${darkMode ? 'bg-gray-800' : ''}`}>
                 <h3 className="text-xl font-bold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-red-600">
                   Posts
                 </h3>
@@ -882,7 +896,7 @@ const Follow = () => {
                   </div>
                 ) : (
                   <div className="text-center py-8">
-                    <p className="text-gray-500">
+                    <p className={`${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                       This user hasn't posted anything yet.
                     </p>
                   </div>
@@ -891,7 +905,7 @@ const Follow = () => {
 
               {/* Leave a Review Section - Only show when following or have mutual connections */}
               {canWriteReview() && (
-                <div className="glass shadow-lg rounded-lg mt-6 p-6 w-full transform transition-all duration-300 hover:shadow-xl">
+                <div className={`glass shadow-lg rounded-lg mt-6 p-6 w-full transform transition-all duration-300 hover:shadow-xl ${darkMode ? 'bg-gray-800' : ''}`}>
                   <h3 className="text-2xl font-bold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-red-600">
                     Leave a Review
                   </h3>
@@ -899,8 +913,16 @@ const Follow = () => {
                   {/* Connection Status Cards */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                     {connectionStatus.hasDirectConnection && (
-                      <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200 shadow-sm flex items-center">
-                        <div className="bg-blue-100 text-blue-600 p-2 rounded-full mr-3">
+                      <div className={`p-4 rounded-xl border shadow-sm flex items-center ${
+                        darkMode 
+                          ? 'bg-gradient-to-r from-blue-900/20 to-indigo-900/20 border-blue-800' 
+                          : 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200'
+                      }`}>
+                        <div className={`p-2 rounded-full mr-3 ${
+                          darkMode 
+                            ? 'bg-blue-900 text-blue-300' 
+                            : 'bg-blue-100 text-blue-600'
+                        }`}>
                           <svg
                             xmlns="http://www.w3.org/2000/svg"
                             fill="none"
@@ -916,15 +938,23 @@ const Follow = () => {
                             />
                           </svg>
                         </div>
-                        <p className="text-blue-800 font-medium">
+                        <p className={`font-medium ${darkMode ? 'text-blue-300' : 'text-blue-800'}`}>
                           You are directly connected with this user
                         </p>
                       </div>
                     )}
 
                     {connectionStatus.hasMutualConnections && (
-                      <div className="p-4 bg-gradient-to-r from-green-50 to-teal-50 rounded-xl border border-green-200 shadow-sm flex items-center">
-                        <div className="bg-green-100 text-green-600 p-2 rounded-full mr-3">
+                      <div className={`p-4 rounded-xl border shadow-sm flex items-center ${
+                        darkMode 
+                          ? 'bg-gradient-to-r from-green-900/20 to-teal-900/20 border-green-800' 
+                          : 'bg-gradient-to-r from-green-50 to-teal-50 border-green-200'
+                      }`}>
+                        <div className={`p-2 rounded-full mr-3 ${
+                          darkMode 
+                            ? 'bg-green-900 text-green-300' 
+                            : 'bg-green-100 text-green-600'
+                        }`}>
                           <svg
                             xmlns="http://www.w3.org/2000/svg"
                             fill="none"
@@ -940,7 +970,7 @@ const Follow = () => {
                             />
                           </svg>
                         </div>
-                        <p className="text-green-800 font-medium">
+                        <p className={`font-medium ${darkMode ? 'text-green-300' : 'text-green-800'}`}>
                           <span className="font-bold">
                             {connectionStatus.mutualConnectionsCount}
                           </span>{" "}
@@ -953,7 +983,7 @@ const Follow = () => {
 
                   {/* Category Selection */}
                   <div className="mb-8">
-                    <label className="block text-gray-700 mb-2 font-medium">
+                    <label className={`block mb-2 font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                       What aspects are you reviewing?
                     </label>
                     <div className="flex flex-wrap gap-3 p-1">
@@ -962,61 +992,66 @@ const Follow = () => {
                           selectedCategories.includes(category);
                         let bgColor, textColor, hoverBg, hoverText;
 
+                        // Determine colors based on category and dark mode
                         switch (category) {
                           case "trustworthiness":
-                            bgColor = isSelected ? "bg-blue-600" : "bg-blue-50";
+                            bgColor = isSelected
+                              ? "bg-blue-600"
+                              : darkMode ? "bg-blue-900/30" : "bg-blue-50";
                             textColor = isSelected
                               ? "text-white"
-                              : "text-blue-700";
-                            hoverBg = "hover:bg-blue-500";
+                              : darkMode ? "text-blue-300" : "text-blue-700";
+                            hoverBg = darkMode ? "hover:bg-blue-700" : "hover:bg-blue-500";
                             hoverText = "hover:text-white";
                             break;
                           case "communication":
                             bgColor = isSelected
                               ? "bg-purple-600"
-                              : "bg-purple-50";
+                              : darkMode ? "bg-purple-900/30" : "bg-purple-50";
                             textColor = isSelected
                               ? "text-white"
-                              : "text-purple-700";
-                            hoverBg = "hover:bg-purple-500";
+                              : darkMode ? "text-purple-300" : "text-purple-700";
+                            hoverBg = darkMode ? "hover:bg-purple-700" : "hover:bg-purple-500";
                             hoverText = "hover:text-white";
                             break;
                           case "reliability":
                             bgColor = isSelected
                               ? "bg-green-600"
-                              : "bg-green-50";
+                              : darkMode ? "bg-green-900/30" : "bg-green-50";
                             textColor = isSelected
                               ? "text-white"
-                              : "text-green-700";
-                            hoverBg = "hover:bg-green-500";
+                              : darkMode ? "text-green-300" : "text-green-700";
+                            hoverBg = darkMode ? "hover:bg-green-700" : "hover:bg-green-500";
                             hoverText = "hover:text-white";
                             break;
                           case "helpfulness":
                             bgColor = isSelected
                               ? "bg-amber-600"
-                              : "bg-amber-50";
+                              : darkMode ? "bg-amber-900/30" : "bg-amber-50";
                             textColor = isSelected
                               ? "text-white"
-                              : "text-amber-700";
-                            hoverBg = "hover:bg-amber-500";
+                              : darkMode ? "text-amber-300" : "text-amber-700";
+                            hoverBg = darkMode ? "hover:bg-amber-700" : "hover:bg-amber-500";
                             hoverText = "hover:text-white";
                             break;
                           case "other":
-                            bgColor = isSelected ? "bg-gray-600" : "bg-gray-50";
+                            bgColor = isSelected 
+                              ? "bg-gray-600" 
+                              : darkMode ? "bg-gray-700" : "bg-gray-50";
                             textColor = isSelected
                               ? "text-white"
-                              : "text-gray-700";
-                            hoverBg = "hover:bg-gray-500";
+                              : darkMode ? "text-gray-300" : "text-gray-700";
+                            hoverBg = darkMode ? "hover:bg-gray-600" : "hover:bg-gray-500";
                             hoverText = "hover:text-white";
                             break;
                           default:
                             bgColor = isSelected
                               ? "bg-indigo-600"
-                              : "bg-indigo-50";
+                              : darkMode ? "bg-indigo-900/30" : "bg-indigo-50";
                             textColor = isSelected
                               ? "text-white"
-                              : "text-indigo-700";
-                            hoverBg = "hover:bg-indigo-500";
+                              : darkMode ? "text-indigo-300" : "text-indigo-700";
+                            hoverBg = darkMode ? "hover:bg-indigo-700" : "hover:bg-indigo-500";
                             hoverText = "hover:text-white";
                         }
 
@@ -1055,18 +1090,22 @@ const Follow = () => {
 
                   {/* Review Text Area */}
                   <div className="mb-6">
-                    <label className="block text-gray-700 mb-2 font-medium">
+                    <label className={`block mb-2 font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                       Your Review:
                     </label>
                     <div className="relative">
                       <textarea
                         rows="5"
-                        className="w-full px-5 py-4 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 shadow-sm transition-all duration-200 text-gray-700"
+                        className={`w-full px-5 py-4 border rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 shadow-sm transition-all duration-200 ${
+                          darkMode 
+                            ? 'bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400' 
+                            : 'border-gray-200 text-gray-700'
+                        }`}
                         placeholder="Share your experience with this user..."
                         value={reviewContent}
                         onChange={handleReviewContentChange}
                       ></textarea>
-                      <div className="absolute bottom-3 right-3 text-xs text-gray-400">
+                      <div className={`absolute bottom-3 right-3 text-xs ${darkMode ? 'text-gray-400' : 'text-gray-400'}`}>
                         {reviewContent.length} characters
                       </div>
                     </div>
@@ -1074,20 +1113,20 @@ const Follow = () => {
                     {/* Sentiment Indicator */}
                     {reviewContent.length >= 5 && (
                       <div className="mt-3 flex items-center">
-                        <span className="text-gray-700 mr-2 text-sm">
+                        <span className={`mr-2 text-sm ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                           Sentiment:
                         </span>
                         <span
                           className={`px-3 py-1 rounded-full text-xs font-medium ${
                             sentiment.sentimentLabel === "critically positive"
-                              ? "bg-green-100 text-green-800"
+                              ? darkMode ? "bg-green-900/40 text-green-300" : "bg-green-100 text-green-800"
                               : sentiment.sentimentLabel === "positive"
-                              ? "bg-green-50 text-green-600"
+                              ? darkMode ? "bg-green-900/30 text-green-300" : "bg-green-50 text-green-600"
                               : sentiment.sentimentLabel === "neutral"
-                              ? "bg-gray-100 text-gray-600"
+                              ? darkMode ? "bg-gray-700 text-gray-300" : "bg-gray-100 text-gray-600"
                               : sentiment.sentimentLabel === "negative"
-                              ? "bg-red-50 text-red-600"
-                              : "bg-red-100 text-red-800" // critically negative
+                              ? darkMode ? "bg-red-900/30 text-red-300" : "bg-red-50 text-red-600"
+                              : darkMode ? "bg-red-900/40 text-red-300" : "bg-red-100 text-red-800" // critically negative
                           }`}
                         >
                           {sentiment.sentimentLabel
@@ -1101,7 +1140,7 @@ const Follow = () => {
 
                         {/* Visual sentiment meter */}
                         <div className="ml-auto flex items-center">
-                          <div className="w-32 h-2 bg-gray-200 rounded-full overflow-hidden">
+                          <div className={`w-32 h-2 rounded-full overflow-hidden ${darkMode ? 'bg-gray-700' : 'bg-gray-200'}`}>
                             <div
                               className={`h-full ${
                                 sentiment.score > 0
@@ -1127,38 +1166,38 @@ const Follow = () => {
                   {/* Trait Tags - Show when traits are detected */}
                   {sentiment.traits && sentiment.traits.length > 0 && (
                     <div className="mt-2">
-                      <span className="text-gray-700 mr-2 text-sm">
+                      <span className={`mr-2 text-sm ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                         Detected Traits:
                       </span>
                       <div className="flex flex-wrap gap-1 mt-1">
                         {sentiment.traits.map((trait, idx) => {
-                          // Define color schemes based on sentiment
+                          // Define color schemes based on sentiment and dark mode
                           let bgColor, textColor;
 
                           switch (sentiment.sentimentLabel) {
                             case "critically positive":
-                              bgColor = "bg-green-100";
-                              textColor = "text-green-800";
+                              bgColor = darkMode ? "bg-green-900/40" : "bg-green-100";
+                              textColor = darkMode ? "text-green-300" : "text-green-800";
                               break;
                             case "positive":
-                              bgColor = "bg-blue-100";
-                              textColor = "text-blue-800";
+                              bgColor = darkMode ? "bg-blue-900/40" : "bg-blue-100";
+                              textColor = darkMode ? "text-blue-300" : "text-blue-800";
                               break;
                             case "neutral":
-                              bgColor = "bg-gray-100";
-                              textColor = "text-gray-800";
+                              bgColor = darkMode ? "bg-gray-700" : "bg-gray-100";
+                              textColor = darkMode ? "text-gray-300" : "text-gray-800";
                               break;
                             case "negative":
-                              bgColor = "bg-orange-100";
-                              textColor = "text-orange-800";
+                              bgColor = darkMode ? "bg-orange-900/40" : "bg-orange-100";
+                              textColor = darkMode ? "text-orange-300" : "text-orange-800";
                               break;
                             case "critically negative":
-                              bgColor = "bg-red-100";
-                              textColor = "text-red-800";
+                              bgColor = darkMode ? "bg-red-900/40" : "bg-red-100";
+                              textColor = darkMode ? "text-red-300" : "text-red-800";
                               break;
                             default:
-                              bgColor = "bg-gray-100";
-                              textColor = "text-gray-800";
+                              bgColor = darkMode ? "bg-gray-700" : "bg-gray-100";
+                              textColor = darkMode ? "text-gray-300" : "text-gray-800";
                           }
 
                           return (
@@ -1176,7 +1215,11 @@ const Follow = () => {
 
                   {/* Error Message */}
                   {reviewError && (
-                    <div className="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 mb-4 rounded-md animate-pulse">
+                    <div className={`border-l-4 p-4 mb-4 rounded-md animate-pulse ${
+                      darkMode 
+                        ? 'bg-red-900/20 border-red-800 text-red-300' 
+                        : 'bg-red-50 border-red-500 text-red-700'
+                    }`}>
                       <div className="flex items-center">
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
@@ -1199,7 +1242,11 @@ const Follow = () => {
 
                   {/* Success Message */}
                   {reviewSuccess && (
-                    <div className="bg-green-50 border-l-4 border-green-500 text-green-700 p-4 mb-4 rounded-md animate-pulse">
+                    <div className={`border-l-4 p-4 mb-4 rounded-md animate-pulse ${
+                      darkMode 
+                        ? 'bg-green-900/20 border-green-800 text-green-300' 
+                        : 'bg-green-50 border-green-500 text-green-700'
+                    }`}>
                       <div className="flex items-center">
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
@@ -1273,8 +1320,8 @@ const Follow = () => {
               )}
             </>
           ) : (
-            <div className="glass shadow-lg rounded-lg mt-6 p-6 w-full text-center">
-              <p className="text-gray-600">
+            <div className={`glass shadow-lg rounded-lg mt-6 p-6 w-full text-center ${darkMode ? 'bg-gray-800' : ''}`}>
+              <p className={`${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                 Follow this user to see their posts and leave a review.
               </p>
             </div>

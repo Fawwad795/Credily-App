@@ -69,7 +69,7 @@ const ConnectionsSlider = ({ isOpen, onClose, userId }) => {
       } transition-all duration-300 ease-in-out z-50 rounded-l-2xl`}
     >
       {/* Header */}
-      <div className="p-4 border-b flex justify-between items-center bg-gradient-to-r from-[#dc2430] to-[#7b4397] text-white rounded-tl-2xl">
+      <div className="p-4 flex justify-between items-center bg-gradient-to-r from-[#dc2430] to-[#7b4397] text-white rounded-tl-2xl">
         <h2 className="text-lg font-bold">Connections</h2>
         <button
           onClick={onClose}

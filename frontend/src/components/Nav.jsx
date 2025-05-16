@@ -692,8 +692,7 @@ const Notifications = ({ isOpen, onClose }) => {
         </div>
       </div>
 
-      {/* Filter tabs */}
-      <div className={`flex border-b text-sm ${darkMode ? "border-gray-700" : ""}`}>
+            {/* Filter tabs */}      <div className={`flex text-sm`}>
         <button
           className={`flex-1 py-2 px-3 font-medium ${
             activeTab === "all"

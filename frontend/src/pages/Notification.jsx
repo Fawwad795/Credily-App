@@ -71,7 +71,7 @@ const Notifications = ({ isOpen, onClose }) => {
         isOpen ? "translate-x-0" : "translate-x-full"
       }`}
     >
-      <div className="p-4 border-b flex justify-between items-center">
+      <div className="p-4 flex justify-between items-center">
         <div className="flex items-center gap-2">
           <h2 className="text-lg font-bold">Notifications</h2>
           {unreadCount > 0 && (
@@ -94,7 +94,7 @@ const Notifications = ({ isOpen, onClose }) => {
             {connectionNotifications.map((notification) => (
               <li
                 key={notification._id}
-                className="p-4 border-b cursor-pointer flex gap-3 items-start"
+                className="p-4 cursor-pointer flex gap-3 items-start"
                 onClick={() => markAsRead(notification._id)}
               >
                 <img

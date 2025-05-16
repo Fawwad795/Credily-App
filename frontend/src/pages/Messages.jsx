@@ -4,8 +4,10 @@ import Nav from "../components/Nav";
 import socket from "../utils/socket";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Box, Typography } from "@mui/material";
+import { useTheme } from "../components/Nav"; // Import the useTheme hook
 
 const MessagingPage = () => {
+  const { darkMode } = useTheme(); // Use the theme context
   // Use local storage for user auth or implement proper auth
   const [currentUser, setCurrentUser] = useState({
     id: localStorage.getItem("userId") || "123",
@@ -1306,7 +1308,7 @@ const MessagingPage = () => {
   }, [updatePermanentReadStatus]);
 
   return (
-    <div className="flex h-screen bg-gray-100">
+    <div className={`flex h-screen ${darkMode ? 'bg-gray-900' : 'bg-gray-100'}`}>
       {/* Left Sidebar (Navbar) */}
       <Nav 
         isChatViewActive={isChatOpen} 
@@ -1319,9 +1321,9 @@ const MessagingPage = () => {
 
         <div className="flex flex-1 overflow-hidden">
           {/* Sidebar - Chat List */}
-          <div className={`w-full bg-gray-50 shadow-md rounded-l-lg overflow-y-auto ${isChatOpen ? 'hidden' : 'block'} sm:block sm:w-1/3`}>
+          <div className={`w-full ${darkMode ? 'bg-gray-800' : 'bg-gray-50'} shadow-md rounded-l-lg overflow-y-auto ${isChatOpen ? 'hidden' : 'block'} sm:block sm:w-1/3`}>
             <div className="flex justify-between items-center p-4 sm:pl-4 pl-16">
-              <h2 className="text-xl font-bold">Chats</h2>
+              <h2 className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>Chats</h2>
               {unreadCount > 0 && (
                 <span className="text-sm bg-red-500 text-white px-3 py-1 rounded-full">
                   {unreadCount} Unread
@@ -1334,24 +1336,26 @@ const MessagingPage = () => {
                 placeholder="Search followers..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-300"
+                className={`w-full px-3 py-2 border ${darkMode ? 'bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400' : 'bg-white border-gray-300 text-gray-700'} rounded-full focus:outline-none focus:ring-2 focus:ring-blue-300`}
               />
             </div>
-            <ul className="divide-y divide-gray-100">
+            <ul className={`divide-y ${darkMode ? 'divide-gray-700' : 'divide-gray-100'}`}>
               {/* Use filteredChats directly - they're already sorted */}
               {filteredChats.map((chat) => (
                 <li
                   key={chat.id}
                   onClick={() => handleSelectChat(chat)}
-                  className={`p-4 flex items-center gap-4 cursor-pointer hover:bg-gray-100 ${
-                    selectedChat?.id === chat.id ? "bg-gray-100" : ""
-                  }`}
+                  className={`p-4 flex items-center gap-4 cursor-pointer ${
+                    selectedChat?.id === chat.id 
+                      ? darkMode ? "bg-gray-700" : "bg-gray-100" 
+                      : ""
+                  } ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
                 >
                   <div className="relative">
                     <img
                       src={chat.profilePicture || "/default-profile.png"}
                       alt={chat.name}
-                      className="w-12 h-12 rounded-full object-cover border border-gray-200"
+                      className={`w-12 h-12 rounded-full object-cover border ${darkMode ? 'border-gray-600' : 'border-gray-200'}`}
                       onError={(e) => handleImageError(e, chat.name)}
                     />
                     {onlineUsers.some(
@@ -1362,11 +1366,11 @@ const MessagingPage = () => {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-start">
-                      <span className="font-medium text-gray-800 truncate max-w-[70%]">
+                      <span className={`font-medium ${darkMode ? 'text-white' : 'text-gray-800'} truncate max-w-[70%]`}>
                         {chat.name}
                       </span>
                       <div className="flex items-center">
-                        <span className="text-xs text-gray-500 whitespace-nowrap">
+                        <span className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'} whitespace-nowrap`}>
                           {formatChatTime(chat.timestamp)}
                         </span>
                         {chat.unreadCount > 0 && (
@@ -1378,7 +1382,11 @@ const MessagingPage = () => {
                     </div>
                     <div className="flex justify-between items-center">
                       {/* Message text without ticks in ChatList */}
-                      <div className={`text-sm ${chat.unreadCount > 0 ? "font-medium text-gray-800" : "text-gray-500"} truncate max-w-[90%] flex items-center`}>
+                      <div className={`text-sm ${
+                        chat.unreadCount > 0 
+                          ? `font-medium ${darkMode ? 'text-gray-300' : 'text-gray-800'}`
+                          : darkMode ? 'text-gray-400' : 'text-gray-500'
+                      } truncate max-w-[90%] flex items-center`}>
                         <span className="truncate block">{chat.lastMessage}</span>
                       </div>
                     </div>
@@ -1394,7 +1402,7 @@ const MessagingPage = () => {
               <>
                 {/* Chat Header */}
                 <div
-                  className="relative p-4 w-full bg-gray-50 text-gray-800 shadow-md sticky top-0 z-10 cursor-pointer"
+                  className={`relative p-4 w-full ${darkMode ? 'bg-gray-800 text-white' : 'bg-gray-50 text-gray-800'} shadow-md sticky top-0 z-10 cursor-pointer`}
                   onClick={() => navigate(`/profile/${selectedChat.id}`)}
                 >
                   {isChatOpen && (
@@ -1403,10 +1411,10 @@ const MessagingPage = () => {
                         e.stopPropagation();
                         setIsChatOpen(false); 
                       }}
-                      className="absolute top-1/2 left-4 -translate-y-1/2 z-20 p-2 rounded-full hover:bg-gray-200 sm:hidden"
+                      className={`absolute top-1/2 left-4 -translate-y-1/2 z-20 p-2 rounded-full ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-200'} sm:hidden`}
                       aria-label="Back to chat list"
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
                       </svg>
                     </button>
@@ -1427,7 +1435,7 @@ const MessagingPage = () => {
                 </div>
 
                 {/* Messages - Optimized for performance with read status indicators */}
-                <div className="flex-1 p-4 overflow-y-auto bg-gray-50">
+                <div className={`flex-1 p-4 overflow-y-auto ${darkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
                   <div className="flex flex-col space-y-3">
                     {messages.length > 0 ? (
                       messages.map((message, index) => {
@@ -1448,7 +1456,9 @@ const MessagingPage = () => {
                         const bubbleClass = `max-w-[70%] px-4 py-2 rounded-2xl ${
                           isCurrentUser
                             ? "bg-red-300 text-gray-800 rounded-tr-none"
-                            : "bg-purple-200 text-black rounded-tl-none shadow-sm"
+                            : darkMode 
+                              ? "bg-gray-700 text-gray-200 rounded-tl-none shadow-sm" 
+                              : "bg-purple-200 text-black rounded-tl-none shadow-sm"
                         }`;
 
                         return (
@@ -1459,7 +1469,7 @@ const MessagingPage = () => {
                             <div className={bubbleClass}>
                               <p className="text-sm break-words">{message.content}</p>
                               <div className="flex justify-end items-center mt-1 text-right">
-                                <span className="text-xs text-gray-500 mr-1">
+                                <span className={`text-xs ${darkMode ? 'text-grey-700' : 'text-gray-500'} mr-1`}>
                                   {formatMessageTime(messageTimestamp)}
                                 </span>
                                 {/* Show message status indicators for sent messages */}
@@ -1483,7 +1493,7 @@ const MessagingPage = () => {
                       })
                     ) : (
                       <div className="flex justify-center mt-4">
-                        <p className="text-gray-500">No messages yet</p>
+                        <p className={`${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>No messages yet</p>
                       </div>
                     )}
                     <div ref={messagesEndRef} />
@@ -1491,7 +1501,7 @@ const MessagingPage = () => {
                 </div>
 
                 {/* Message Input */}
-                <div className="p-4 bg-white border-t border-gray-200">
+                <div className={`p-4 ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border-t`}>
                   <div className="flex items-center gap-2">
                     <input
                       type="text"
@@ -1501,7 +1511,11 @@ const MessagingPage = () => {
                         e.key === "Enter" && handleSendMessage()
                       }
                       placeholder="Message..."
-                      className="flex-1 px-4 py-2 bg-gray-50 border border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:grad text-sm"
+                      className={`flex-1 px-4 py-2 ${
+                        darkMode 
+                          ? 'bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400' 
+                          : 'bg-gray-50 border-gray-200 text-gray-800'
+                      } border rounded-full focus:outline-none focus:ring-2 focus:grad text-sm`}
                     />
                     <button
                       onClick={handleSendMessage}
@@ -1509,7 +1523,9 @@ const MessagingPage = () => {
                       className={`p-2 rounded-full ${
                         messageInput.trim()
                           ? "grad text-white hover:grad"
-                          : "bg-gray-200 text-gray-400 cursor-not-allowed"
+                          : darkMode 
+                            ? "bg-gray-700 text-black cursor-not-allowed" 
+                            : "bg-gray-200 text-gray-400 cursor-not-allowed"
                       } transition duration-200`}
                     >
                       <svg
@@ -1529,8 +1545,8 @@ const MessagingPage = () => {
                 </div>
               </>
             ) : (
-              <div className="flex-1 flex items-center justify-center">
-                <p className="text-gray-500">
+              <div className={`flex-1 flex items-center justify-center ${darkMode ? 'bg-gray-900' : 'bg-white'}`}>
+                <p className={`${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                   Select a chat to start messaging
                 </p>
               </div>
