@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from "react";
-import background from "../assets/background.png"; // Updated path to reference assets directory
+import background from "../assets/background.png"; // Light mode background
+import darkBackground from "../assets/dark-background.jpeg"; // Dark mode background
 import { useNavigate } from "react-router-dom";
+import { useTheme } from "../components/Nav"; // Import useTheme hook
 
 const Signup = () => {
+  const { darkMode, toggleDarkMode } = useTheme(); // Use the dark mode context
   const [username, setUsername] = useState("");
   const [usernameStatus, setUsernameStatus] = useState(""); // "available", "taken", "checking", or ""
   const [usernameError, setUsernameError] = useState("");
@@ -316,43 +319,90 @@ const Signup = () => {
     { code: "+7", flag: "🇷🇺" },
   ];
 
-  return ( 
-     <div  className="min-h-screen grid sm:grid-cols-1 sm:grid-rows-2 md:grid-cols-2 md:grid-rows-1  lg:grid-cols-2 lg:grid-rows-1 bg-cover bg-center"
+  return (
+    <div
+      className={`min-h-screen grid sm:grid-cols-1 sm:grid-rows-2 md:grid-cols-2 md:grid-rows-1 lg:grid-cols-2 lg:grid-rows-1 bg-cover bg-center ${
+        darkMode ? "text-white" : ""
+      }`}
       style={{
-        backgroundImage: `url(${background})`,
-        backgroundSize: "120%", // Scales the background image to 120% of its original size
-        backgroundRepeat: "no-repeat", // Prevents the image from repeating
-        backgroundPosition: "center", // Ensures the image is centered
+        backgroundImage: `url(${darkMode ? darkBackground : background})`,
+        backgroundSize: "120%",
+        backgroundRepeat: "no-repeat",
+        backgroundPosition: "center"
       }}
     >
-      <div className="bg-opacity-50 p-8 rounded-lg w-full flex justify-center items-center flex-col  h-full ">
+      {/* Dark mode toggle button */}
+      <button
+        onClick={toggleDarkMode}
+        className="fixed top-4 right-4 z-50 p-2 rounded-full focus:outline-none bg-opacity-80 shadow-lg transition-all"
+        style={{
+          backgroundColor: darkMode ? "rgba(30, 41, 59, 0.8)" : "rgba(255, 255, 255, 0.8)"
+        }}
+        aria-label="Toggle dark mode"
+      >
+        {darkMode ? (
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="5"></circle>
+            <line x1="12" y1="1" x2="12" y2="3"></line>
+            <line x1="12" y1="21" x2="12" y2="23"></line>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+            <line x1="1" y1="12" x2="3" y2="12"></line>
+            <line x1="21" y1="12" x2="23" y2="12"></line>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+          </svg>
+        ) : (
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="black" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+          </svg>
+        )}
+      </button>
+
+      {/* Left Section */}
+      <div className="bg-opacity-50 p-8 rounded-lg w-full flex justify-center items-center flex-col h-full">
         <div className="flex flex-col justify-center items-start">
-          <div className="font-black text-7xl ml-7 mb-7">
-            Connect With Those Who Matter The Most
+          <div className={`font-black text-7xl ml-7 mb-7 ${darkMode ? "text-white" : ""}`}>
+            Join Credily!
           </div>
-          <div className="ml-8 text-xl">
-            Join Credily now and become a part of our community!
+          <div className={`ml-8 text-xl ${darkMode ? "text-gray-200" : ""}`}>
+            Connect with friends and the world around you.
           </div>
         </div>
       </div>
+
+      {/* Right Section - Form Container */}
       <div className="flex justify-center items-center w-full h-full">
         <form
           onSubmit={handleSubmit}
-          className="p-8 rounded-lg shadow-2xl  glass "
+          className={`p-8 rounded-lg shadow-2xl ${
+            darkMode 
+              ? "bg-gray-800/80 text-white border border-gray-700" 
+              : "glass"
+          } max-w-lg w-full mx-4`}
         >
-          <h2 className="text-3xl font-bold mb-6 text-center text-black">
+          <h2 className={`text-3xl font-bold mb-6 text-center ${
+            darkMode ? "text-white" : "text-black"
+          }`}>
             Create an Account
           </h2>
 
-          {/* Show error message if any */}
+          {/* Show form error message if any */}
           {error && (
-            <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+            <div className={`mb-4 p-3 ${
+              darkMode 
+                ? "bg-red-900/50 border-red-800 text-red-200" 
+                : "bg-red-100 border-red-400 text-red-700"
+            } border rounded`}>
               {error}
             </div>
           )}
 
+          {/* Username Field */}
           <div className="mb-4">
-            <label className="block text-black font-medium mb-2">
+            <label className={`block font-medium mb-2 ${
+              darkMode ? "text-gray-200" : "text-black"
+            }`}>
               Username
             </label>
             <div className="relative">
@@ -362,153 +412,123 @@ const Signup = () => {
                 onChange={handleUsernameChange}
                 required
                 disabled={loading}
-                className={`w-full px-4 py-2 border rounded-lg glass text-gray-800 focus:outline-none focus:ring-2 ${
-                  usernameError
-                    ? "border-red-500 focus:ring-red-500"
-                    : usernameStatus === "available"
-                    ? "border-green-500 focus:ring-green-500"
-                    : "focus:ring-teal-400"
+                maxLength={15}
+                className={`w-full px-4 py-2 border rounded-lg ${
+                  darkMode 
+                    ? "bg-gray-700 border-gray-600 text-white focus:ring-purple-500" 
+                    : "glass text-gray-800 focus:ring-teal-400"
+                } focus:outline-none focus:ring-2 ${
+                  usernameStatus === "available"
+                    ? "border-green-500"
+                    : usernameStatus === "taken"
+                    ? "border-red-500"
+                    : ""
                 }`}
                 placeholder="Choose a username"
               />
+              {/* Username status indicators */}
               {usernameStatus === "checking" && (
-                <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                  <svg
-                    className="animate-spin h-5 w-5 text-gray-500"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    ></circle>
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    ></path>
-                  </svg>
+                <div className={`absolute right-3 top-3 ${
+                  darkMode ? "text-blue-300" : "text-blue-500"
+                }`}>
+                  Checking...
                 </div>
               )}
-              {usernameStatus === "available" && username.length >= 3 && (
-                <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-5 w-5 text-green-500"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
+              {usernameStatus === "available" && (
+                <div className="absolute right-3 top-3 text-green-500">
+                  Available ✓
+                </div>
+              )}
+              {usernameStatus === "taken" && (
+                <div className="absolute right-3 top-3 text-red-500">
+                  Taken ✗
                 </div>
               )}
             </div>
             {usernameError && (
-              <p className="mt-1 text-sm text-red-600">{usernameError}</p>
-            )}
-            {usernameStatus === "available" &&
-              username.length >= 3 &&
-              !usernameError && (
-                <p className="mt-1 text-sm text-green-600">
-                  Username available
-                </p>
-              )}
-            {usernameStatus === "taken" && !usernameError && (
-              <p className="mt-1 text-sm text-red-600">
-                Username already taken
-              </p>
+              <p className={`mt-1 text-sm ${
+                darkMode ? "text-red-300" : "text-red-500"
+              }`}>{usernameError}</p>
             )}
           </div>
 
+          {/* Phone Number Field */}
           <div className="mb-4">
-            <label className="block text-black font-medium mb-2">
+            <label className={`block font-medium mb-2 ${
+              darkMode ? "text-gray-200" : "text-black"
+            }`}>
               Phone Number
             </label>
-            <div className="flex">
+            <div className="flex space-x-2">
               <select
                 value={countryCode}
                 onChange={handleCountryCodeChange}
-                className="px-4 py-2 border rounded-l-lg glass text-gray-800 focus:outline-none focus:ring-2 focus:ring-teal-400 mr-2 cursor-pointer"
+                className={`px-2 py-2 border rounded-lg ${
+                  darkMode 
+                    ? "bg-gray-700 border-gray-600 text-white focus:ring-purple-500" 
+                    : "glass text-gray-800 focus:ring-teal-400"
+                } focus:outline-none focus:ring-2`}
+                disabled={loading}
               >
-                {countries.map((country) => (
-                  <option key={country.code} value={country.code}>
-                    {country.flag} {country.code}
-                  </option>
-                ))}
+                <option value="+92">+92 (PK)</option>
+                <option value="+1">+1 (US)</option>
+                <option value="+44">+44 (UK)</option>
+                <option value="+91">+91 (IN)</option>
+                {/* Add more country codes as needed */}
               </select>
-              <div className="relative flex-grow">
+
+              <div className="relative flex-1">
                 <input
-                  type="tel"
+                  type="text"
                   value={phone}
                   onChange={handlePhoneChange}
                   required
-                  className={`w-full px-4 py-2 border rounded-r-lg glass text-gray-800 focus:outline-none focus:ring-2 ${
-                    phoneError
-                      ? "border-red-500 focus:ring-red-500"
-                      : phoneStatus === "available" && phone.length === 10
-                      ? "border-green-500 focus:ring-green-500"
-                      : "focus:ring-teal-400"
+                  disabled={loading}
+                  className={`w-full px-4 py-2 border rounded-lg ${
+                    darkMode 
+                      ? "bg-gray-700 border-gray-600 text-white focus:ring-purple-500" 
+                      : "glass text-gray-800 focus:ring-teal-400"
+                  } focus:outline-none focus:ring-2 ${
+                    phoneStatus === "available"
+                      ? "border-green-500"
+                      : phoneStatus === "taken"
+                      ? "border-red-500"
+                      : ""
                   }`}
-                  placeholder="Enter your phone number (10 digits)"
+                  placeholder="Enter your phone number"
                 />
+                {/* Phone status indicators */}
                 {phoneStatus === "checking" && (
-                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                    <svg
-                      className="animate-spin h-5 w-5 text-gray-500"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      ></path>
-                    </svg>
+                  <div className={`absolute right-3 top-3 ${
+                    darkMode ? "text-blue-300" : "text-blue-500"
+                  }`}>
+                    Checking...
                   </div>
                 )}
-                {phoneStatus === "available" && phone.length === 10 && (
-                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-5 w-5 text-green-500"
-                      viewBox="0 0 20 20"
-                      fill="currentColor"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
+                {phoneStatus === "available" && (
+                  <div className="absolute right-3 top-3 text-green-500">
+                    Available ✓
+                  </div>
+                )}
+                {phoneStatus === "taken" && (
+                  <div className="absolute right-3 top-3 text-red-500">
+                    Taken ✗
                   </div>
                 )}
               </div>
             </div>
             {phoneError && (
-              <p className="mt-1 text-sm text-red-600">{phoneError}</p>
+              <p className={`mt-1 text-sm ${
+                darkMode ? "text-red-300" : "text-red-500"
+              }`}>{phoneError}</p>
             )}
           </div>
 
+          {/* Password Field */}
           <div className="mb-4">
-            <label className="block text-black font-medium mb-2">
+            <label className={`block font-medium mb-2 ${
+              darkMode ? "text-gray-200" : "text-black"
+            }`}>
               Password
             </label>
             <input
@@ -517,20 +537,25 @@ const Signup = () => {
               onChange={handlePasswordChange}
               required
               disabled={loading}
-              className={`w-full px-4 py-2 border glass rounded-lg text-gray-800 focus:outline-none focus:ring-2 ${
-                passwordError
-                  ? "border-red-500 focus:ring-red-500"
-                  : "focus:ring-teal-400"
-              }`}
-              placeholder="Enter your password"
+              className={`w-full px-4 py-2 border rounded-lg ${
+                darkMode 
+                  ? "bg-gray-700 border-gray-600 text-white focus:ring-purple-500" 
+                  : "glass text-gray-800 focus:ring-teal-400"
+              } focus:outline-none focus:ring-2`}
+              placeholder="Choose a password"
             />
             {passwordError && (
-              <p className="mt-1 text-sm text-red-600">{passwordError}</p>
+              <p className={`mt-1 text-sm ${
+                darkMode ? "text-red-300" : "text-red-500"
+              }`}>{passwordError}</p>
             )}
           </div>
 
-          <div className="mb-6 relative">
-            <label className="block text-black font-medium mb-2">
+          {/* Confirm Password Field */}
+          <div className="mb-6">
+            <label className={`block font-medium mb-2 ${
+              darkMode ? "text-gray-200" : "text-black"
+            }`}>
               Confirm Password
             </label>
             <div className="relative">
@@ -540,82 +565,46 @@ const Signup = () => {
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 required
                 disabled={loading}
-                className={`w-full px-4 py-2 border rounded-lg glass text-black focus:outline-none focus:ring-2 ${
-                  confirmPassword && !passwordsMatch
-                    ? "border-red-500 focus:ring-red-500"
-                    : "focus:ring-teal-400"
-                } ${
-                  passwordsMatch && confirmPassword ? "border-green-500" : ""
+                className={`w-full px-4 py-2 border rounded-lg ${
+                  darkMode 
+                    ? "bg-gray-700 border-gray-600 text-white focus:ring-purple-500" 
+                    : "glass text-gray-800 focus:ring-teal-400"
+                } focus:outline-none focus:ring-2 ${
+                  confirmPassword && (passwordsMatch ? "border-green-500" : "border-red-500")
                 }`}
                 placeholder="Confirm your password"
               />
-              {passwordsMatch && confirmPassword && (
-                <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-5 w-5 text-green-500"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
+              {confirmPassword && (
+                <div
+                  className={`absolute right-3 top-3 ${
+                    passwordsMatch ? "text-green-500" : "text-red-500"
+                  }`}
+                >
+                  {passwordsMatch ? "Matching ✓" : "Not matching ✗"}
                 </div>
               )}
             </div>
-            {confirmPassword && !passwordsMatch && (
-              <p className="mt-1 text-sm text-red-600">
-                Passwords do not match
-              </p>
-            )}
           </div>
 
+          {/* Submit Button */}
           <button
             type="submit"
-            disabled={
-              loading ||
-              phoneError ||
-              passwordError ||
-              (confirmPassword && !passwordsMatch) ||
-              usernameStatus === "taken" ||
-              usernameError ||
-              !username ||
-              !phone ||
-              phone.length !== 10 ||
-              !password ||
-              !confirmPassword ||
-              (username.length >= 3 && usernameStatus !== "available") ||
-              (phone.length === 10 && phoneStatus !== "available")
-            }
-            className={`w-full grad text-white py-2 px-4 rounded-lg hover:bg-teal-600 transition duration-300 cursor-pointer ${
-              loading ||
-              phoneError ||
-              passwordError ||
-              (confirmPassword && !passwordsMatch) ||
-              usernameStatus === "taken" ||
-              usernameError ||
-              !username ||
-              !phone ||
-              phone.length !== 10 ||
-              !password ||
-              !confirmPassword ||
-              (username.length >= 3 && usernameStatus !== "available") ||
-              (phone.length === 10 && phoneStatus !== "available")
-                ? "opacity-70 cursor-not-allowed"
-                : ""
-            }`}
+            disabled={loading}
+            className="w-full grad text-white py-2 px-4 rounded-lg hover:bg-teal-600 transition duration-300 cursor-pointer focus:outline-none focus:ring-2 focus:ring-teal-400"
           >
-            {loading ? "Creating Account..." : "Signup"}
+            {loading ? "Creating account..." : "Sign Up"}
           </button>
 
-          <p className="text-center text-black mt-4">
+          {/* Login Link */}
+          <p className={`text-center mt-4 ${
+            darkMode ? "text-gray-300" : "text-black"
+          }`}>
             Already have an account?{" "}
             <a
               href="/login"
-              className="text-purple-900 hover:underline cursor-pointer"
+              className={`${
+                darkMode ? "text-purple-400" : "text-purple-900"
+              } hover:underline cursor-pointer`}
             >
               Login
             </a>

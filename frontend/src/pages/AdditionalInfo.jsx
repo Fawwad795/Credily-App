@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import background from "../assets/background.png"; // Import the background image
+import background from "../assets/background.png"; // Light mode background
+import darkBackground from "../assets/dark-background.jpeg"; // Dark mode background
 import { compressImage, isImageTooLarge } from "../utils/imageCompression";
+import { useTheme } from "../components/Nav"; // Import useTheme hook
 
 // Moved validateEmail outside the component to break dependency cycle
 const validateEmail = (email) => {
@@ -11,6 +13,7 @@ const validateEmail = (email) => {
 };
 
 const AdditionalInfo = () => {
+  const { darkMode, toggleDarkMode } = useTheme(); // Use the dark mode context
   const navigate = useNavigate();
   const location = useLocation();
   const user = location.state?.user;
@@ -552,22 +555,30 @@ const AdditionalInfo = () => {
 
   // Render different steps
   const renderStep = () => {
+    const availableCities = cities[country] || [];
+
     switch (currentStep) {
       case 1:
         return (
           <>
-            <div className="mb-6">
-              <div className="relative mx-auto w-28 h-28 rounded-full bg-gray-100 border-4 border-white shadow-lg">
+            <div className="flex flex-col items-center mb-6">
+              <div
+                className={`w-24 h-24 ${
+                  darkMode ? 'bg-gray-700' : 'bg-gray-100'
+                } rounded-full flex items-center justify-center overflow-hidden border-2 ${
+                  darkMode ? 'border-gray-600' : 'border-gray-200'
+                } relative cursor-pointer`}
+              >
                 {profileImagePreview ? (
                   <img
                     src={profileImagePreview}
-                    alt="Profile preview"
-                    className="w-full h-full object-cover rounded-full"
+                    alt="Profile"
+                    className="w-full h-full object-cover"
                   />
                 ) : (
                   <div className="flex items-center justify-center w-full h-full">
                     <svg
-                      className="w-16 h-16 text-gray-300"
+                      className={`w-12 h-12 ${darkMode ? 'text-gray-500' : 'text-gray-300'}`}
                       fill="currentColor"
                       viewBox="0 0 20 20"
                       xmlns="http://www.w3.org/2000/svg"
@@ -576,32 +587,20 @@ const AdditionalInfo = () => {
                         fillRule="evenodd"
                         d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
                         clipRule="evenodd"
-                      ></path>
+                      />
                     </svg>
                   </div>
                 )}
-                <label
-                  htmlFor="profile-upload"
-                  className="absolute bottom-0 right-0 grad text-white p-2 rounded-full cursor-pointer shadow-md hover:opacity-90 transition"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-5 w-5"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                  >
-                    <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
-                  </svg>
+                <label className="absolute inset-0 flex items-center justify-center">
+                  <span className="sr-only">Upload a photo</span>
                   <input
                     type="file"
-                    id="profile-upload"
-                    className="hidden"
-                    accept="image/*"
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                     onChange={handleImageChange}
                   />
                 </label>
               </div>
-              <p className="text-center text-gray-500 text-sm mt-2">
+              <p className={`text-center ${darkMode ? 'text-gray-400' : 'text-gray-500'} text-sm mt-2`}>
                 Add a profile picture
               </p>
             </div>
@@ -611,7 +610,7 @@ const AdditionalInfo = () => {
                 <div>
                   <label
                     htmlFor="firstname"
-                    className="block text-gray-700 text-sm font-medium mb-1"
+                    className={`block ${darkMode ? 'text-gray-300' : 'text-gray-700'} text-sm font-medium mb-1`}
                   >
                     First Name
                   </label>
@@ -620,14 +619,18 @@ const AdditionalInfo = () => {
                     id="firstname"
                     value={firstName}
                     onChange={(e) => setFirstName(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-400 glass"
+                    className={`w-full px-4 py-2 border ${
+                      darkMode 
+                        ? "bg-gray-700 border-gray-600 text-white focus:ring-purple-500" 
+                        : "border-gray-300 focus:ring-teal-400 glass"
+                    } rounded-md focus:outline-none focus:ring-2`}
                     placeholder="Enter your first name"
                   />
                 </div>
                 <div>
                   <label
                     htmlFor="lastname"
-                    className="block text-gray-700 text-sm font-medium mb-1"
+                    className={`block ${darkMode ? 'text-gray-300' : 'text-gray-700'} text-sm font-medium mb-1`}
                   >
                     Last Name
                   </label>
@@ -636,7 +639,11 @@ const AdditionalInfo = () => {
                     id="lastname"
                     value={lastName}
                     onChange={(e) => setLastName(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-400 glass"
+                    className={`w-full px-4 py-2 border ${
+                      darkMode 
+                        ? "bg-gray-700 border-gray-600 text-white focus:ring-purple-500" 
+                        : "border-gray-300 focus:ring-teal-400 glass"
+                    } rounded-md focus:outline-none focus:ring-2`}
                     placeholder="Enter your last name"
                   />
                 </div>
@@ -645,7 +652,7 @@ const AdditionalInfo = () => {
               <div>
                 <label
                   htmlFor="email"
-                  className="block text-gray-700 text-sm font-medium mb-1"
+                  className={`block ${darkMode ? 'text-gray-300' : 'text-gray-700'} text-sm font-medium mb-1`}
                 >
                   Email Address
                 </label>
@@ -660,20 +667,24 @@ const AdditionalInfo = () => {
                         ? "border-red-500"
                         : emailStatus === "available" && email
                         ? "border-green-500"
-                        : "border-gray-300"
+                        : darkMode 
+                          ? "border-gray-600" 
+                          : "border-gray-300"
                     } rounded-md focus:outline-none focus:ring-2 ${
                       emailError
                         ? "focus:ring-red-500"
                         : emailStatus === "available" && email
                         ? "focus:ring-green-500"
-                        : "focus:ring-teal-400"
-                    } glass`}
+                        : darkMode
+                          ? "focus:ring-purple-500 bg-gray-700 text-white"
+                          : "focus:ring-teal-400 glass"
+                    }`}
                     placeholder="Enter your email address"
                   />
                   {emailStatus === "checking" && (
                     <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
                       <svg
-                        className="animate-spin h-5 w-5 text-gray-500"
+                        className={`animate-spin h-5 w-5 ${darkMode ? 'text-blue-400' : 'text-gray-500'}`}
                         xmlns="http://www.w3.org/2000/svg"
                         fill="none"
                         viewBox="0 0 24 24"
@@ -712,7 +723,9 @@ const AdditionalInfo = () => {
                   )}
                 </div>
                 {emailError && (
-                  <p className="mt-1 text-sm text-red-600">{emailError}</p>
+                  <p className={`mt-1 text-sm ${darkMode ? 'text-red-400' : 'text-red-600'}`}>
+                    {emailError}
+                  </p>
                 )}
                 {emailStatus === "available" && email && !emailError && (
                   <p className="mt-1 text-sm text-green-600">
@@ -731,7 +744,7 @@ const AdditionalInfo = () => {
               <div>
                 <label
                   htmlFor="country"
-                  className="block text-gray-700 text-sm font-medium mb-1"
+                  className={`block ${darkMode ? 'text-gray-300' : 'text-gray-700'} text-sm font-medium mb-1`}
                 >
                   Country
                 </label>
@@ -739,7 +752,11 @@ const AdditionalInfo = () => {
                   id="country"
                   value={country}
                   onChange={(e) => setCountry(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-400 appearance-none bg-white glass"
+                  className={`w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 appearance-none ${
+                    darkMode 
+                      ? "bg-gray-700 border-gray-600 text-white focus:ring-purple-500" 
+                      : "border-gray-300 focus:ring-teal-400 bg-white glass"
+                  }`}
                 >
                   <option value="" disabled>
                     Select a country
@@ -754,7 +771,7 @@ const AdditionalInfo = () => {
               <div>
                 <label
                   htmlFor="city"
-                  className="block text-gray-700 text-sm font-medium mb-1"
+                  className={`block ${darkMode ? 'text-gray-300' : 'text-gray-700'} text-sm font-medium mb-1`}
                 >
                   City
                 </label>
@@ -762,7 +779,11 @@ const AdditionalInfo = () => {
                   id="city"
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-400 appearance-none bg-white glass"
+                  className={`w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 appearance-none ${
+                    darkMode 
+                      ? "bg-gray-700 border-gray-600 text-white focus:ring-purple-500" 
+                      : "border-gray-300 focus:ring-teal-400 bg-white glass"
+                  }`}
                   disabled={!country}
                 >
                   <option value="" disabled>
@@ -780,7 +801,7 @@ const AdditionalInfo = () => {
             <div>
               <label
                 htmlFor="bio"
-                className="block text-gray-700 text-sm font-medium mb-1"
+                className={`block ${darkMode ? 'text-gray-300' : 'text-gray-700'} text-sm font-medium mb-1`}
               >
                 Bio
               </label>
@@ -789,11 +810,15 @@ const AdditionalInfo = () => {
                 value={bio}
                 onChange={(e) => setBio(e.target.value)}
                 rows="4"
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-400 glass"
+                className={`w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 ${
+                  darkMode 
+                    ? "bg-gray-700 border-gray-600 text-white focus:ring-purple-500" 
+                    : "border-gray-300 focus:ring-teal-400 glass"
+                }`}
                 placeholder="Tell us a bit about yourself"
                 maxLength="100"
               ></textarea>
-              <p className="text-xs text-gray-500 text-right mt-1">
+              <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'} text-right mt-1`}>
                 {bio.length}/100 characters
               </p>
             </div>
@@ -804,7 +829,9 @@ const AdditionalInfo = () => {
         return (
           <div className="space-y-6">
             <div className="text-center">
-              <div className="w-20 h-20 mx-auto rounded-full overflow-hidden mb-4 bg-gray-100">
+              <div className={`w-20 h-20 mx-auto rounded-full overflow-hidden mb-4 ${
+                darkMode ? 'bg-gray-700' : 'bg-gray-100'
+              }`}>
                 {profileImagePreview ? (
                   <img
                     src={profileImagePreview}
@@ -814,7 +841,7 @@ const AdditionalInfo = () => {
                 ) : (
                   <div className="flex items-center justify-center w-full h-full">
                     <svg
-                      className="w-12 h-12 text-gray-300"
+                      className={`w-12 h-12 ${darkMode ? 'text-gray-500' : 'text-gray-300'}`}
                       fill="currentColor"
                       viewBox="0 0 20 20"
                       xmlns="http://www.w3.org/2000/svg"
@@ -828,33 +855,41 @@ const AdditionalInfo = () => {
                   </div>
                 )}
               </div>
-              <h3 className="text-xl font-medium text-gray-900">
+              <h3 className={`text-xl font-medium ${darkMode ? 'text-gray-100' : 'text-gray-900'}`}>
                 {capitalizeFirstLetter(firstName)}{" "}
                 {capitalizeFirstLetter(lastName)}
               </h3>
-              <p className="text-gray-500 text-sm">
+              <p className={`${darkMode ? 'text-gray-400' : 'text-gray-500'} text-sm`}>
                 {user.username} | {email}
               </p>
             </div>
 
-            <div className="bg-gray-50 p-4 rounded-lg space-y-2 glass">
+            <div className={`${
+              darkMode ? 'bg-gray-700' : 'bg-gray-50'
+            } p-4 rounded-lg space-y-2 ${
+              darkMode ? '' : 'glass'
+            }`}>
               <div className="flex justify-between">
-                <span className="text-sm text-gray-500">Location</span>
-                <span className="text-sm font-medium text-gray-900">
+                <span className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                  Location
+                </span>
+                <span className={`text-sm font-medium ${darkMode ? 'text-gray-200' : 'text-gray-900'}`}>
                   {city && country
                     ? `${city}, ${country}`
                     : city || country || "Not specified"}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-sm text-gray-500">Bio</span>
-                <span className="text-sm font-medium text-gray-900 text-right max-w-[70%] truncate">
+                <span className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                  Bio
+                </span>
+                <span className={`text-sm font-medium ${darkMode ? 'text-gray-200' : 'text-gray-900'} text-right max-w-[70%] truncate`}>
                   {bio || "Not provided"}
                 </span>
               </div>
             </div>
 
-            <div className="text-center text-sm text-gray-500">
+            <div className={`text-center text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
               <p>
                 You can change these details from your profile page anytime.
               </p>
@@ -871,15 +906,45 @@ const AdditionalInfo = () => {
 
   return (
     <div
-      className="min-h-screen flex items-center justify-center bg-cover bg-center"
+      className={`min-h-screen flex items-center justify-center bg-cover bg-center ${
+        darkMode ? "text-white" : ""
+      }`}
       style={{
-        backgroundImage: `url(${background})`,
+        backgroundImage: `url(${darkMode ? darkBackground : background})`,
         backgroundSize: "120%",
         backgroundRepeat: "no-repeat",
         backgroundPosition: "center",
       }}
     >
-      <div className="w-full max-w-md glass rounded-2xl shadow-xl overflow-hidden">
+      {/* Dark mode toggle button */}
+      <button
+        onClick={toggleDarkMode}
+        className="fixed top-4 right-4 z-50 p-2 rounded-full focus:outline-none bg-opacity-80 shadow-lg transition-all"
+        style={{
+          backgroundColor: darkMode ? "rgba(30, 41, 59, 0.8)" : "rgba(255, 255, 255, 0.8)"
+        }}
+        aria-label="Toggle dark mode"
+      >
+        {darkMode ? (
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="5"></circle>
+            <line x1="12" y1="1" x2="12" y2="3"></line>
+            <line x1="12" y1="21" x2="12" y2="23"></line>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+            <line x1="1" y1="12" x2="3" y2="12"></line>
+            <line x1="21" y1="12" x2="23" y2="12"></line>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+          </svg>
+        ) : (
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="black" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+          </svg>
+        )}
+      </button>
+      
+      <div className={`w-full max-w-md ${darkMode ? 'bg-gray-800/90 border border-gray-700' : 'glass'} rounded-2xl shadow-xl overflow-hidden`}>
         <div className="relative grad p-6 pb-8">
           <h1 className="text-2xl font-bold text-white">
             Complete Your Profile
@@ -901,7 +966,11 @@ const AdditionalInfo = () => {
         </div>
 
         {error && (
-          <div className="mx-6 mt-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-md text-sm">
+          <div className={`mx-6 mt-4 p-3 ${
+            darkMode 
+              ? "bg-red-900/50 border-red-800 text-red-200" 
+              : "bg-red-50 border-red-200 text-red-700"
+          } border rounded-md text-sm`}>
             {error}
           </div>
         )}
@@ -914,10 +983,18 @@ const AdditionalInfo = () => {
               <button
                 type="button"
                 onClick={handlePrevStep}
-                className={`px-4 py-2 border border-gray-300 rounded-md text-gray-700 glass cursor-pointer focus:outline-none focus:ring-0 ${
+                className={`px-4 py-2 border ${
+                  darkMode 
+                    ? "border-gray-600 text-gray-300" 
+                    : "border-gray-300 text-gray-700"
+                } rounded-md ${
+                  darkMode ? "bg-gray-700" : "glass"
+                } cursor-pointer focus:outline-none focus:ring-0 ${
                   currentStep === 1
                     ? "opacity-50 cursor-not-allowed"
-                    : "hover:bg-gray-50"
+                    : darkMode 
+                      ? "hover:bg-gray-600" 
+                      : "hover:bg-gray-50"
                 }`}
                 disabled={currentStep === 1}
               >
@@ -958,7 +1035,9 @@ const AdditionalInfo = () => {
             <button
               type="button"
               onClick={() => navigate("/profile", { state: { user } })}
-              className="text-sm hover:underline cursor-pointer focus:outline-none focus:ring-0"
+              className={`text-sm ${
+                darkMode ? "text-gray-300" : ""
+              } hover:underline cursor-pointer focus:outline-none focus:ring-0`}
             >
               Skip for now
             </button>
