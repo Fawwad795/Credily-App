@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../utils/axios";
+import { useTheme } from "./Nav"; // Import the useTheme hook
 
 const ConnectionsSlider = ({ isOpen, onClose, userId }) => {
+  const { darkMode } = useTheme(); // Use the theme context
   const [connections, setConnections] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -60,7 +62,9 @@ const ConnectionsSlider = ({ isOpen, onClose, userId }) => {
   };
   return (
     <div
-      className={`fixed top-0 right-0 h-full w-full sm:w-96 md:w-1/3 lg:w-1/4 bg-white shadow-lg transform ${
+      className={`fixed top-0 right-0 h-full w-full sm:w-96 md:w-1/3 lg:w-1/4 ${
+        darkMode ? "bg-gray-800" : "bg-white"
+      } shadow-lg transform ${
         isOpen ? "translate-x-0" : "translate-x-full"
       } transition-all duration-300 ease-in-out z-50 rounded-l-2xl`}
     >
@@ -89,7 +93,9 @@ const ConnectionsSlider = ({ isOpen, onClose, userId }) => {
       </div>
 
       {/* Connections List */}
-      <div className="p-4 overflow-y-auto max-h-[calc(100vh-4rem)] scrollbar-thin scrollbar-thumb-purple-200 scrollbar-track-transparent">
+      <div className={`p-4 overflow-y-auto max-h-[calc(100vh-4rem)] scrollbar-thin ${
+        darkMode ? "scrollbar-thumb-purple-700" : "scrollbar-thumb-purple-200"
+      } scrollbar-track-transparent`}>
         {loading ? (
           <div className="flex justify-center items-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
@@ -119,7 +125,11 @@ const ConnectionsSlider = ({ isOpen, onClose, userId }) => {
             {connections.map((connection) => (
               <li
                 key={connection._id}
-                className="p-3 rounded-xl hover:bg-gray-50 cursor-pointer transition-all duration-200 ease-in-out border border-gray-100 hover:shadow-md hover:border-purple-100"
+                className={`p-3 rounded-xl ${
+                  darkMode
+                    ? "hover:bg-gray-700 border-gray-700 hover:border-purple-800"
+                    : "hover:bg-gray-50 border-gray-100 hover:border-purple-100"
+                } cursor-pointer transition-all duration-200 ease-in-out border hover:shadow-md`}
                 onClick={() => handleProfileClick(connection._id)}
               >
                 <div className="flex items-center gap-3">
@@ -129,14 +139,22 @@ const ConnectionsSlider = ({ isOpen, onClose, userId }) => {
                       generatePlaceholderAvatar(connection.username)
                     }
                     alt="Profile"
-                    className="w-10 h-10 rounded-full object-cover ring-2 ring-purple-200 transition-all duration-200 ease-in-out hover:ring-purple-400"
+                    className={`w-10 h-10 rounded-full object-cover ring-2 ${
+                      darkMode ? "ring-purple-700" : "ring-purple-200"
+                    } transition-all duration-200 ease-in-out hover:ring-purple-400`}
                     onError={(e) => handleImageError(e, connection.username)}
                   />
                   <div>
-                    <p className="font-medium text-gray-800 hover:text-purple-600 transition-all duration-200 ease-in-out">
+                    <p className={`font-medium ${
+                      darkMode 
+                        ? "text-white hover:text-purple-400" 
+                        : "text-gray-800 hover:text-purple-600"
+                    } transition-all duration-200 ease-in-out`}>
                       {connection.username}
                     </p>
-                    <p className="text-sm text-gray-500 truncate max-w-[200px]">
+                    <p className={`text-sm ${
+                      darkMode ? "text-gray-400" : "text-gray-500"
+                    } truncate max-w-[200px]`}>
                       {connection.email}
                     </p>
                   </div>
@@ -146,7 +164,9 @@ const ConnectionsSlider = ({ isOpen, onClose, userId }) => {
           </ul>
         ) : (
           <div className="text-center py-8">
-            <div className="w-16 h-16 mx-auto bg-gray-100 text-gray-400 rounded-full flex items-center justify-center mb-4">
+            <div className={`w-16 h-16 mx-auto ${
+              darkMode ? "bg-gray-700 text-gray-500" : "bg-gray-100 text-gray-400"
+            } rounded-full flex items-center justify-center mb-4`}>
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 className="h-8 w-8"
@@ -162,8 +182,8 @@ const ConnectionsSlider = ({ isOpen, onClose, userId }) => {
                 />
               </svg>
             </div>
-            <p className="text-gray-500">No connections found</p>
-            <p className="text-sm text-gray-400 mt-2">
+            <p className={`${darkMode ? "text-gray-300" : "text-gray-500"}`}>No connections found</p>
+            <p className={`text-sm ${darkMode ? "text-gray-500" : "text-gray-400"} mt-2`}>
               Connect with other users to see them here
             </p>
           </div>

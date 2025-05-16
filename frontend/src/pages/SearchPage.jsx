@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../utils/axios"; // Import the configured axios instance
+import { useTheme } from "../components/Nav"; // Import the useTheme hook
 
 const SearchSlider = ({ isOpen, onClose }) => {
+  const { darkMode } = useTheme(); // Use the theme context
   const [searchQuery, setSearchQuery] = useState("");
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -56,7 +58,9 @@ const SearchSlider = ({ isOpen, onClose }) => {
 
   return (
     <div
-      className={`fixed top-0 right-0 h-full bg-white shadow-lg transform ${
+      className={`fixed top-0 right-0 h-full ${
+        darkMode ? "bg-gray-800" : "bg-white"
+      } shadow-lg transform ${
         isOpen ? "translate-x-0" : "translate-x-full"
       } transition-transform duration-300 z-50 w-full sm:w-96 md:w-1/3 lg:w-1/4`}
     >
@@ -92,11 +96,17 @@ const SearchSlider = ({ isOpen, onClose }) => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search for accounts..."
-            className="w-full px-4 py-2 pl-10 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300 ease-in-out shadow-sm hover:shadow-md bg-gradient-to-r from-purple-50 to-pink-50 hover:from-purple-100 hover:to-pink-100 focus:from-purple-100 focus:to-pink-100 transform hover:scale-[1.02] focus:scale-[1.02]"
+            className={`w-full px-4 py-2 pl-10 border ${
+              darkMode
+                ? "border-gray-700 bg-gray-700 text-white placeholder-gray-400 focus:ring-purple-600"
+                : "border-gray-200 bg-gradient-to-r from-purple-50 to-pink-50 hover:from-purple-100 hover:to-pink-100 focus:from-purple-100 focus:to-pink-100"
+            } rounded-xl focus:outline-none focus:ring-2 focus:border-transparent transition-all duration-300 ease-in-out shadow-sm hover:shadow-md transform hover:scale-[1.02] focus:scale-[1.02]`}
           />
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            className="h-5 w-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2 transition-all duration-300 group-hover:text-purple-500"
+            className={`h-5 w-5 ${
+              darkMode ? "text-gray-400" : "text-gray-400"
+            } absolute left-3 top-1/2 transform -translate-y-1/2 transition-all duration-300 group-hover:text-purple-500`}
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -122,7 +132,11 @@ const SearchSlider = ({ isOpen, onClose }) => {
             {results.map((account) => (
               <li
                 key={account._id}
-                className="p-3 rounded-xl hover:bg-gray-50 cursor-pointer transition-all duration-200 ease-in-out border border-gray-100 hover:shadow-md hover:border-purple-100"
+                className={`p-3 rounded-xl ${
+                  darkMode
+                    ? "hover:bg-gray-700 border-gray-700 hover:border-purple-800"
+                    : "hover:bg-gray-50 border-gray-100 hover:border-purple-100"
+                } cursor-pointer transition-all duration-200 ease-in-out border hover:shadow-md`}
                 onClick={() => handleProfileClick(account._id)}
               >
                 <div className="flex items-center gap-3">
@@ -136,10 +150,16 @@ const SearchSlider = ({ isOpen, onClose }) => {
                     onError={(e) => handleImageError(e, account.username)}
                   />
                   <div>
-                    <p className="font-medium text-gray-800 hover:text-purple-600 transition-all duration-200 ease-in-out">
+                    <p className={`font-medium ${
+                      darkMode 
+                        ? "text-white hover:text-purple-400" 
+                        : "text-gray-800 hover:text-purple-600"
+                      } transition-all duration-200 ease-in-out`}>
                       {account.username}
                     </p>
-                    <p className="text-sm text-gray-500 truncate max-w-[200px]">{account.email}</p>
+                    <p className={`text-sm ${
+                      darkMode ? "text-gray-400" : "text-gray-500"
+                    } truncate max-w-[200px]`}>{account.email}</p>
                   </div>
                 </div>
               </li>
@@ -149,7 +169,9 @@ const SearchSlider = ({ isOpen, onClose }) => {
           <div className="text-center py-8">
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              className="h-12 w-12 mx-auto text-gray-400 mb-4 transition-all duration-200 ease-in-out"
+              className={`h-12 w-12 mx-auto ${
+                darkMode ? "text-gray-600" : "text-gray-400"
+              } mb-4 transition-all duration-200 ease-in-out`}
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -161,7 +183,9 @@ const SearchSlider = ({ isOpen, onClose }) => {
                 d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
               />
             </svg>
-            <p className="text-gray-500 transition-all duration-200 ease-in-out">
+            <p className={`${
+              darkMode ? "text-gray-400" : "text-gray-500"
+            } transition-all duration-200 ease-in-out`}>
               {searchQuery
                 ? "No results found."
                 : "Start typing to search for accounts."}

@@ -7,6 +7,7 @@ import api from "../utils/axios";
 import { FaPlus, FaUserFriends } from "react-icons/fa";
 import { X, Upload } from "lucide-react";
 import { compressImage, isImageTooLarge } from "../utils/imageCompression";
+import { useTheme } from "../components/Nav";
 
 // Function to generate placeholder image URL for new posts
 const getDefaultPostImage = () => {
@@ -24,6 +25,7 @@ const parseJwt = (token) => {
 };
 
 const Home = () => {
+  const { darkMode } = useTheme();
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -250,7 +252,7 @@ const Home = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className={`min-h-screen ${darkMode ? "bg-gray-900" : "bg-gray-50"}`}>
       {/* Navigation on the side */}
       <Nav />
 
@@ -277,14 +279,20 @@ const Home = () => {
               {/* Posts */}
               <div className="space-y-6 pb-10 hide-scrollbar">
                 {loading ? (
-                  <div className="flex justify-center items-center h-60 glass rounded-lg">
+                  <div className={`flex justify-center items-center h-60 glass rounded-lg ${
+                    darkMode ? "bg-gray-800 bg-opacity-30" : ""
+                  }`}>
                     <div className="animate-pulse flex flex-col items-center">
                       <div className="w-16 h-16 rounded-full bg-gradient-to-r from-purple-400 to-red-400 animate-spin mb-4"></div>
-                      <p className="text-gray-600">Loading your feed...</p>
+                      <p className={`${darkMode ? "text-gray-300" : "text-gray-600"}`}>
+                        Loading your feed...
+                      </p>
                     </div>
                   </div>
                 ) : error ? (
-                  <div className="glass p-6 rounded-lg text-red-500 text-center">
+                  <div className={`glass p-6 rounded-lg ${
+                    darkMode ? "bg-gray-800 bg-opacity-30" : ""
+                  } text-red-500 text-center`}>
                     <p className="font-medium">{error}</p>
                     <button
                       onClick={() => window.location.reload()}
@@ -328,14 +336,22 @@ const Home = () => {
                     </div>
                   ))
                 ) : (
-                  <div className="glass p-8 rounded-lg text-center">
+                  <div className={`glass p-8 rounded-lg text-center ${
+                    darkMode ? "bg-gray-800 bg-opacity-30" : ""
+                  }`}>
                     <div className="w-20 h-20 rounded-full bg-gradient-to-r from-purple-200 to-red-200 mx-auto flex items-center justify-center mb-4">
-                      <FaUserFriends className="text-2xl text-gray-600" />
+                      <FaUserFriends className={`text-2xl ${
+                        darkMode ? "text-gray-400" : "text-gray-600"
+                      }`} />
                     </div>
-                    <h3 className="text-xl font-medium text-gray-800 mb-2">
+                    <h3 className={`text-xl font-medium ${
+                      darkMode ? "text-gray-200" : "text-gray-800"
+                    } mb-2`}>
                       Your feed is empty
                     </h3>
-                    <p className="text-gray-600 mb-6">
+                    <p className={`${
+                      darkMode ? "text-gray-400" : "text-gray-600"
+                    } mb-6`}>
                       Connect with other users to see their posts here!
                     </p>
                     <Link
@@ -361,26 +377,38 @@ const Home = () => {
 
       {/* Create New Post Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-gradient-to-b from-white/60 to-gray-400/40 backdrop-filter backdrop-blur-[4px] flex items-center justify-center z-50">
-          <div className="bg-white/95 rounded-lg shadow-xl w-full max-w-md p-6 relative">
+        <div className={`fixed inset-0 ${
+          darkMode 
+            ? "bg-gradient-to-b from-gray-900/60 to-gray-800/40" 
+            : "bg-gradient-to-b from-white/60 to-gray-400/40"
+        } backdrop-filter backdrop-blur-[4px] flex items-center justify-center z-50`}>
+          <div className={`${
+            darkMode ? "bg-gray-800/95" : "bg-white/95"
+          } rounded-lg shadow-xl w-full max-w-md p-6 relative`}>
             {/* Close button */}
             <button
               onClick={() => {
                 setIsModalOpen(false);
                 setNewPost({ image: null, imageFile: null, caption: "" });
               }}
-              className="absolute top-3 right-3 text-gray-500 hover:text-gray-700"
+              className={`absolute top-3 right-3 ${
+                darkMode ? "text-gray-400 hover:text-gray-200" : "text-gray-500 hover:text-gray-700"
+              }`}
             >
               <X size={20} />
             </button>
 
-            <h3 className="text-xl font-bold text-gray-900 mb-4">
+            <h3 className={`text-xl font-bold ${
+              darkMode ? "text-white" : "text-gray-900"
+            } mb-4`}>
               Create New Post
             </h3>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Image Upload Area */}
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 flex flex-col items-center justify-center bg-gray-50">
+              <div className={`border-2 border-dashed ${
+                darkMode ? "border-gray-700 bg-gray-700" : "border-gray-300 bg-gray-50"
+              } rounded-lg p-6 flex flex-col items-center justify-center`}>
                 {newPost.image ? (
                   <div className="relative w-full">
                     <img
@@ -391,16 +419,18 @@ const Home = () => {
                     <button
                       type="button"
                       onClick={() => setNewPost({ ...newPost, image: null })}
-                      className="absolute top-2 right-2 bg-white bg-opacity-70 rounded-full p-1 text-gray-700 hover:text-red-500"
+                      className={`absolute top-2 right-2 ${
+                        darkMode ? "bg-gray-800 bg-opacity-70 text-gray-300 hover:text-red-400" : "bg-white bg-opacity-70 text-gray-700 hover:text-red-500"
+                      } rounded-full p-1`}
                     >
                       <X size={16} />
                     </button>
                   </div>
                 ) : (
                   <>
-                    <Upload size={40} className="text-gray-400 mb-2" />
-                    <p className="text-sm text-gray-500 mb-2">Upload image</p>
-                    <p className="text-xs text-gray-400 mb-4">
+                    <Upload size={40} className={darkMode ? "text-gray-400" : "text-gray-400"} />
+                    <p className={`text-sm ${darkMode ? "text-gray-300" : "text-gray-500"} mb-2`}>Upload image</p>
+                    <p className={`text-xs ${darkMode ? "text-gray-400" : "text-gray-400"} mb-4`}>
                       PNG, JPG or GIF (max. 5MB)
                     </p>
                     <label className="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium">
@@ -420,7 +450,9 @@ const Home = () => {
               <div>
                 <label
                   htmlFor="caption"
-                  className="block text-sm font-medium text-gray-700 mb-1"
+                  className={`block text-sm font-medium ${
+                    darkMode ? "text-gray-300" : "text-gray-700"
+                  } mb-1`}
                 >
                   Caption
                 </label>
@@ -430,7 +462,11 @@ const Home = () => {
                   value={newPost.caption}
                   onChange={handleCaptionChange}
                   placeholder="Write a caption for your post..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className={`w-full px-3 py-2 border ${
+                    darkMode 
+                      ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400" 
+                      : "bg-white border-gray-300 text-gray-900"
+                  } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
                 ></textarea>
               </div>
 
@@ -442,7 +478,11 @@ const Home = () => {
                     setIsModalOpen(false);
                     setNewPost({ image: null, imageFile: null, caption: "" });
                   }}
-                  className="mr-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md"
+                  className={`mr-2 px-4 py-2 text-sm font-medium ${
+                    darkMode 
+                      ? "text-gray-300 bg-gray-700 hover:bg-gray-600" 
+                      : "text-gray-700 bg-gray-100 hover:bg-gray-200"
+                  } rounded-md`}
                 >
                   Cancel
                 </button>
@@ -525,7 +565,9 @@ const Home = () => {
               onClick={() =>
                 setStatusPopup({ show: false, message: "", type: "" })
               }
-              className="ml-auto -mx-1.5 -my-1.5 rounded-lg focus:ring-2 focus:ring-gray-400 p-1.5 inline-flex h-8 w-8 hover:bg-gray-200"
+              className={`ml-auto -mx-1.5 -my-1.5 rounded-lg focus:ring-2 focus:ring-gray-400 p-1.5 inline-flex h-8 w-8 ${
+                darkMode ? "hover:bg-gray-700" : "hover:bg-gray-200"
+              }`}
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"

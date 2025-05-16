@@ -3,8 +3,10 @@ import api from "../utils/axios";
 import { Link } from "react-router-dom";
 import { FaUserPlus } from "react-icons/fa";
 import { useSlider } from "../contexts/SliderContext";
+import { useTheme } from "./Nav";
 
 const SuggestedUsers = () => {
+  const { darkMode } = useTheme();
   const { openSearchSlider } = useSlider();
   const [suggestedUsers, setSuggestedUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -43,14 +45,18 @@ const SuggestedUsers = () => {
 
   if (loading) {
     return (
-      <div className="glass rounded-lg p-6 shadow-lg">
+      <div className={`glass rounded-lg p-6 shadow-lg ${
+        darkMode ? "bg-gray-800 bg-opacity-30" : ""
+      }`}>
         <div className="animate-pulse space-y-4">
           <div className="h-6 bg-gradient-to-r from-purple-200 to-red-200 rounded w-3/4"></div>
           <div className="space-y-3">
             {[1, 2, 3].map((i) => (
               <div key={i} className="flex items-center space-x-4">
                 <div className="rounded-full bg-gradient-to-r from-purple-200 to-red-200 h-10 w-10"></div>
-                <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                <div className={`h-4 ${
+                  darkMode ? "bg-gray-700" : "bg-gray-200"
+                } rounded w-1/2`}></div>
               </div>
             ))}
           </div>
@@ -61,7 +67,9 @@ const SuggestedUsers = () => {
 
   if (error) {
     return (
-      <div className="glass rounded-lg p-6 shadow-lg">
+      <div className={`glass rounded-lg p-6 shadow-lg ${
+        darkMode ? "bg-gray-800 bg-opacity-30" : ""
+      }`}>
         <div className="text-center text-red-500">
           <p className="mb-3">{error}</p>
           <button
@@ -76,7 +84,9 @@ const SuggestedUsers = () => {
   }
 
   return (
-    <div className="glass rounded-lg shadow-lg overflow-hidden">
+    <div className={`glass rounded-lg shadow-lg overflow-hidden ${
+      darkMode ? "bg-gray-800 bg-opacity-30" : ""
+    }`}>
       <div className="p-4 grad">
         <h2 className="font-bold text-lg text-white flex items-center">
           <FaUserPlus className="mr-2" />
@@ -90,7 +100,11 @@ const SuggestedUsers = () => {
             {suggestedUsers.map((user) => (
               <li
                 key={user._id}
-                className="flex items-center justify-between rounded-lg hover:bg-gray-50 p-2 transition-colors"
+                className={`flex items-center justify-between rounded-lg ${
+                  darkMode 
+                    ? "hover:bg-gray-700" 
+                    : "hover:bg-gray-50"
+                } p-2 transition-colors`}
               >
                 <div className="flex items-center space-x-3">
                   <div className="relative">
@@ -112,7 +126,11 @@ const SuggestedUsers = () => {
                   </div>
                   <Link
                     to={`/profile/${user._id}`}
-                    className="text-sm font-medium text-gray-800 hover:text-purple-600 transition-colors"
+                    className={`text-sm font-medium ${
+                      darkMode 
+                        ? "text-gray-200 hover:text-purple-400" 
+                        : "text-gray-800 hover:text-purple-600"
+                    } transition-colors`}
                   >
                     {user.username}
                   </Link>
@@ -130,7 +148,11 @@ const SuggestedUsers = () => {
           <div className="mt-4 text-center">
             <button
               onClick={openSearchSlider}
-              className="text-sm text-purple-600 hover:text-purple-800 font-medium"
+              className={`text-sm ${
+                darkMode 
+                  ? "text-purple-400 hover:text-purple-300" 
+                  : "text-purple-600 hover:text-purple-800"
+              } font-medium`}
             >
               Find More People
             </button>
@@ -138,7 +160,9 @@ const SuggestedUsers = () => {
         </div>
       ) : (
         <div className="p-6 text-center">
-          <p className="text-sm text-gray-500 mb-4">
+          <p className={`text-sm ${
+            darkMode ? "text-gray-400" : "text-gray-500"
+          } mb-4`}>
             No suggested users at the moment
           </p>
           <button
