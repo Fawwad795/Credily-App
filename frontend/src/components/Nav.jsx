@@ -1016,10 +1016,15 @@ const Nav = ({ isChatViewActive, onChatBackClick }) => {
         <div className="h-full flex flex-col overflow-y-auto">
           {/* Gradient header */}
           <div className="grad p-5 pb-6 text-white rounded-b-xl mb-2 shadow-md">
-            <h2 className="text-2xl font-bold font-handsome tracking-wide">
-              Credily
-            </h2>
-            <p className="text-xs opacity-80">Building trust online</p>
+            <div className="flex items-center">
+              <img src="/logo.png" alt="Credily Logo" className="h-12 w-12 mr-3" />
+              <div>
+                <h2 className="text-2xl font-bold font-handsome tracking-wide">
+                  Credily
+                </h2>
+                <p className="text-xs opacity-80  -mt-1">Building trust online</p>
+              </div>
+            </div>
           </div>
 
           <ul className="space-y-1 p-3 font-medium">
