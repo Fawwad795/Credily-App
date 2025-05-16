@@ -15,6 +15,7 @@ import ReviewList from "../components/ReviewList";
 import PostSection from "../components/PostSection";
 import Analytics from "../components/Analytics";
 import { useSlider } from "../contexts/SliderContext";
+import { useTheme } from "../components/Nav";
 import api from "../utils/axios";
 import { compressImage, isImageTooLarge } from "../utils/imageCompression";
 
@@ -24,6 +25,7 @@ const getDefaultPostImage = () => {
 };
 
 const Profile = () => {
+  const { darkMode } = useTheme();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isWallpaperModalOpen, setIsWallpaperModalOpen] = useState(false);
   const [isProfilePictureModalOpen, setIsProfilePictureModalOpen] =
@@ -854,12 +856,14 @@ const Profile = () => {
 
   if (loading || !profile) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className={`min-h-screen ${darkMode ? "bg-gray-900" : "bg-gray-50"}`}>
         {/* Keep the Nav bar visible */}
         <Nav />
 
         {/* Main Content - with the same layout as the loaded page */}
-        <div className="sm:ml-64 min-h-screen overflow-y-auto bg-gray-100 flex justify-center items-center">
+        <div className={`sm:ml-64 min-h-screen overflow-y-auto ${
+          darkMode ? "bg-gray-800" : "bg-gray-100"
+        } flex justify-center items-center`}>
           <div className="flex flex-col items-center">
             <div className="flex space-x-3 mb-5">
               <div
@@ -875,7 +879,7 @@ const Profile = () => {
                 style={{ animationDelay: "400ms" }}
               ></div>
             </div>
-            <p className="text-gray-700 font-medium text-lg">
+            <p className={`${darkMode ? "text-gray-200" : "text-gray-700"} font-medium text-lg`}>
               Loading profile...
             </p>
           </div>
@@ -884,15 +888,19 @@ const Profile = () => {
     );
   }
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className={`min-h-screen ${darkMode ? "bg-gray-900" : "bg-gray-50"}`}>
       {/* Nav Bar */}
       <Nav />
 
       {/* Main Content - adjusted to not overlap with Nav */}
-      <div className="sm:ml-64 min-h-screen overflow-y-auto bg-gray-100">
+      <div className={`sm:ml-64 min-h-screen overflow-y-auto ${
+        darkMode ? "bg-gray-800" : "bg-gray-100"
+      }`}>
         {/* Profile Section */}
 
-        <div className="max-w-4xl mx-auto my-6 bg-white rounded-lg shadow-md p-6">
+        <div className={`max-w-4xl mx-auto my-6 ${
+          darkMode ? "bg-gray-800" : "bg-white"
+        } rounded-lg shadow-md p-6`}>
           <div className="h-48 relative overflow-hidden rounded-t-lg">
             {/* Wallpaper Background */}
             {profileWallpaper ? (
@@ -902,7 +910,9 @@ const Profile = () => {
                 className="absolute inset-0 w-full h-full object-cover rounded-t-lg"
               />
             ) : (
-              <div className="absolute inset-0 bg-black opacity-10 rounded-t-lg"></div>
+              <div className={`absolute inset-0 ${
+                darkMode ? "bg-gray-700" : "bg-black opacity-10"
+              } rounded-t-lg`}></div>
             )}
 
             {/* Wallpaper overlay with gradient */}
@@ -920,7 +930,7 @@ const Profile = () => {
                 className="absolute inset-0"
                 style={{
                   backgroundImage:
-                    "radial-gradient(circle, rgba(255,255,255,0.2) 1px, transparent 1px)",
+                    `radial-gradient(circle, ${darkMode ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.2)'} 1px, transparent 1px)`,
                   backgroundSize: "20px 20px",
                 }}
               ></div>
@@ -940,16 +950,22 @@ const Profile = () => {
             {/* Edit Wallpaper Button */}
             <button
               onClick={() => setIsWallpaperModalOpen(true)}
-              className="absolute top-4 right-4 p-2 rounded-full bg-white bg-opacity-40 hover:bg-opacity-60 transition-all duration-300 cursor-pointer shadow-md z-10"
+              className={`absolute top-4 right-4 p-2 rounded-full ${
+                darkMode 
+                  ? "bg-gray-800 bg-opacity-70 hover:bg-opacity-80" 
+                  : "bg-white bg-opacity-40 hover:bg-opacity-60"
+              } transition-all duration-300 cursor-pointer shadow-md z-10`}
               title="Edit wallpaper"
             >
-              <Image size={20} className="text-gray-800" />
+              <Image size={20} className={darkMode ? "text-gray-200" : "text-gray-800"} />
             </button>
           </div>
 
           <div className="relative px-6 py-3">
             {/* Profile Picture with Edit Icon on Hover */}
-            <div className="absolute -top-16 left-6 rounded-full border-4 border-white overflow-hidden group">
+            <div className={`absolute -top-16 left-6 rounded-full ${
+              darkMode ? "border-gray-700" : "border-white"
+            } border-4 overflow-hidden group`}>
               <img
                 src={
                   profile.profilePicture ||
@@ -977,7 +993,9 @@ const Profile = () => {
             {/* Profile Info - Below the avatar */}
             <div className="mt-8">
               <div className="flex items-center mb-0.5">
-                <h2 className="text-xl font-bold text-gray-800">
+                <h2 className={`text-xl font-bold ${
+                  darkMode ? "text-white" : "text-gray-800"
+                }`}>
                   {profile.username}
                 </h2>
                 {profile.isVerified && (
@@ -990,7 +1008,9 @@ const Profile = () => {
 
               {/* Bio with Edit Icon on Hover */}
               <div className="relative group">
-                <p className="text-gray-700 text-sm mt-0.5 mb-1 max-w-lg inline-block">
+                <p className={`${
+                  darkMode ? "text-gray-300" : "text-gray-700"
+                } text-sm mt-0.5 mb-1 max-w-lg inline-block`}>
                   {profile.bio || "No bio provided"}
                 </p>
                 <div
@@ -1002,19 +1022,25 @@ const Profile = () => {
                 >
                   <Pencil
                     size={14}
-                    className="text-gray-500 hover:text-gray-700"
+                    className={`${
+                      darkMode ? "text-gray-400 hover:text-gray-200" : "text-gray-500 hover:text-gray-700"
+                    }`}
                   />
                 </div>
               </div>
 
-              <div className="flex items-center text-gray-600 mt-1">
+              <div className={`flex items-center ${
+                darkMode ? "text-gray-400" : "text-gray-600"
+              } mt-1`}>
                 <AtSign size={16} className="mr-1" />
                 <span className="mr-3">
                   {profile.email || "No email provided"}
                 </span>
               </div>
 
-              <div className="flex items-center text-gray-600 mt-1">
+              <div className={`flex items-center ${
+                darkMode ? "text-gray-400" : "text-gray-600"
+              } mt-1`}>
                 <MapPin size={16} className="mr-1" />
                 <span>
                   {profile.location &&
@@ -1042,7 +1068,9 @@ const Profile = () => {
                       {connectionUsers.map((user) => (
                         <div
                           key={user._id}
-                          className="w-6 h-6 rounded-full border border-white overflow-hidden"
+                          className={`w-6 h-6 rounded-full ${
+                            darkMode ? "border-gray-700" : "border-white"
+                          } border overflow-hidden`}
                           title={
                             user.firstName && user.lastName
                               ? `${user.firstName} ${user.lastName}`
@@ -1060,7 +1088,11 @@ const Profile = () => {
                         </div>
                       ))}
                       {connections > connectionUsers.length && (
-                        <div className="w-6 h-6 rounded-full border border-white bg-gray-200 flex items-center justify-center text-xs text-gray-600">
+                        <div className={`w-6 h-6 rounded-full ${
+                          darkMode 
+                            ? "border-gray-700 bg-gray-600 text-gray-200" 
+                            : "border-white bg-gray-200 text-gray-600"
+                        } border flex items-center justify-center text-xs`}>
                           +{connections - connectionUsers.length}
                         </div>
                       )}
@@ -1099,26 +1131,38 @@ const Profile = () => {
 
       {/* Create New Post Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-gradient-to-b from-white/60 to-gray-400/40 backdrop-filter backdrop-blur-[4px] flex items-center justify-center z-50">
-          <div className="bg-white/95 rounded-lg shadow-xl w-full max-w-md p-6 relative">
+        <div className={`fixed inset-0 ${
+          darkMode 
+            ? "bg-gradient-to-b from-gray-900/60 to-gray-800/40" 
+            : "bg-gradient-to-b from-white/60 to-gray-400/40"
+        } backdrop-filter backdrop-blur-[4px] flex items-center justify-center z-50`}>
+          <div className={`${
+            darkMode ? "bg-gray-800/95" : "bg-white/95"
+          } rounded-lg shadow-xl w-full max-w-md p-6 relative`}>
             {/* Close button */}
             <button
               onClick={() => {
                 setIsModalOpen(false);
                 setNewPost({ image: null, imageFile: null, caption: "" });
               }}
-              className="absolute top-3 right-3 text-gray-500 hover:text-gray-700"
+              className={`absolute top-3 right-3 ${
+                darkMode ? "text-gray-400 hover:text-gray-200" : "text-gray-500 hover:text-gray-700"
+              }`}
             >
               <X size={20} />
             </button>
 
-            <h3 className="text-xl font-bold text-gray-900 mb-4">
+            <h3 className={`text-xl font-bold ${
+              darkMode ? "text-white" : "text-gray-900"
+            } mb-4`}>
               Create New Post
             </h3>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Image Upload Area */}
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 flex flex-col items-center justify-center bg-gray-50">
+              <div className={`border-2 border-dashed ${
+                darkMode ? "border-gray-700 bg-gray-700" : "border-gray-300 bg-gray-50"
+              } rounded-lg p-6 flex flex-col items-center justify-center`}>
                 {newPost.image ? (
                   <div className="relative w-full">
                     <img
@@ -1129,16 +1173,20 @@ const Profile = () => {
                     <button
                       type="button"
                       onClick={() => setNewPost({ ...newPost, image: null })}
-                      className="absolute top-2 right-2 bg-white bg-opacity-70 rounded-full p-1 text-gray-700 hover:text-red-500"
+                      className={`absolute top-2 right-2 ${
+                        darkMode 
+                          ? "bg-gray-800 bg-opacity-70 text-gray-300 hover:text-red-400" 
+                          : "bg-white bg-opacity-70 text-gray-700 hover:text-red-500"
+                      } rounded-full p-1`}
                     >
                       <X size={16} />
                     </button>
                   </div>
                 ) : (
                   <>
-                    <Upload size={40} className="text-gray-400 mb-2" />
-                    <p className="text-sm text-gray-500 mb-2">Upload image</p>
-                    <p className="text-xs text-gray-400 mb-4">
+                    <Upload size={40} className={darkMode ? "text-gray-400" : "text-gray-400"} />
+                    <p className={`text-sm ${darkMode ? "text-gray-300" : "text-gray-500"} mb-2`}>Upload image</p>
+                    <p className={`text-xs ${darkMode ? "text-gray-400" : "text-gray-400"} mb-4`}>
                       PNG, JPG or GIF (max. 5MB)
                     </p>
                     <label className="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium">
@@ -1156,44 +1204,40 @@ const Profile = () => {
 
               {/* Caption Input */}
               <div>
-                <label
-                  htmlFor="caption"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
+                <label htmlFor="caption" className={`block text-sm font-medium ${
+                  darkMode ? "text-gray-300" : "text-gray-700"
+                } mb-1`}>
                   Caption
                 </label>
                 <textarea
                   id="caption"
                   rows="3"
+                  placeholder="Write a caption for your post..."
+                  className={`w-full ${
+                    darkMode 
+                      ? "bg-gray-700 border-gray-600 text-white" 
+                      : "bg-white border-gray-300 text-gray-900"
+                  } placeholder:text-gray-400 border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500`}
                   value={newPost.caption}
                   onChange={handleCaptionChange}
-                  placeholder="Write a caption for your post..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                ></textarea>
+                />
               </div>
 
               {/* Submit Button */}
               <div className="flex justify-end">
                 <button
-                  type="button"
-                  onClick={() => {
-                    setIsModalOpen(false);
-                    setNewPost({ image: null, imageFile: null, caption: "" });
-                  }}
-                  className="mr-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md"
-                >
-                  Cancel
-                </button>
-                <button
                   type="submit"
-                  disabled={!newPost.image || !newPost.caption || isSubmitting}
-                  className={`px-4 py-2 text-sm font-medium text-white rounded-md ${
-                    newPost.image && newPost.caption && !isSubmitting
-                      ? "bg-blue-600 hover:bg-blue-700 cursor-pointer"
-                      : "bg-blue-400 cursor-not-allowed"
-                  }`}
+                  className="grad text-white px-4 py-2 rounded-md text-sm font-medium shadow-sm hover:shadow-md transition duration-300 disabled:opacity-50 flex items-center space-x-2"
+                  disabled={isSubmitting}
                 >
-                  {isSubmitting ? "Posting..." : "Post"}
+                  {isSubmitting ? (
+                    <>
+                      <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                      <span>Posting...</span>
+                    </>
+                  ) : (
+                    <span>Create Post</span>
+                  )}
                 </button>
               </div>
             </form>
@@ -1203,26 +1247,38 @@ const Profile = () => {
 
       {/* Wallpaper Update Modal */}
       {isWallpaperModalOpen && (
-        <div className="fixed inset-0 bg-gradient-to-b from-white/60 to-gray-400/40 backdrop-filter backdrop-blur-[4px] flex items-center justify-center z-50">
-          <div className="bg-white/95 rounded-lg shadow-xl w-full max-w-md p-6 relative">
+        <div className={`fixed inset-0 ${
+          darkMode 
+            ? "bg-gradient-to-b from-gray-900/60 to-gray-800/40" 
+            : "bg-gradient-to-b from-white/60 to-gray-400/40"
+        } backdrop-filter backdrop-blur-[4px] flex items-center justify-center z-50`}>
+          <div className={`${
+            darkMode ? "bg-gray-800/95" : "bg-white/95"
+          } rounded-lg shadow-xl w-full max-w-md p-6 relative`}>
             {/* Close button */}
             <button
               onClick={() => {
                 setIsWallpaperModalOpen(false);
                 setWallpaper({ image: null, imageFile: null });
               }}
-              className="absolute top-3 right-3 text-gray-500 hover:text-gray-700"
+              className={`absolute top-3 right-3 ${
+                darkMode ? "text-gray-400 hover:text-gray-200" : "text-gray-500 hover:text-gray-700"
+              }`}
             >
               <X size={20} />
             </button>
 
-            <h3 className="text-xl font-bold text-gray-900 mb-4">
+            <h3 className={`text-xl font-bold ${
+              darkMode ? "text-white" : "text-gray-900"
+            } mb-4`}>
               Update Profile Wallpaper
             </h3>
 
             <form onSubmit={handleWallpaperSubmit} className="space-y-4">
               {/* Image Upload Area */}
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 flex flex-col items-center justify-center bg-gray-50">
+              <div className={`border-2 border-dashed ${
+                darkMode ? "border-gray-700 bg-gray-700" : "border-gray-300 bg-gray-50"
+              } rounded-lg p-6 flex flex-col items-center justify-center`}>
                 {wallpaper.image ? (
                   <div className="relative w-full">
                     <img
@@ -1239,18 +1295,22 @@ const Profile = () => {
                           imageFile: null,
                         })
                       }
-                      className="absolute top-2 right-2 bg-white bg-opacity-70 rounded-full p-1 text-gray-700 hover:text-red-500"
+                      className={`absolute top-2 right-2 ${
+                        darkMode 
+                          ? "bg-gray-800 bg-opacity-70 text-gray-300 hover:text-red-400" 
+                          : "bg-white bg-opacity-70 text-gray-700 hover:text-red-500"
+                      } rounded-full p-1`}
                     >
                       <X size={16} />
                     </button>
                   </div>
                 ) : (
                   <>
-                    <Image size={40} className="text-gray-400 mb-2" />
-                    <p className="text-sm text-gray-500 mb-2">
+                    <Image size={40} className={darkMode ? "text-gray-400" : "text-gray-400"} />
+                    <p className={`text-sm ${darkMode ? "text-gray-300" : "text-gray-500"} mb-2`}>
                       Upload wallpaper image
                     </p>
-                    <p className="text-xs text-gray-400 mb-4">
+                    <p className={`text-xs ${darkMode ? "text-gray-400" : "text-gray-400"} mb-4`}>
                       PNG, JPG or GIF (recommended resolution: 1280x400)
                     </p>
                     <label className="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium">
@@ -1274,7 +1334,9 @@ const Profile = () => {
                     setIsWallpaperModalOpen(false);
                     setWallpaper({ image: null, imageFile: null });
                   }}
-                  className="mr-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md"
+                  className={`mr-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md ${
+                    darkMode ? "bg-gray-800 bg-opacity-70 hover:bg-opacity-80" : "bg-white bg-opacity-40 hover:bg-opacity-60"
+                  }`}
                 >
                   Cancel
                 </button>
@@ -1297,26 +1359,38 @@ const Profile = () => {
 
       {/* Profile Picture Update Modal */}
       {isProfilePictureModalOpen && (
-        <div className="fixed inset-0 bg-gradient-to-b from-white/60 to-gray-400/40 backdrop-filter backdrop-blur-[4px] flex items-center justify-center z-50">
-          <div className="bg-white/95 rounded-lg shadow-xl w-full max-w-md p-6 relative">
+        <div className={`fixed inset-0 ${
+          darkMode 
+            ? "bg-gradient-to-b from-gray-900/60 to-gray-800/40" 
+            : "bg-gradient-to-b from-white/60 to-gray-400/40"
+        } backdrop-filter backdrop-blur-[4px] flex items-center justify-center z-50`}>
+          <div className={`${
+            darkMode ? "bg-gray-800/95" : "bg-white/95"
+          } rounded-lg shadow-xl w-full max-w-md p-6 relative`}>
             {/* Close button */}
             <button
               onClick={() => {
                 setIsProfilePictureModalOpen(false);
                 setProfilePictureEdit({ image: null, imageFile: null });
               }}
-              className="absolute top-3 right-3 text-gray-500 hover:text-gray-700"
+              className={`absolute top-3 right-3 ${
+                darkMode ? "text-gray-400 hover:text-gray-200" : "text-gray-500 hover:text-gray-700"
+              }`}
             >
               <X size={20} />
             </button>
 
-            <h3 className="text-xl font-bold text-gray-900 mb-4">
+            <h3 className={`text-xl font-bold ${
+              darkMode ? "text-white" : "text-gray-900"
+            } mb-4`}>
               Update Profile Picture
             </h3>
 
             <form onSubmit={handleProfilePictureSubmit} className="space-y-4">
               {/* Image Upload Area */}
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 flex flex-col items-center justify-center bg-gray-50">
+              <div className={`border-2 border-dashed ${
+                darkMode ? "border-gray-700 bg-gray-700" : "border-gray-300 bg-gray-50"
+              } rounded-lg p-6 flex flex-col items-center justify-center`}>
                 {profilePictureEdit.image ? (
                   <div className="relative w-full">
                     <img
@@ -1333,18 +1407,18 @@ const Profile = () => {
                           imageFile: null,
                         })
                       }
-                      className="absolute top-0 right-0 bg-white bg-opacity-70 rounded-full p-1 text-gray-700 hover:text-red-500"
+                      className={`absolute top-0 right-0 bg-white bg-opacity-70 rounded-full p-1 text-gray-700 hover:text-red-500`}
                     >
                       <X size={16} />
                     </button>
                   </div>
                 ) : (
                   <>
-                    <Camera size={40} className="text-gray-400 mb-2" />
-                    <p className="text-sm text-gray-500 mb-2">
+                    <Camera size={40} className={darkMode ? "text-gray-400" : "text-gray-400"} />
+                    <p className={`text-sm ${darkMode ? "text-gray-300" : "text-gray-500"} mb-2`}>
                       Upload profile photo
                     </p>
-                    <p className="text-xs text-gray-400 mb-4">
+                    <p className={`text-xs ${darkMode ? "text-gray-400" : "text-gray-400"} mb-4`}>
                       PNG, JPG or GIF (max. 5MB)
                     </p>
                     <label className="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium">
@@ -1368,7 +1442,9 @@ const Profile = () => {
                     setIsProfilePictureModalOpen(false);
                     setProfilePictureEdit({ image: null, imageFile: null });
                   }}
-                  className="mr-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md"
+                  className={`mr-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md ${
+                    darkMode ? "bg-gray-800 bg-opacity-70 hover:bg-opacity-80" : "bg-white bg-opacity-40 hover:bg-opacity-60"
+                  }`}
                 >
                   Cancel
                 </button>
@@ -1395,24 +1471,36 @@ const Profile = () => {
 
       {/* Bio Edit Modal */}
       {isBioEditModalOpen && (
-        <div className="fixed inset-0 bg-gradient-to-b from-white/60 to-gray-400/40 backdrop-filter backdrop-blur-[4px] flex items-center justify-center z-50">
-          <div className="bg-white/95 rounded-lg shadow-xl w-full max-w-md p-6 relative">
+        <div className={`fixed inset-0 ${
+          darkMode 
+            ? "bg-gradient-to-b from-gray-900/60 to-gray-800/40" 
+            : "bg-gradient-to-b from-white/60 to-gray-400/40"
+        } backdrop-filter backdrop-blur-[4px] flex items-center justify-center z-50`}>
+          <div className={`${
+            darkMode ? "bg-gray-800/95" : "bg-white/95"
+          } rounded-lg shadow-xl w-full max-w-md p-6 relative`}>
             {/* Close button */}
             <button
               onClick={() => setIsBioEditModalOpen(false)}
-              className="absolute top-3 right-3 text-gray-500 hover:text-gray-700"
+              className={`absolute top-3 right-3 ${
+                darkMode ? "text-gray-400 hover:text-gray-200" : "text-gray-500 hover:text-gray-700"
+              }`}
             >
               <X size={20} />
             </button>
 
-            <h3 className="text-xl font-bold text-gray-900 mb-4">Edit Bio</h3>
+            <h3 className={`text-xl font-bold ${
+              darkMode ? "text-white" : "text-gray-900"
+            } mb-4`}>Edit Bio</h3>
 
             <form onSubmit={handleBioSubmit} className="space-y-4">
               {/* Bio Input */}
               <div>
                 <label
                   htmlFor="bio"
-                  className="block text-sm font-medium text-gray-700 mb-1"
+                  className={`block text-sm font-medium ${
+                    darkMode ? "text-gray-300" : "text-gray-700"
+                  } mb-1`}
                 >
                   Bio
                 </label>
@@ -1422,10 +1510,16 @@ const Profile = () => {
                   value={editBio}
                   onChange={(e) => setEditBio(e.target.value)}
                   placeholder="Tell us about yourself..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className={`w-full ${
+                    darkMode 
+                      ? "bg-gray-700 border-gray-600 text-white" 
+                      : "bg-white border-gray-300 text-gray-900"
+                  } placeholder:text-gray-400 border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500`}
                   maxLength="100"
                 ></textarea>
-                <p className="text-xs text-gray-500 text-right mt-1">
+                <p className={`text-xs ${
+                  darkMode ? "text-gray-400" : "text-gray-500"
+                } text-right mt-1`}>
                   {editBio.length}/100 characters
                 </p>
               </div>
@@ -1435,16 +1529,18 @@ const Profile = () => {
                 <button
                   type="button"
                   onClick={() => setIsBioEditModalOpen(false)}
-                  className="mr-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md"
+                  className={`mr-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md ${
+                    darkMode ? "bg-gray-800 bg-opacity-70 hover:bg-opacity-80" : "bg-white bg-opacity-40 hover:bg-opacity-60"
+                  }`}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className={`px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md ${
+                  className={`px-4 py-2 text-sm font-medium text-white rounded-md ${
                     isBioSubmitting
-                      ? "opacity-70 cursor-not-allowed"
-                      : "cursor-pointer"
+                      ? "bg-blue-400 cursor-not-allowed"
+                      : "bg-blue-600 hover:bg-blue-700 cursor-pointer"
                   }`}
                   disabled={isBioSubmitting}
                 >

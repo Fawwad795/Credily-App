@@ -13,6 +13,7 @@ import {
 import { Link } from "react-router-dom";
 import axios from "axios";
 import socketClient from "../utils/socket.js";
+import { useTheme } from "../components/Nav";
 
 export default function PostCard({
   authorId,
@@ -28,6 +29,7 @@ export default function PostCard({
   isLiked = false,
   onDelete, // callback to remove post from parent UI
 }) {
+  const { darkMode } = useTheme();
   const [liked, setLiked] = useState(isLiked);
   const [likeCount, setLikeCount] = useState(likesCount);
   const [commentsVisible, setCommentsVisible] = useState(false);
@@ -210,7 +212,9 @@ export default function PostCard({
 
   return (
     <div
-      className="w-full glass rounded-xl overflow-hidden shadow-lg border border-gray-100 relative"
+      className={`w-full glass rounded-xl overflow-hidden shadow-lg ${
+        darkMode ? "bg-gray-800 border-gray-700" : "border-gray-100"
+      } relative`}
       data-post-id={postId}
     >
       {/* Author Section */}
@@ -227,11 +231,13 @@ export default function PostCard({
           <div>
             <Link
               to={authorId ? `/profile/${authorId}` : "#"}
-              className="font-medium hover:text-purple-600 transition-colors"
+              className={`font-medium hover:text-purple-600 transition-colors ${
+                darkMode ? "text-white" : ""
+              }`}
             >
               {authorName}
             </Link>
-            <p className="text-xs text-gray-500">
+            <p className={`text-xs ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
               {formatDate(postDate) || "Unknown date"}
             </p>
           </div>
@@ -240,16 +246,22 @@ export default function PostCard({
         {userId === authorId && (
           <div className="relative" ref={dropdownRef}>
             <button
-              className="text-gray-400 hover:text-blue-600 p-2 rounded-full focus:outline-none"
+              className={`${
+                darkMode ? "text-gray-400 hover:text-blue-400" : "text-gray-400 hover:text-blue-600"
+              } p-2 rounded-full focus:outline-none`}
               onClick={() => setDropdownOpen((open) => !open)}
               title="Post options"
             >
               <FaEllipsisV size={18} />
             </button>
             {dropdownOpen && (
-              <div className="absolute right-0 mt-2 w-36 bg-white border border-gray-200 rounded shadow-lg z-50">
+              <div className={`absolute right-0 mt-2 w-36 ${
+                darkMode ? "bg-gray-700 border-gray-600" : "bg-white border-gray-200"
+              } border rounded shadow-lg z-50`}>
                 <button
-                  className="flex items-center w-full px-4 py-2 text-sm hover:bg-gray-100 text-left"
+                  className={`flex items-center w-full px-4 py-2 text-sm ${
+                    darkMode ? "hover:bg-gray-600 text-gray-200" : "hover:bg-gray-100 text-left"
+                  }`}
                   onClick={() => {
                     setDropdownOpen(false);
                     setIsEditing(true);
@@ -259,7 +271,9 @@ export default function PostCard({
                   <FaEdit className="mr-2" /> Edit Post
                 </button>
                 <button
-                  className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-gray-100 text-left"
+                  className={`flex items-center w-full px-4 py-2 text-sm text-red-600 ${
+                    darkMode ? "hover:bg-gray-600" : "hover:bg-gray-100"
+                  } text-left`}
                   onClick={() => {
                     setDropdownOpen(false);
                     handleDeletePost();
@@ -279,7 +293,11 @@ export default function PostCard({
           <div className="flex items-center gap-2">
             <input
               type="text"
-              className="w-full border border-purple-300 rounded px-2 py-1 mb-2"
+              className={`w-full border ${
+                darkMode 
+                  ? "border-purple-700 bg-gray-700 text-white" 
+                  : "border-purple-300"
+              } rounded px-2 py-1 mb-2`}
               value={editCaption}
               onChange={e => setEditCaption(e.target.value)}
               autoFocus
@@ -316,7 +334,7 @@ export default function PostCard({
             </button>
           </div>
         ) : (
-          <p className="text-gray-800">{caption}</p>
+          <p className={`${darkMode ? "text-gray-200" : "text-gray-800"}`}>{caption}</p>
         )}
       </div>
 
@@ -333,17 +351,25 @@ export default function PostCard({
       {/* Engagement Section */}
       <div className="p-4">
         {/* Like & Comment Counts */}
-        <div className="flex justify-between text-sm text-gray-600 mb-3">
+        <div className={`flex justify-between text-sm ${
+          darkMode ? "text-gray-400" : "text-gray-600"
+        } mb-3`}>
           <div>{likeCount} likes</div>
           <div>{comments.length} comments</div>
         </div>
 
         {/* Action Buttons */}
-        <div className="flex justify-between border-t border-b border-gray-100 py-2">
+        <div className={`flex justify-between border-t border-b ${
+          darkMode ? "border-gray-700" : "border-gray-100"
+        } py-2`}>
           <button
             onClick={toggleLike}
             className={`flex items-center justify-center space-x-2 px-4 py-2 rounded-full transition-colors ${
-              liked ? "text-red-500" : "text-gray-700 hover:bg-gray-100"
+              liked 
+                ? "text-red-500" 
+                : darkMode 
+                  ? "text-gray-300 hover:bg-gray-700" 
+                  : "text-gray-700 hover:bg-gray-100"
             }`}
           >
             {liked ? <FaHeart className="text-red-500" /> : <FaRegHeart />}
@@ -352,13 +378,21 @@ export default function PostCard({
 
           <button
             onClick={() => setCommentsVisible(!commentsVisible)}
-            className="flex items-center justify-center space-x-2 px-4 py-2 rounded-full text-gray-700 hover:bg-gray-100 transition-colors"
+            className={`flex items-center justify-center space-x-2 px-4 py-2 rounded-full ${
+              darkMode
+                ? "text-gray-300 hover:bg-gray-700"
+                : "text-gray-700 hover:bg-gray-100"
+            } transition-colors`}
           >
             <FaRegComment />
             <span>Comment</span>
           </button>
 
-          <button className="flex items-center justify-center space-x-2 px-4 py-2 rounded-full text-gray-700 hover:bg-gray-100 transition-colors">
+          <button className={`flex items-center justify-center space-x-2 px-4 py-2 rounded-full ${
+            darkMode
+              ? "text-gray-300 hover:bg-gray-700"
+              : "text-gray-700 hover:bg-gray-100"
+          } transition-colors`}>
             <FaShare className="text-sm" />
             <span>Share</span>
           </button>
@@ -373,7 +407,11 @@ export default function PostCard({
             >
               <input
                 type="text"
-                className="w-full border border-gray-200 px-4 py-2 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className={`w-full px-4 py-2 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 ${
+                  darkMode
+                    ? "border-gray-600 bg-gray-700 text-white"
+                    : "border border-gray-200 text-gray-800"
+                }`}
                 placeholder="Add a comment..."
                 value={newComment}
                 onChange={(e) => setNewComment(e.target.value)}
@@ -407,7 +445,9 @@ export default function PostCard({
                 {comments.map((comment, index) => (
                   <div
                     key={index}
-                    className="flex items-start space-x-3 bg-gray-50 p-3 rounded-lg"
+                    className={`flex items-start space-x-3 ${
+                      darkMode ? "bg-gray-700" : "bg-gray-50"
+                    } p-3 rounded-lg`}
                   >
                     <Link
                       to={
@@ -436,15 +476,21 @@ export default function PostCard({
                               ? `/profile/${comment.user._id}`
                               : "#"
                           }
-                          className="font-medium text-sm hover:text-purple-600 transition-colors"
+                          className={`font-medium text-sm hover:text-purple-600 transition-colors ${
+                            darkMode ? "text-white" : ""
+                          }`}
                         >
                           {formatFullName(comment.user)}
                         </Link>
-                        <span className="text-xs text-gray-500">
+                        <span className={`text-xs ${
+                          darkMode ? "text-gray-400" : "text-gray-500"
+                        }`}>
                           {formatDate(comment.createdAt)}
                         </span>
                       </div>
-                      <p className="text-sm text-gray-800 mt-1">
+                      <p className={`text-sm ${
+                        darkMode ? "text-gray-200" : "text-gray-800"
+                      } mt-1`}>
                         {comment.content}
                       </p>
                     </div>
@@ -452,7 +498,9 @@ export default function PostCard({
                 ))}
               </div>
             ) : (
-              <p className="text-center text-gray-500 text-sm py-4">
+              <p className={`text-center ${
+                darkMode ? "text-gray-400" : "text-gray-500"
+              } text-sm py-4`}>
                 No comments yet. Be the first to comment!
               </p>
             )}

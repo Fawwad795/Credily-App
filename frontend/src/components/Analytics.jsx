@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
+import { useTheme } from "./Nav"; // Import useTheme
 
 const Analytics = ({ userId }) => {
+  const { darkMode } = useTheme(); // Use the theme context
   const [analyticsData, setAnalyticsData] = useState({
     traits: [],
     credibility: 0,
@@ -104,15 +106,25 @@ const Analytics = ({ userId }) => {
   }
 
   return (
-    <div className="max-w-4xl mx-auto my-3 bg-white rounded-lg shadow-md p-6">
-      <h2 className="text-xl font-bold text-gray-800 mb-4">Analytics</h2>
+    <div className={`max-w-4xl mx-auto my-3 ${
+      darkMode ? "bg-gray-800" : "bg-white"
+    } rounded-lg shadow-md p-6`}>
+      <h2 className={`text-xl font-bold ${
+        darkMode ? "text-white" : "text-gray-800"
+      } mb-4`}>Analytics</h2>
 
       {loading ? (
         <div className="text-center py-3">
           <div className="animate-pulse">
-            <div className="h-4 bg-gray-200 rounded w-3/4 mb-3"></div>
-            <div className="h-4 bg-gray-200 rounded w-full mb-3"></div>
-            <div className="h-4 bg-gray-200 rounded w-5/6"></div>
+            <div className={`h-4 ${
+              darkMode ? "bg-gray-700" : "bg-gray-200"
+            } rounded w-3/4 mb-3`}></div>
+            <div className={`h-4 ${
+              darkMode ? "bg-gray-700" : "bg-gray-200"
+            } rounded w-full mb-3`}></div>
+            <div className={`h-4 ${
+              darkMode ? "bg-gray-700" : "bg-gray-200"
+            } rounded w-5/6`}></div>
           </div>
         </div>
       ) : error ? (
@@ -120,7 +132,9 @@ const Analytics = ({ userId }) => {
       ) : (
         <>
           {/* Section Title */}
-          <h3 className="text-lg font-semibold text-gray-700 mb-3">
+          <h3 className={`text-lg font-semibold ${
+            darkMode ? "text-gray-200" : "text-gray-700"
+          } mb-3`}>
             Top Core Traits
           </h3>
 
@@ -132,19 +146,33 @@ const Analytics = ({ userId }) => {
                 <div className="mb-4" key={index}>
                   <div className="flex justify-between mb-1">
                     <span
-                      className={`text-sm font-medium capitalize ${getTextColor(
-                        index
-                      )}`}
+                      className={`text-sm font-medium capitalize ${
+                        darkMode 
+                          ? index === 0 ? "text-blue-400" 
+                            : index === 1 ? "text-emerald-400" 
+                            : index === 2 ? "text-purple-400"
+                            : "text-gray-300"
+                          : getTextColor(index)
+                      }`}
                     >
                       {formatTraitName(traitData.trait)}
                     </span>
                     <span
-                      className={`text-sm font-medium ${getTextColor(index)}`}
+                      className={`text-sm font-medium ${
+                        darkMode 
+                          ? index === 0 ? "text-blue-400" 
+                            : index === 1 ? "text-emerald-400" 
+                            : index === 2 ? "text-purple-400"
+                            : "text-gray-300"
+                          : getTextColor(index)
+                      }`}
                     >
                       {traitData.percentage}%
                     </span>
                   </div>
-                  <div className="w-full bg-gray-100 rounded-full h-3">
+                  <div className={`w-full ${
+                    darkMode ? "bg-gray-700" : "bg-gray-100"
+                  } rounded-full h-3`}>
                     <div
                       className={`${getProgressBarColor(
                         index
@@ -158,7 +186,9 @@ const Analytics = ({ userId }) => {
               ))}
 
           {/* Additional context */}
-          <p className="text-xs text-gray-500 mt-2">
+          <p className={`text-xs ${
+            darkMode ? "text-gray-400" : "text-gray-500"
+          } mt-2`}>
             These traits are calculated based on reviews you've received. They
             represent how others perceive your key characteristics and
             strengths.

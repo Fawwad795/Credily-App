@@ -1,5 +1,22 @@
 @import "tailwindcss";
 
+/* Dark mode transition */
+html {
+  transition: background-color 0.3s ease-in-out, color 0.3s ease-in-out;
+}
+
+html.dark {
+  @apply bg-gray-900 text-white;
+}
+
+html.dark .glass {
+  background: rgba(30, 41, 59, 0.7);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(12.5px);
+  -webkit-backdrop-filter: blur(12.5px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
 /* Custom Handsome Font */
 @font-face {
   font-family: "Handsome";

@@ -1,7 +1,10 @@
 import React from "react";
 import { format } from "date-fns";
+import { useTheme } from "./Nav"; // Import useTheme
 
 const ReviewList = ({ reviews, isLoading }) => {
+  const { darkMode } = useTheme(); // Use the theme context
+
   // Generate placeholder image for reviewer avatar
   const generateAvatar = (username) => {
     const colors = ["blue", "teal", "green", "orange", "red"];
@@ -75,16 +78,28 @@ const ReviewList = ({ reviews, isLoading }) => {
 
   if (isLoading) {
     return (
-      <div className="max-w-4xl mx-auto my-6 bg-white rounded-lg shadow-md p-6 animate-pulse">
-        <div className="h-7 bg-gray-200 rounded w-1/4 mb-4"></div>
+      <div className={`max-w-4xl mx-auto my-6 ${
+        darkMode ? "bg-gray-800" : "bg-white"
+      } rounded-lg shadow-md p-6 animate-pulse`}>
+        <div className={`h-7 ${
+          darkMode ? "bg-gray-700" : "bg-gray-200"
+        } rounded w-1/4 mb-4`}></div>
         <div className="space-y-4">
           {[1, 2, 3].map((item) => (
             <div key={item} className="flex space-x-4">
-              <div className="rounded-full bg-gray-200 h-12 w-12"></div>
+              <div className={`rounded-full ${
+                darkMode ? "bg-gray-700" : "bg-gray-200"
+              } h-12 w-12`}></div>
               <div className="flex-1">
-                <div className="h-4 bg-gray-200 rounded w-1/4 mb-2"></div>
-                <div className="h-4 bg-gray-200 rounded mb-2"></div>
-                <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                <div className={`h-4 ${
+                  darkMode ? "bg-gray-700" : "bg-gray-200"
+                } rounded w-1/4 mb-2`}></div>
+                <div className={`h-4 ${
+                  darkMode ? "bg-gray-700" : "bg-gray-200"
+                } rounded mb-2`}></div>
+                <div className={`h-4 ${
+                  darkMode ? "bg-gray-700" : "bg-gray-200"
+                } rounded w-3/4`}></div>
               </div>
             </div>
           ))}
@@ -94,8 +109,12 @@ const ReviewList = ({ reviews, isLoading }) => {
   }
 
   return (
-    <div className="max-w-4xl mx-auto my-6 bg-white rounded-lg shadow-md p-6">
-      <h2 className="text-xl font-bold text-gray-800 mb-4">Reviews</h2>
+    <div className={`max-w-4xl mx-auto my-6 ${
+      darkMode ? "bg-gray-800" : "bg-white"
+    } rounded-lg shadow-md p-6`}>
+      <h2 className={`text-xl font-bold ${
+        darkMode ? "text-white" : "text-gray-800"
+      } mb-4`}>Reviews</h2>
 
       {/* Vertical Scrolling Container */}
       <div className="max-h-96 overflow-y-auto space-y-4 hide-scrollbar">
@@ -108,7 +127,9 @@ const ReviewList = ({ reviews, isLoading }) => {
             return (
               <div
                 key={review._id || index}
-                className="flex flex-col space-y-3 bg-gray-50 p-4 rounded-lg shadow-sm"
+                className={`flex flex-col space-y-3 ${
+                  darkMode ? "bg-gray-700" : "bg-gray-50"
+                } p-4 rounded-lg shadow-sm`}
               >
                 <div className="flex items-start space-x-4">
                   {/* Reviewer Image */}
@@ -120,10 +141,14 @@ const ReviewList = ({ reviews, isLoading }) => {
                   {/* Review Header */}
                   <div className="flex-1">
                     <div className="flex justify-between items-start">
-                      <h5 className="text-sm font-bold text-gray-800">
+                      <h5 className={`text-sm font-bold ${
+                        darkMode ? "text-white" : "text-gray-800"
+                      }`}>
                         {reviewerName}
                       </h5>
-                      <span className="text-xs text-gray-500">
+                      <span className={`text-xs ${
+                        darkMode ? "text-gray-400" : "text-gray-500"
+                      }`}>
                         {formatDate(review.createdAt)}
                       </span>
                     </div>
@@ -131,7 +156,9 @@ const ReviewList = ({ reviews, isLoading }) => {
                 </div>
 
                 {/* Review Content */}
-                <p className="text-sm text-gray-600 ml-16 -mt-1">
+                <p className={`text-sm ${
+                  darkMode ? "text-gray-300" : "text-gray-600"
+                } ml-16 -mt-1`}>
                   {review.content}
                 </p>
 
@@ -151,7 +178,7 @@ const ReviewList = ({ reviews, isLoading }) => {
           })
         ) : (
           <div className="text-center py-8">
-            <p className="text-gray-500">No reviews yet.</p>
+            <p className={`${darkMode ? "text-gray-400" : "text-gray-500"}`}>No reviews yet.</p>
           </div>
         )}
       </div>

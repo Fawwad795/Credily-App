@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, createContext, useContext } from "react";
 import { Link } from "react-router-dom";
 import SearchSlider from "../pages/SearchPage";
 import "../index.css"; // Updated path to reference index.css in the src directory
@@ -7,6 +7,38 @@ import NotificationBadge from "./NotificationBadge";
 import NavNotificationButton from "./NavNotificationButton";
 import { useSlider } from "../contexts/SliderContext";
 import ConnectionsSlider from "./ConnectionsSlider";
+
+// Create a context for dark mode
+export const ThemeContext = createContext();
+
+// ThemeProvider component
+export const ThemeProvider = ({ children }) => {
+  const [darkMode, setDarkMode] = useState(() => {
+    const savedTheme = localStorage.getItem("theme");
+    return savedTheme === "dark";
+  });
+
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add("dark");
+      localStorage.setItem("theme", "dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+      localStorage.setItem("theme", "light");
+    }
+  }, [darkMode]);
+
+  const toggleDarkMode = () => setDarkMode(prev => !prev);
+
+  return (
+    <ThemeContext.Provider value={{ darkMode, toggleDarkMode }}>
+      {children}
+    </ThemeContext.Provider>
+  );
+};
+
+// Hook to use the theme context
+export const useTheme = () => useContext(ThemeContext);
 
 // Define a Back Arrow SVG
 const BackArrowIcon = () => (
@@ -905,9 +937,10 @@ const Nav = ({ isChatViewActive, onChatBackClick }) => {
     openNotificationsSlider,
     closeSlider,
   } = useSlider();
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false); // State for mobile menu
-  const [isOverlayRendered, setIsOverlayRendered] = useState(false); // New state for delayed overlay rendering
-  const [isLoading, setIsLoading] = useState(false); // Add missing isLoading state
+  const { darkMode, toggleDarkMode } = useTheme();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isOverlayRendered, setIsOverlayRendered] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     let timerId;
@@ -1016,6 +1049,7 @@ const Nav = ({ isChatViewActive, onChatBackClick }) => {
         <div className="h-full flex flex-col overflow-y-auto">
           {/* Gradient header */}
           <div className="grad p-5 pb-6 text-white rounded-b-xl mb-2 shadow-md">
+                      <div className="flex items-center justify-between w-full">
             <div className="flex items-center">
               <img src="/logo.png" alt="Credily Logo" className="h-12 w-12 mr-3" />
               <div>
@@ -1025,6 +1059,31 @@ const Nav = ({ isChatViewActive, onChatBackClick }) => {
                 <p className="text-xs opacity-80  -mt-1">Building trust online</p>
               </div>
             </div>
+            {/* Dark Mode Toggle */}
+            <button
+              onClick={toggleDarkMode}
+              className="p-2 rounded-full text-white hover:bg-white/20 transition-colors"
+              aria-label="Toggle dark mode"
+            >
+              {darkMode ? (
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="5"></circle>
+                  <line x1="12" y1="1" x2="12" y2="3"></line>
+                  <line x1="12" y1="21" x2="12" y2="23"></line>
+                  <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                  <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                  <line x1="1" y1="12" x2="3" y2="12"></line>
+                  <line x1="21" y1="12" x2="23" y2="12"></line>
+                  <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                  <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                </svg>
+              ) : (
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                </svg>
+              )}
+            </button>
+          </div>
           </div>
 
           <ul className="space-y-1 p-3 font-medium">
