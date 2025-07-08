@@ -1,13 +1,116 @@
-# Credily App!
+# Credily App
 
-This project is structured into separate frontend and backend directories.
+A modern social media platform built with React and Node.js that enables users to connect, share posts, and interact with their network through an intuitive interface.
+
+## Project Description
+
+Credily is a full-stack social media application developed as part of the Web Technologies and Advanced Database Management Systems courses. The platform provides users with essential social networking features including user authentication, profile management, post creation and sharing, real-time interactions, and a responsive design that adapts to both light and dark themes.
+
+The application follows modern web development practices with a clean separation between frontend and backend services, implementing secure authentication, real-time data updates, and cloud-based media storage.
+
+<details>
+<summary>Features</summary>
+
+## Features
+
+- **User Authentication & Registration**
+
+  - Secure signup with username and phone number validation
+  - Real-time availability checking for usernames and phone numbers
+  - JWT-based authentication system
+  - Password encryption using bcrypt
+
+- **Profile Management**
+
+  - Customizable user profiles with profile picture upload
+  - Additional user information collection
+  - Profile editing capabilities
+
+- **Post Management**
+
+  - Create and share posts with text content
+  - Image upload support via Cloudinary integration
+  - Post interaction features (likes, comments)
+  - Real-time post updates
+
+- **User Interface**
+
+  - Responsive design for mobile and desktop
+  - Dark/Light theme toggle
+  - Modern glass-morphism design elements
+  - Intuitive navigation system
+
+- **Advanced Features**
+  - Sentiment analysis integration using Google Cloud services
+  - Real-time data validation
+  - Debounced API calls for optimal performance
+  - Cloud-based media storage
+
+</details>
+
+## Screenshots
+
+The following screenshots showcase the key features and interface of the Credily application:
+
+### Application Interface
+
+![Screenshot 1](screenshots/Screenshot%202025-07-08%20161650.png)
+
+![Screenshot 2](screenshots/Screenshot%202025-07-08%20161629.png)
+
+![Screenshot 3](screenshots/Screenshot%202025-07-08%20161840.png)
+
+_Screenshots demonstrate the user interface, featuring the login/registration system, main dashboard, post creation features, and the responsive design with dark/light theme support._
+
+<details>
+<summary>Tools & Technologies Used</summary>
+
+### Frontend
+
+- **React 18** - Modern JavaScript library for building user interfaces
+- **Vite** - Fast build tool and development server
+- **React Router DOM** - Client-side routing
+- **Tailwind CSS** - Utility-first CSS framework
+- **JavaScript (ES6+)** - Modern JavaScript features
+
+### Backend
+
+- **Node.js** - JavaScript runtime environment
+- **Express.js** - Web application framework
+- **MongoDB** - NoSQL database
+- **Mongoose** - MongoDB object modeling
+- **JWT** - JSON Web Tokens for authentication
+- **bcrypt** - Password hashing library
+- **Multer** - File upload middleware
+
+### Cloud Services & APIs
+
+- **MongoDB Atlas** - Cloud database service
+- **Cloudinary** - Cloud-based image and video management
+- **Google Cloud** - Sentiment analysis services
+
+### Development Tools
+
+- **npm** - Package manager
+- **dotenv** - Environment variable management
+- **CORS** - Cross-origin resource sharing
+- **Nodemon** - Development server auto-restart
+
+### Database Design
+
+- **MongoDB Collections** - Users, Posts, Comments, Interactions
+- **Indexing** - Optimized query performance
+- **Data Validation** - Schema validation and constraints
+
+</details>
+
+<details>
+<summary>Setup Instructions</summary>
 
 ## Project Structure
 
 - `frontend/` - React frontend built with Vite
 - `backend/` - Node.js backend
-
-## Setup Instructions
 
 ### Root Directory Setup
 
@@ -72,14 +175,14 @@ This project is structured into separate frontend and backend directories.
    node test-db-connection.js
    ```
 
-## Supporting Different Port Configurations
+### Supporting Different Port Configurations
 
 Some team members use port 4000, while others use port 5000. To avoid code conflicts:
 
 1. Use the environment variables in both frontend and backend as shown above
 2. Keep `.env` files in your `.gitignore` to avoid committing personal configurations
 
-## MongoDB Atlas Connection
+### MongoDB Atlas Connection
 
 Find your connection string from the list below:
 
@@ -100,15 +203,18 @@ Find your connection string from the list below:
 
 > Note: The MongoDB cluster allows connections from any IP address (0.0.0.0/0). For production, we should implement more restrictive access controls.
 
-## React + Vite
+</details>
 
-This template provides a minimal setup to get React working in Vite with HMR and ESLint rules.
+## Team Members
 
-Currently, two official plugins are available:
+- Jahanzeb Babar
+- Shaheer Saleh
+- Roshan Jalil
+- Syed Fawwad Ahmed
+- Syed Ali Hassan Jaffri
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Course Information
 
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+**Courses:** Web Technologies & Advanced Database Management Systems  
+**Semester:** 4th Semester  
+**Institution:** SEECS,

@@ -28,7 +28,7 @@ export const ThemeProvider = ({ children }) => {
     }
   }, [darkMode]);
 
-  const toggleDarkMode = () => setDarkMode(prev => !prev);
+  const toggleDarkMode = () => setDarkMode((prev) => !prev);
 
   return (
     <ThemeContext.Provider value={{ darkMode, toggleDarkMode }}>
@@ -100,11 +100,13 @@ const MenuIcon = () => (
 // Loading Screen Component
 const LoadingScreen = ({ message }) => {
   const { darkMode } = useTheme(); // Use theme context
-  
+
   return (
-    <div className={`fixed inset-0 ${
-      darkMode ? "bg-gray-900 bg-opacity-95" : "bg-white bg-opacity-95"
-    } flex flex-col items-center justify-center z-50`}>
+    <div
+      className={`fixed inset-0 ${
+        darkMode ? "bg-gray-900 bg-opacity-95" : "bg-white bg-opacity-95"
+      } flex flex-col items-center justify-center z-50`}
+    >
       <div className="flex space-x-3 mb-5">
         <div
           className="w-4 h-4 rounded-full grad animate-bounce shadow-md"
@@ -119,7 +121,13 @@ const LoadingScreen = ({ message }) => {
           style={{ animationDelay: "400ms" }}
         ></div>
       </div>
-      <p className={`${darkMode ? "text-gray-200" : "text-gray-700"} font-medium text-lg`}>{message}</p>
+      <p
+        className={`${
+          darkMode ? "text-gray-200" : "text-gray-700"
+        } font-medium text-lg`}
+      >
+        {message}
+      </p>
     </div>
   );
 };
@@ -691,15 +699,15 @@ const Notifications = ({ isOpen, onClose }) => {
           </button>
         </div>
       </div>
-
-            {/* Filter tabs */}      <div className={`flex text-sm`}>
+      {/* Filter tabs */}{" "}
+      <div className={`flex text-sm`}>
         <button
           className={`flex-1 py-2 px-3 font-medium ${
             activeTab === "all"
               ? `text-blue-600 border-b-2 border-blue-600`
-              : darkMode 
-                ? "text-gray-400 hover:bg-gray-700" 
-                : "text-gray-600 hover:bg-gray-50"
+              : darkMode
+              ? "text-gray-400 hover:bg-gray-700"
+              : "text-gray-600 hover:bg-gray-50"
           }`}
           onClick={() => setActiveTab("all")}
         >
@@ -709,9 +717,9 @@ const Notifications = ({ isOpen, onClose }) => {
           className={`flex-1 py-2 px-3 font-medium flex items-center justify-center ${
             activeTab === "requests"
               ? `text-blue-600 border-b-2 border-blue-600`
-              : darkMode 
-                ? "text-gray-400 hover:bg-gray-700" 
-                : "text-gray-600 hover:bg-gray-50"
+              : darkMode
+              ? "text-gray-400 hover:bg-gray-700"
+              : "text-gray-600 hover:bg-gray-50"
           }`}
           onClick={() => setActiveTab("requests")}
         >
@@ -726,9 +734,9 @@ const Notifications = ({ isOpen, onClose }) => {
           className={`flex-1 py-2 px-3 font-medium ${
             activeTab === "accepted"
               ? `text-blue-600 border-b-2 border-blue-600`
-              : darkMode 
-                ? "text-gray-400 hover:bg-gray-700" 
-                : "text-gray-600 hover:bg-gray-50"
+              : darkMode
+              ? "text-gray-400 hover:bg-gray-700"
+              : "text-gray-600 hover:bg-gray-50"
           }`}
           onClick={() => setActiveTab("accepted")}
         >
@@ -738,17 +746,20 @@ const Notifications = ({ isOpen, onClose }) => {
           className={`flex-1 py-2 px-3 font-medium ${
             activeTab === "other"
               ? `text-blue-600 border-b-2 border-blue-600`
-              : darkMode 
-                ? "text-gray-400 hover:bg-gray-700" 
-                : "text-gray-600 hover:bg-gray-50"
+              : darkMode
+              ? "text-gray-400 hover:bg-gray-700"
+              : "text-gray-600 hover:bg-gray-50"
           }`}
           onClick={() => setActiveTab("other")}
         >
           Other
         </button>
       </div>
-
-      <div className={`overflow-y-auto h-[calc(100%-8rem)] ${darkMode ? "bg-gray-800" : ""}`}>
+      <div
+        className={`overflow-y-auto h-[calc(100%-8rem)] ${
+          darkMode ? "bg-gray-800" : ""
+        }`}
+      >
         {loading ? (
           <div className="flex flex-col items-center justify-center h-full">
             <div className="flex space-x-2 mb-3">
@@ -765,7 +776,13 @@ const Notifications = ({ isOpen, onClose }) => {
                 style={{ animationDelay: "0.4s" }}
               ></div>
             </div>
-            <p className={`${darkMode ? "text-gray-400" : "text-gray-500"} text-sm`}>Loading notifications...</p>
+            <p
+              className={`${
+                darkMode ? "text-gray-400" : "text-gray-500"
+              } text-sm`}
+            >
+              Loading notifications...
+            </p>
           </div>
         ) : error ? (
           <div className="flex flex-col items-center justify-center h-full">
@@ -790,9 +807,13 @@ const Notifications = ({ isOpen, onClose }) => {
           </div>
         ) : displayedNotifications.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center p-6">
-            <div className={`w-16 h-16 rounded-full flex items-center justify-center ${
-              darkMode ? "bg-gray-700 text-gray-400" : "bg-gray-100 text-gray-400"
-            } mb-4`}>
+            <div
+              className={`w-16 h-16 rounded-full flex items-center justify-center ${
+                darkMode
+                  ? "bg-gray-700 text-gray-400"
+                  : "bg-gray-100 text-gray-400"
+              } mb-4`}
+            >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 width="28"
@@ -808,8 +829,18 @@ const Notifications = ({ isOpen, onClose }) => {
                 <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
               </svg>
             </div>
-            <p className={`${darkMode ? "text-gray-300" : "text-gray-500"} mb-1`}>No notifications to display</p>
-            <p className={`${darkMode ? "text-gray-500" : "text-gray-400"} text-sm`}>You're all caught up!</p>
+            <p
+              className={`${darkMode ? "text-gray-300" : "text-gray-500"} mb-1`}
+            >
+              No notifications to display
+            </p>
+            <p
+              className={`${
+                darkMode ? "text-gray-500" : "text-gray-400"
+              } text-sm`}
+            >
+              You're all caught up!
+            </p>
           </div>
         ) : (
           <div className="py-2">
@@ -819,8 +850,12 @@ const Notifications = ({ isOpen, onClose }) => {
                 key={notification._id}
                 className={`p-3 mx-2 my-1.5 rounded-lg transition-all duration-200 ${
                   notification.isRead
-                    ? darkMode ? "bg-gray-700" : "bg-white"
-                    : darkMode ? "bg-blue-900/30" : "bg-blue-50"
+                    ? darkMode
+                      ? "bg-gray-700"
+                      : "bg-white"
+                    : darkMode
+                    ? "bg-blue-900/30"
+                    : "bg-blue-50"
                 } hover:${darkMode ? "bg-gray-600" : "bg-gray-50"} border ${
                   darkMode ? "border-gray-600" : "border-gray-100"
                 } shadow-sm`}
@@ -831,17 +866,21 @@ const Notifications = ({ isOpen, onClose }) => {
                   {getNotificationIcon(notification.type)}
 
                   <div className="ml-3 flex-1">
-                    <h4 className={`font-medium ${
-                      darkMode ? "text-white" : "text-gray-900"
-                    } text-sm`}>
+                    <h4
+                      className={`font-medium ${
+                        darkMode ? "text-white" : "text-gray-900"
+                      } text-sm`}
+                    >
                       {notification.title}
                       {!notification.isRead && (
                         <span className="inline-block ml-2 w-2 h-2 rounded-full bg-blue-600"></span>
                       )}
                     </h4>
-                    <p className={`${
-                      darkMode ? "text-gray-300" : "text-gray-600"
-                    } text-sm mt-0.5`}>
+                    <p
+                      className={`${
+                        darkMode ? "text-gray-300" : "text-gray-600"
+                      } text-sm mt-0.5`}
+                    >
                       {notification.content}
                     </p>
 
@@ -881,8 +920,8 @@ const Notifications = ({ isOpen, onClose }) => {
                               handleRejectRequest(notification.referenceId);
                             }}
                             className={`px-3 py-1.5 ${
-                              darkMode 
-                                ? "bg-gray-600 hover:bg-gray-500 text-gray-200" 
+                              darkMode
+                                ? "bg-gray-600 hover:bg-gray-500 text-gray-200"
                                 : "bg-gray-100 hover:bg-gray-200 text-gray-700"
                             } text-xs font-medium rounded flex-1 flex items-center justify-center`}
                           >
@@ -907,9 +946,11 @@ const Notifications = ({ isOpen, onClose }) => {
                       )}
 
                     <div className="flex justify-between items-center mt-1.5">
-                      <small className={`${
-                        darkMode ? "text-gray-500" : "text-gray-400"
-                      } text-xs`}>
+                      <small
+                        className={`${
+                          darkMode ? "text-gray-500" : "text-gray-400"
+                        } text-xs`}
+                      >
                         {new Date(
                           notification.timestamp || notification.createdAt
                         ).toLocaleString("en-US", {
@@ -925,7 +966,9 @@ const Notifications = ({ isOpen, onClose }) => {
                           className={`text-xs px-2 py-0.5 rounded-full ${
                             notification.content.includes("You accepted")
                               ? "bg-gradient-to-r from-green-500 to-green-600 text-white font-medium"
-                              : darkMode ? "bg-green-800/60 text-green-300" : "bg-green-50 text-green-600"
+                              : darkMode
+                              ? "bg-green-800/60 text-green-300"
+                              : "bg-green-50 text-green-600"
                           }`}
                         >
                           {notification.content.includes("You accepted")
@@ -939,7 +982,9 @@ const Notifications = ({ isOpen, onClose }) => {
                           className={`text-xs px-2 py-0.5 rounded-full ${
                             notification.content.includes("You declined")
                               ? "bg-gradient-to-r from-red-500 to-red-600 text-white font-medium"
-                              : darkMode ? "bg-red-800/60 text-red-300" : "bg-red-50 text-red-600"
+                              : darkMode
+                              ? "bg-red-800/60 text-red-300"
+                              : "bg-red-50 text-red-600"
                           }`}
                         >
                           {notification.content.includes("You declined")
@@ -1041,8 +1086,8 @@ const Nav = ({ isChatViewActive, onChatBackClick }) => {
         <button
           onClick={onChatBackClick}
           className={`sm:hidden fixed top-4 left-4 z-50 p-2 rounded-full ${
-            darkMode 
-              ? "text-gray-200 bg-gray-800 shadow-md hover:bg-gray-700" 
+            darkMode
+              ? "text-gray-200 bg-gray-800 shadow-md hover:bg-gray-700"
               : "text-gray-700 bg-white shadow-md hover:bg-gray-100"
           } focus:outline-none focus:ring-2 focus:ring-inset focus:ring-purple-500`}
           aria-label="Back to chat list"
@@ -1055,8 +1100,8 @@ const Nav = ({ isChatViewActive, onChatBackClick }) => {
           <button
             onClick={() => setIsMobileMenuOpen((prev) => !prev)}
             className={`sm:hidden fixed top-4 z-50 p-2 rounded-md ${
-              darkMode 
-                ? "text-gray-200 bg-gray-800 shadow-md hover:bg-gray-700" 
+              darkMode
+                ? "text-gray-200 bg-gray-800 shadow-md hover:bg-gray-700"
                 : "text-gray-700 bg-white shadow-md hover:bg-gray-100"
             } focus:outline-none focus:ring-2 focus:ring-inset focus:ring-purple-500 ${
               isMobileMenuOpen ? "right-4" : "left-4"
@@ -1065,20 +1110,30 @@ const Nav = ({ isChatViewActive, onChatBackClick }) => {
           >
             {isMobileMenuOpen ? <XIcon /> : <MenuIcon />}
           </button>
-          
+
           {/* Dark Mode Toggle in Mobile View - Only show when menu is open */}
           {isMobileMenuOpen && (
             <button
               onClick={toggleDarkMode}
               className={`sm:hidden fixed top-4 right-16 z-50 p-2 rounded-full ${
-                darkMode 
-                  ? "text-gray-200 bg-gray-800 shadow-md hover:bg-gray-700" 
+                darkMode
+                  ? "text-gray-200 bg-gray-800 shadow-md hover:bg-gray-700"
                   : "text-gray-700 bg-white shadow-md hover:bg-gray-100"
               } focus:outline-none focus:ring-2 focus:ring-inset focus:ring-purple-500`}
               aria-label="Toggle dark mode"
             >
               {darkMode ? (
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
                   <circle cx="12" cy="12" r="5"></circle>
                   <line x1="12" y1="1" x2="12" y2="3"></line>
                   <line x1="12" y1="21" x2="12" y2="23"></line>
@@ -1090,7 +1145,17 @@ const Nav = ({ isChatViewActive, onChatBackClick }) => {
                   <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
                 </svg>
               ) : (
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
                   <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
                 </svg>
               )}
@@ -1125,12 +1190,13 @@ const Nav = ({ isChatViewActive, onChatBackClick }) => {
           <div className="grad p-5 pb-6 text-white rounded-b-xl mb-2 shadow-md">
             <div className="flex items-center justify-between w-full">
               <div className="flex items-center">
-                <img src="/logo.png" alt="Credily Logo" className="h-12 w-12 mr-3" />
                 <div>
                   <h2 className="text-2xl font-bold font-handsome tracking-wide">
                     Credily
                   </h2>
-                  <p className="text-xs opacity-80  -mt-1">Building trust online</p>
+                  <p className="text-xs opacity-80  -mt-1">
+                    Building trust online
+                  </p>
                 </div>
               </div>
               {/* Dark Mode Toggle */}
@@ -1140,7 +1206,17 @@ const Nav = ({ isChatViewActive, onChatBackClick }) => {
                 aria-label="Toggle dark mode"
               >
                 {darkMode ? (
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
                     <circle cx="12" cy="12" r="5"></circle>
                     <line x1="12" y1="1" x2="12" y2="3"></line>
                     <line x1="12" y1="21" x2="12" y2="23"></line>
@@ -1152,7 +1228,17 @@ const Nav = ({ isChatViewActive, onChatBackClick }) => {
                     <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
                   </svg>
                 ) : (
-                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
                     <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
                   </svg>
                 )}
@@ -1167,17 +1253,19 @@ const Nav = ({ isChatViewActive, onChatBackClick }) => {
                 className={`flex items-center p-3 rounded-lg transition-all duration-200 cursor-pointer ${
                   activeItem === "profile"
                     ? "grad text-white shadow-md"
-                    : darkMode 
-                      ? "text-gray-200 hover:bg-gray-700" 
-                      : "text-gray-700 hover:bg-gradient-to-r hover:from-purple-50 hover:to-red-50"
+                    : darkMode
+                    ? "text-gray-200 hover:bg-gray-700"
+                    : "text-gray-700 hover:bg-gradient-to-r hover:from-purple-50 hover:to-red-50"
                 }`}
                 onClick={() => handleMenuItemClick("profile")}
               >
                 <svg
                   className={`w-5 h-5 ${
-                    activeItem === "profile" 
-                      ? "text-white" 
-                      : darkMode ? "text-gray-400" : "text-gray-500"
+                    activeItem === "profile"
+                      ? "text-white"
+                      : darkMode
+                      ? "text-gray-400"
+                      : "text-gray-500"
                   } transition duration-75`}
                   aria-hidden="true"
                   xmlns="http://www.w3.org/2000/svg"
@@ -1201,17 +1289,19 @@ const Nav = ({ isChatViewActive, onChatBackClick }) => {
                 className={`flex items-center p-3 rounded-lg transition-all duration-200 cursor-pointer ${
                   activeItem === "home"
                     ? "grad text-white shadow-md"
-                    : darkMode 
-                      ? "text-gray-200 hover:bg-gray-700" 
-                      : "text-gray-700 hover:bg-gradient-to-r hover:from-purple-50 hover:to-red-50"
+                    : darkMode
+                    ? "text-gray-200 hover:bg-gray-700"
+                    : "text-gray-700 hover:bg-gradient-to-r hover:from-purple-50 hover:to-red-50"
                 }`}
                 onClick={() => handleMenuItemClick("home")}
               >
                 <svg
                   className={`w-5 h-5 ${
-                    activeItem === "home" 
-                      ? "text-white" 
-                      : darkMode ? "text-gray-400" : "text-gray-500"
+                    activeItem === "home"
+                      ? "text-white"
+                      : darkMode
+                      ? "text-gray-400"
+                      : "text-gray-500"
                   } transition duration-75`}
                   aria-hidden="true"
                   xmlns="http://www.w3.org/2000/svg"
@@ -1235,16 +1325,18 @@ const Nav = ({ isChatViewActive, onChatBackClick }) => {
                 className={`w-full flex items-center p-3 rounded-lg transition-all duration-200 cursor-pointer ${
                   activeItem === "search"
                     ? "grad text-white shadow-md"
-                    : darkMode 
-                      ? "text-gray-200 hover:bg-gray-700" 
-                      : "text-gray-700 hover:bg-gradient-to-r hover:from-purple-50 hover:to-red-50"
+                    : darkMode
+                    ? "text-gray-200 hover:bg-gray-700"
+                    : "text-gray-700 hover:bg-gradient-to-r hover:from-purple-50 hover:to-red-50"
                 }`}
               >
                 <svg
                   className={`w-5 h-5 ${
-                    activeItem === "search" 
-                      ? "text-white" 
-                      : darkMode ? "text-gray-400" : "text-gray-500"
+                    activeItem === "search"
+                      ? "text-white"
+                      : darkMode
+                      ? "text-gray-400"
+                      : "text-gray-500"
                   } transition duration-75`}
                   aria-hidden="true"
                   xmlns="http://www.w3.org/2000/svg"
@@ -1268,17 +1360,19 @@ const Nav = ({ isChatViewActive, onChatBackClick }) => {
                 className={`flex items-center p-3 rounded-lg transition-all duration-200 cursor-pointer ${
                   activeItem === "messages"
                     ? "grad text-white shadow-md"
-                    : darkMode 
-                      ? "text-gray-200 hover:bg-gray-700" 
-                      : "text-gray-700 hover:bg-gradient-to-r hover:from-purple-50 hover:to-red-50"
+                    : darkMode
+                    ? "text-gray-200 hover:bg-gray-700"
+                    : "text-gray-700 hover:bg-gradient-to-r hover:from-purple-50 hover:to-red-50"
                 }`}
                 onClick={() => handleMenuItemClick("messages")}
               >
                 <svg
                   className={`w-5 h-5 ${
-                    activeItem === "messages" 
-                      ? "text-white" 
-                      : darkMode ? "text-gray-400" : "text-gray-500"
+                    activeItem === "messages"
+                      ? "text-white"
+                      : darkMode
+                      ? "text-gray-400"
+                      : "text-gray-500"
                   } transition duration-75`}
                   aria-hidden="true"
                   xmlns="http://www.w3.org/2000/svg"
@@ -1304,9 +1398,9 @@ const Nav = ({ isChatViewActive, onChatBackClick }) => {
                 className={`w-full flex items-center p-3 rounded-lg transition-all duration-200 cursor-pointer ${
                   activeItem === "notifications"
                     ? "grad text-white shadow-md"
-                    : darkMode 
-                      ? "text-gray-200 hover:bg-gray-700" 
-                      : "text-gray-700 hover:bg-gradient-to-r hover:from-purple-50 hover:to-red-50"
+                    : darkMode
+                    ? "text-gray-200 hover:bg-gray-700"
+                    : "text-gray-700 hover:bg-gradient-to-r hover:from-purple-50 hover:to-red-50"
                 }`}
               >
                 <NavNotificationButton
@@ -1324,13 +1418,15 @@ const Nav = ({ isChatViewActive, onChatBackClick }) => {
                 setIsMobileMenuOpen(false); // Close menu on signout
               }}
               className={`w-full flex items-center p-3 rounded-lg ${
-                darkMode 
-                  ? "text-gray-200 hover:bg-gray-700" 
+                darkMode
+                  ? "text-gray-200 hover:bg-gray-700"
                   : "text-gray-700 hover:bg-gradient-to-r hover:from-purple-50 hover:to-red-50"
               } transition-all duration-200 cursor-pointer`}
             >
               <svg
-                className={`w-5 h-5 ${darkMode ? "text-gray-400" : "text-gray-500"}`}
+                className={`w-5 h-5 ${
+                  darkMode ? "text-gray-400" : "text-gray-500"
+                }`}
                 aria-hidden="true"
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
