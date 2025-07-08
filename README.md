@@ -204,17 +204,3 @@ Find your connection string from the list below:
 > Note: The MongoDB cluster allows connections from any IP address (0.0.0.0/0). For production, we should implement more restrictive access controls.
 
 </details>
-
-## Team Members
-
-- Jahanzeb Babar
-- Shaheer Saleh
-- Roshan Jalil
-- Syed Fawwad Ahmed
-- Syed Ali Hassan Jaffri
-
-## Course Information
-
-**Courses:** Web Technologies & Advanced Database Management Systems  
-**Semester:** 4th Semester  
-**Institution:** SEECS,
